@@ -114,6 +114,9 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 | `factory:plan <block>` | 2 Plan | `settled-architecture`, `openspec-propose`, `openspec validate --strict`, spec PR, `project-manager` Issue, link both |
 | `factory:build #N` | 3 Build, 4 Verify | `next-task`, worktree check, `superpowers:writing-plans`, `superpowers:test-driven-development`, `factory:test`, `openspec-archive-change`, PR, `factory:review` |
 | `factory:test` | Verify | Every CI gate locally with real exit codes, spec scenario coverage, deploy smoke test, latency numbers |
+| `factory:pause [#N]` | Build | Saves the branch, posts a handoff comment, labels the Issue `paused` |
+| `factory:resume [#N]` | Build | Restores the worktree from the branch, re-runs the gates, continues `factory:build` from the recorded step |
+| `factory:cleanup` | Housekeeping | Removes local worktrees and branches whose PR merged and tree is clean; lists remote branches to delete |
 | `factory:review <pr>` | 5 Review | Matt `code-review`, the definition of done checklist, blocking vs non-blocking, one PR comment |
 
 Single-skill stations need no wrapper: intake (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
