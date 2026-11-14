@@ -1,0 +1,140 @@
+defmodule MayaWeb.TalkLiveTest do
+  # Not async: the screen talks to the one "main" Conversation (shared sandbox and stubs).
+  use MayaWeb.ConnCase, async: false
+
+  import Phoenix.LiveViewTest
+
+  alias Maya.Repo
+  alias Maya.Voice.Turn
+
+  setup {Req.Test, :set_req_test_to_shared}
+
+  setup do
+    on_exit(fn -> Maya.Conversation.stop("main") end)
+  end
+
+  defp sse(type, extra),
+    do: "event: #{type}\ndata: #{Jason.encode!(Map.put(extra, "type", type))}\n\n"
+
+  defp stub(stt, tts) do
+    Req.Test.stub(Maya.Mistral, fn
+      %{request_path: "/v1/audio/transcriptions"} = conn -> stt.(conn)
+      %{request_path: "/v1/audio/speech"} = conn -> tts.(conn)
+    end)
+  end
+
+  defp text(text), do: &Req.Test.json(&1, %{"text" => text})
+
+  defp speak(conn) do
+    body =
+      sse("speech.audio.delta", %{"audio_data" => Base.encode64(<<1, 2>>)}) <>
+        sse("speech.audio.done", %{})
+
+    Plug.Conn.send_resp(conn, 200, body)
+  end
+
+  defp ask(view) do
+    view
+    |> file_input("#question-form", :question, [
+      %{name: "question.wav", content: "RIFFclip", type: "audio/wav"}
+    ])
+    |> render_upload("question.wav")
+  end
+
+  test "the Talk button starts idle and is bound to the Talk hook", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#talk-button[data-state='idle'][phx-hook='TalkHook']")
+    assert has_element?(view, "#talk-button[data-sample-rate='24000']")
+    refute has_element?(view, "#conversation .turn")
+  end
+
+  test "the upload accepts one clip of at most 1 MB", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    assert has_element?(view, "#question-form input[type=file]:not([multiple])")
+
+    big =
+      file_input(view, "#question-form", :question, [
+        %{name: "question.wav", content: :binary.copy("a", 1_000_001), type: "audio/wav"}
+      ])
+
+    assert {:error, [[_ref, :too_large]]} = render_upload(big, "question.wav")
+  end
+
+  test "one upload is transcribed, echoed, spoken and shown", %{conn: conn} do
+    stub(text("Where is Ralts"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    ask(view)
+
+    assert_push_event(view, "heard", %{})
+    assert_push_event(view, "audio", %{pcm: pcm})
+    assert Base.decode64!(pcm) == <<1, 2>>
+    assert_push_event(view, "audio_done", %{})
+
+    assert view |> element("#conversation .turn .question") |> render() =~ "Where is Ralts"
+    assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
+    refute has_element?(view, "#badge-case")
+    # A call returns only after the Conversation stored the turn.
+    _ = Maya.Conversation.turns("main")
+    assert [%Turn{question: "Where is Ralts"}] = Turn.recent()
+  end
+
+  test "playback timings are stored, junk values are dropped", %{conn: conn} do
+    stub(text("Where is Ralts"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/")
+    ask(view)
+    assert_push_event(view, "audio_done", %{})
+    _ = render(view)
+
+    view
+    |> element("#talk-button")
+    |> render_hook("playback_started", %{"mic_release_ms" => 180, "playback_start_ms" => "soon"})
+
+    _ = Maya.Conversation.turns("main")
+    assert [%Turn{mic_release_ms: 180, playback_start_ms: nil}] = Repo.all(Turn)
+  end
+
+  test "barge-in keeps the Answer as text and marks it cut", %{conn: conn} do
+    me = self()
+
+    stub(text("Where is Ralts"), fn conn ->
+      send(me, :speaking)
+      Process.sleep(:infinity)
+      conn
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    ask(view)
+    assert_receive :speaking
+
+    view |> element("#talk-button") |> render_hook("barge_in", %{})
+
+    _ = Maya.Conversation.turns("main")
+    assert view |> element("#conversation .turn .cut") |> render() =~ "cut short"
+    assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
+  end
+
+  test "TTS down shows the Answer with a voice is down note", %{conn: conn} do
+    stub(text("Where is Ralts"), &Plug.Conn.send_resp(&1, 503, "down"))
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    ask(view)
+
+    assert_push_event(view, "voice_down", %{})
+    assert view |> element("#conversation .turn .voice-down") |> render() =~ "voice is down"
+    assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
+    refute has_element?(view, "#voice-down")
+  end
+
+  test "STT down shows the voice is down note on its own", %{conn: conn} do
+    stub(&Plug.Conn.send_resp(&1, 500, "down"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    ask(view)
+
+    assert_push_event(view, "voice_down", %{})
+    assert view |> element("#voice-down") |> render() =~ "voice is down"
+    refute has_element?(view, "#conversation .turn")
+  end
+end

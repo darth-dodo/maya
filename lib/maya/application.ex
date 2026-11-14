@@ -12,14 +12,17 @@ defmodule Maya.Application do
       Maya.Repo,
       {DNSCluster, query: Application.get_env(:maya, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Maya.PubSub},
-      # Start a worker by calling: Maya.Worker.start_link(arg)
-      # {Maya.Worker, arg},
+      # The voice loop (ARCHITECTURE.md 2): one Conversation, found by name, its turn work in Tasks.
+      {Registry, keys: :unique, name: Maya.ConversationRegistry},
+      {DynamicSupervisor, name: Maya.ConversationSupervisor, strategy: :one_for_one},
+      {Task.Supervisor, name: Maya.TaskSupervisor},
       # Start to serve requests, typically the last entry
       MayaWeb.Endpoint
     ]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
+    Maya.Voice.Timing.attach()
     opts = [strategy: :one_for_one, name: Maya.Supervisor]
     Supervisor.start_link(children, opts)
   end

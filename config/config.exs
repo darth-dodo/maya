@@ -11,6 +11,20 @@ config :maya,
   ecto_repos: [Maya.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Voice loop (ARCHITECTURE.md 5). Models: https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats
+config :maya, :voice,
+  stt_model: "voxtral-mini-transcribe-3",
+  tts_model: "voxtral-mini-tts-3-0",
+  # Preset "Sky" (en_GB, female), chosen by ear 2026-11-14; ids from GET /v1/audio/voices.
+  tts_voice: "01a135c4-d896-70d9-a498-2db10c5915ff",
+  # Generated speech is mono at 24 kHz (Mistral audio formats page); the hook plays at this rate.
+  tts_sample_rate: 24_000,
+  stt_timeout_ms: 8_000,
+  tts_timeout_ms: 8_000
+
+# Mistral HTTP client; the key is set in config/runtime.exs, tests stub with Req.Test.
+config :maya, :mistral, base_url: "https://api.mistral.ai", req_options: []
+
 # Configure the endpoint
 config :maya, MayaWeb.Endpoint,
   url: [host: "localhost"],

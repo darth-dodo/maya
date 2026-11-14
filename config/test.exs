@@ -20,6 +20,12 @@ config :maya, MayaWeb.Endpoint,
   secret_key_base: "3KEhfrHkhiDvmxL+qWyQDd9JnyD7qnyI/XW4MkuVB2TEDTSKruevm2NW3OBb1CJ8",
   server: false
 
+# Mistral calls never leave the test process (Req.Test stubs named Maya.Mistral).
+config :maya, :mistral,
+  base_url: "http://mistral.test",
+  api_key: "test-key",
+  req_options: [plug: {Req.Test, Maya.Mistral}, retry: false]
+
 # In test we don't send emails
 config :maya, Maya.Mailer, adapter: Swoosh.Adapters.Test
 

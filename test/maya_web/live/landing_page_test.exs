@@ -1,7 +1,9 @@
-defmodule MayaWeb.PageControllerTest do
+defmodule MayaWeb.LandingPageTest do
   use MayaWeb.ConnCase, async: true
 
-  # Scenarios from openspec/specs/landing-page/spec.md
+  alias Maya.Voice.Turn
+
+  # Scenarios from openspec/specs/landing-page/spec.md, on the Talk screen's first (dead) render.
 
   @tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
   @leaders ~w(Roxanne Brawly Wattson Flannery Norman Winona Tate Liza Juan)
@@ -124,5 +126,15 @@ defmodule MayaWeb.PageControllerTest do
         do: assert(String.starts_with?(ref, "/") and not String.starts_with?(ref, "//"), ref)
 
     assert count(html, "img") == 0
+  end
+
+  test "badge case and Poke facts hide once the Conversation has a turn", %{conn: conn} do
+    {:ok, _} = Turn.insert(%Turn{question: "Where is Ralts", answer: "Route 102"})
+    html = home(conn)
+
+    assert count(html, "#badge-case") == 0
+    assert count(html, "#poke-facts") == 0
+    assert text_of(html, "#conversation .turn .question") == "Where is Ralts"
+    assert text_of(html, "#conversation .turn .answer") == "Route 102"
   end
 end
