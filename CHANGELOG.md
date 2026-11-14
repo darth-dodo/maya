@@ -3,7 +3,7 @@
 All notable changes to Maya are listed here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), ending with the PR number.
+PRs add a fragment in `changelog.d/` (see its README) instead of editing this file; `release-manager` folds fragments in at release time. The lines under `Unreleased` below predate fragments.
 
 ## [Unreleased]
 

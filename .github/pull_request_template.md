@@ -7,7 +7,7 @@ Closes #
 <!-- One line per "done when" item: the command, curl or screenshot that proves it. -->
 - [ ] `mix precommit` and `mix credo` green locally
 - [ ] OpenSpec change archived (`openspec-archive-change`), if the Issue has one
-- [ ] `CHANGELOG.md` updated under `Unreleased`
+- [ ] Changelog fragment added in `changelog.d/` (not `CHANGELOG.md`)
 - [ ] PR title is a Conventional Commit (`feat:`, `fix:`, ...)
 
 ## Latency (only if the voice loop changed)

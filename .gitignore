@@ -44,3 +44,6 @@ npm-debug.log
 
 # Claude Code worktrees (factory builders)
 /.claude/worktrees/
+
+# Playwright MCP screenshots and traces
+/.playwright-mcp/

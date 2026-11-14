@@ -70,6 +70,7 @@ Ask me before: choosing Render plan tier, any paid service, or changing the froz
 
 ## Rules
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
+- Factory freeze (decided 2026-11-14): after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships. Next is F2 (PRODUCT.md). The planned `onboarding` and `coverage-88` changes wait until after Block 1. New factory ideas go to PHASE_2.md.
 - Cut order: embeddings, journal, dials (Telegram digest and watcher already in PHASE_2.md).
 - Voice fallback: browser Web Speech API.
 - TDD via Superpowers only. Do not use Matt `tdd`. Enforced: `.claude/settings.json` denies `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs` (Superpowers owns build and debug).
@@ -87,7 +88,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 
 ## Factory conventions
 - Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
-- Every PR adds its lines to `CHANGELOG.md` under `Unreleased`, ending with the PR number.
+- Every PR adds a changelog fragment `changelog.d/<branch-with-dashes>.md` (lines like `Added: ...`, no PR number). Never edit `CHANGELOG.md` in a feature PR; `release-manager` folds fragments in.
 - Factory entry points: `factory:plan`, `factory:build`, `factory:test`, `factory:review`, plus `factory:pause`, `factory:resume`, `factory:cleanup` (FACTORY.md "Skills by station").
 - Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes), `herdr` (optional, only inside a Herdr pane), `quiz-me` (5 question spaced-repetition quiz on the codebase; log in `~/coding-tutor-tutorials/maya/`).
 - New ideas: one line in `PHASE_2.md`.
