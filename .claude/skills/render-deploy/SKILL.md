@@ -45,6 +45,7 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 
 | Symptom | Likely cause |
 |---|---|
+| Deploy fails with `SECRET_KEY_BASE is N bytes, needs at least 64` | Key empty or truncated. Regenerate with `mix phx.gen.secret` and paste the whole value |
 | Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
 | Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused |
 | `ssl` or `certificate` errors | Supabase rotated its CA: download the new one (Database Settings > SSL Configuration) into `priv/certs/` and update the path in `config/runtime.exs` |

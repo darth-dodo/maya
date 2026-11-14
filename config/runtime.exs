@@ -70,6 +70,12 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # The session cookie needs 64+ bytes. Failing at boot keeps Render on the last good deploy
+  # instead of going live and answering 500 on every page.
+  if byte_size(secret_key_base) < 64 do
+    raise "SECRET_KEY_BASE is #{byte_size(secret_key_base)} bytes, needs at least 64. Generate one with: mix phx.gen.secret"
+  end
+
   # LiveView only accepts sockets from this host, so fall back to the hostname Render sets.
   host = System.get_env("PHX_HOST") || System.get_env("RENDER_EXTERNAL_HOSTNAME") || "example.com"
 
