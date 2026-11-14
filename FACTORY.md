@@ -153,7 +153,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 | Secret | Lives in |
 |---|---|
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | GitHub Actions secrets, local `.env` |
-| `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` | Render env, local `.env` |
+| `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` | Render env, local `.env`. `MISTRAL_API_KEY` is read in `config/runtime.exs`; missing means "voice is down" |
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |

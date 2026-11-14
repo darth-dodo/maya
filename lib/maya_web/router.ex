@@ -31,7 +31,7 @@ defmodule MayaWeb.Router do
   scope "/", MayaWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", TalkLive
   end
 
   # Other scopes may use custom stacks.
