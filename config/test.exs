@@ -26,12 +26,6 @@ config :maya, :mistral,
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.Mistral}, retry: false]
 
-# In test we don't send emails
-config :maya, Maya.Mailer, adapter: Swoosh.Adapters.Test
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
-
 # Print only warnings and errors during test
 config :logger, level: :warning
 

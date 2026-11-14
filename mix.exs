@@ -13,9 +13,11 @@ defmodule Maya.MixProject do
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       # Coverage floor (spec: delivery-pipeline "Test coverage floor"): only ever raise it.
+      # Maya.LcovCoverage also writes cover/lcov.info for the Codecov upload in CI.
       test_coverage: [
-        summary: [threshold: 67],
-        ignore_modules: [Maya.DataCase, MayaWeb.ConnCase, Maya.Release]
+        tool: Maya.LcovCoverage,
+        summary: [threshold: 89],
+        ignore_modules: [Maya.DataCase, MayaWeb.ConnCase, Maya.LcovCoverage, Maya.Release]
       ]
     ]
   end
@@ -73,13 +75,11 @@ defmodule Maya.MixProject do
        app: false,
        compile: false,
        depth: 1},
-      {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"}
     ]
   end
