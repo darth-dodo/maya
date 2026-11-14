@@ -11,7 +11,7 @@ A release is a version label on code already merged to main. Render deploys on e
 
 - `git fetch origin` and work from `origin/main`.
 - CI on latest main is green: `gh run list --branch main --limit 1 --json conclusion,headSha`.
-- `## [Unreleased]` in `CHANGELOG.md` has at least one entry.
+- There is something to release: lines under `## [Unreleased]` in `CHANGELOG.md` or fragments in `changelog.d/` (other than README.md).
 
 ## 2. Pick the version (SemVer, pre-1.0)
 
@@ -26,12 +26,13 @@ A release is a version label on code already merged to main. Render deploys on e
 
 1. `git worktree add ../maya-release-vX.Y.Z -b chore/release-vX.Y.Z origin/main`
 2. `mix.exs`: set `version: "X.Y.Z"`.
-3. `CHANGELOG.md`: rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (today), add an empty `## [Unreleased]` above it, and keep these links at the bottom:
+3. Fold fragments: for each `changelog.d/*.md` except README.md, find its PR with `git log --diff-filter=A --format=%s -- <file>` (the squash title ends in `(#N)`), add each line to the matching section (`Added`, `Changed`, `Fixed`, `Removed`) under `## [Unreleased]` with ` (#N)` appended, then `git rm` the fragment.
+4. `CHANGELOG.md`: rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (today), add an empty `## [Unreleased]` above it, and keep these links at the bottom:
    - `[Unreleased]: https://github.com/darth-dodo/maya/compare/vX.Y.Z...HEAD`
    - `[X.Y.Z]: https://github.com/darth-dodo/maya/compare/vPREV...vX.Y.Z` (first release: `https://github.com/darth-dodo/maya/releases/tag/vX.Y.Z`)
-4. `mix precommit` green.
-5. PR title `chore(release): vX.Y.Z`, body = that version's changelog section.
-6. Stop. Abhishek merges.
+5. `mix precommit` green.
+6. PR title `chore(release): vX.Y.Z`, body = that version's changelog section.
+7. Stop. Abhishek merges.
 
 ## 4. After the merge
 
