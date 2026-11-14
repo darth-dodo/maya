@@ -32,7 +32,8 @@ if [ "$live" = "$HEAD_SHA" ]; then
     if [ "$status" != "200" ]; then problem="$SITE$path answered $status"; break; fi
   done
 else
-  age=$(( $(date -u +%s) - $(to_epoch "$HEAD_TIME" || echo 0) ))
+  t="$(to_epoch "$HEAD_TIME")" || { echo "skip: cannot parse HEAD_TIME '$HEAD_TIME'"; exit 0; }
+  age=$(( $(date -u +%s) - t ))
   if [ "$age" -gt "$LIMIT_SECONDS" ]; then
     problem="not live after 20 minutes (live: ${live:-none})"
   else
@@ -55,7 +56,11 @@ Run: $run
 
 If the deploy never went live, check the Render events for this commit."
 
-open="$(gh issue list --repo "$REPO" --state open --search "$short in:title" --json number --jq length 2>/dev/null || echo 0)"
+open="$(gh issue list --repo "$REPO" --state open --search "$short in:title" --json number --jq length 2>/dev/null || echo unknown)"
+if [ "$open" = "unknown" ]; then
+  echo "could not check for an open Issue for $short, skipping to avoid a duplicate"
+  exit 0
+fi
 if [ "${open:-0}" -gt 0 ]; then
   echo "Issue already open for $short, not opening another"
 elif [ "${DRY_RUN:-}" = "1" ]; then
