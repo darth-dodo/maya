@@ -104,14 +104,11 @@
 
 /* This file is for your main application CSS */
 
-/* Poke Ball palette, hero only, so the daisyUI themes stay intact */
-:root {
+/* Poke Ball palette, scoped to the hero so the daisyUI themes stay intact */
+.maya-hero {
   --pokeball-red: #e3350d;
   --pokeball-white: #f8f8f8;
   --pokeball-black: #1a1a1a;
-}
-
-.maya-hero {
   border: 4px solid var(--pokeball-black);
   border-top: 1rem solid var(--pokeball-red);
   background: var(--pokeball-white);

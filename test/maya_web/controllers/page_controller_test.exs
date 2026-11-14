@@ -34,6 +34,9 @@ defmodule MayaWeb.PageControllerTest do
 
     # The page must use the app layout, so this test covers its header too.
     assert count(html, "header") == 1
+    assert text_of(html, "header a[href='/']") == "Maya"
+    assert count(html, "header [data-phx-theme]") == 3
+    refute html =~ to_string(Application.spec(:phoenix, :vsn))
     refute html =~ "Peace of mind from prototype to production"
     refute html =~ "Phoenix Framework"
     refute html =~ "github.com/phoenixframework"
