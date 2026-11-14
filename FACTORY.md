@@ -118,8 +118,19 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 | `factory:resume [#N]` | Build | Restores the worktree from the branch, re-runs the gates, continues `factory:build` from the recorded step |
 | `factory:cleanup` | Housekeeping | Removes local worktrees and branches whose PR merged and tree is clean; lists remote branches to delete |
 | `factory:review <pr>` | 5 Review | Matt `code-review`, the definition of done checklist, blocking vs non-blocking, one PR comment |
+| `factory:retro <pr>` | After 7 Gate | Metrics row and one lesson for the merged Issue in `~/maya-factory/`; no PR |
+| `factory:improve` | Flywheel | Every 5 retros: medians, worst metric, ONE experiment PR, keep or revert the last one, folds lessons into `docs/factory/LESSONS.md` |
+| `factory:recap` | Any time | Under 15 lines: merged PRs, open Issues and blockers, main CI, metric trend, new lessons, gym reminder; writes nothing |
 
 Single-skill stations need no wrapper: intake (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
+
+## Flywheel
+
+Every merged PR makes the factory a little better, measured, one change at a time.
+- `factory:retro <pr>` (run by `factory:build` step 11): one metrics row per Issue in `~/maya-factory/metrics.csv` and a retro file `~/maya-factory/retros/<issue>.md` with one lesson. Raw data stays outside the repo, like the `quiz-me` log.
+- `factory:improve` (every 5 retros): compares medians of the last 5 vs the 5 before, opens ONE experiment PR for the worst metric and logs it in `docs/factory/experiments.md`; after the next 5 it keeps or reverts it. It also folds lessons into `docs/factory/LESSONS.md`, which `factory:build` reads at step 4.
+- `factory:recap`: the on-demand digest that replaces the 21:00 Telegram digest (PHASE_2.md).
+- The repo only changes through `factory:improve` PRs; local data lost with the machine is acceptable.
 
 ## Runtime
 
@@ -136,7 +147,7 @@ Optional, Herdr (devex): the same roles as panes, with one sidebar of agent stat
 - Agents control Herdr only from inside a Herdr pane (`HERDR_ENV=1`). Commands: `.claude/skills/herdr/SKILL.md` (from `herdr --skill`, Herdr 0.9.5).
 
 ## Telegram watcher: moved to PHASE_2.md (2026-11-14)
-Remote Control (blocked sessions, push notifications) and the GitHub mobile app (merge) cover the human gate. The daily digest is the `project-manager` status report.
+Remote Control (blocked sessions, push notifications) and the GitHub mobile app (merge) cover the human gate. The daily digest is `factory:recap` (or the `project-manager` status report).
 
 ## Secrets
 | Secret | Lives in |
