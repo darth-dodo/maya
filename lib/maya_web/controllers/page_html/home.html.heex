@@ -1,9 +1,26 @@
-<Layouts.flash_group flash={@flash} />
-<main class="px-4 py-20 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-xl">
-    <h1 class="text-4xl font-semibold">Maya</h1>
-    <p class="mt-4 text-lg">
+<Layouts.app flash={@flash}>
+  <section class="maya-hero rounded-box p-8 text-center">
+    <div id="pokeball" class="pokeball mx-auto" aria-hidden="true">
+      <div class="pokeball-button"></div>
+    </div>
+    <h1 id="maya-heading" class="mt-6 text-4xl font-semibold">Maya</h1>
+    <p id="tagline" class="mt-4 text-lg">
       Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion.
     </p>
-  </div>
-</main>
+    <p id="mudkip-hype" class="mt-4 font-semibold">Mudkip hype: 100. Best starter, no debate.</p>
+  </section>
+
+  <section class="mt-8">
+    <h2 class="text-lg font-semibold">Badge case</h2>
+    <ul id="badge-case" class="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-8">
+      <li
+        :for={n <- 1..8}
+        class="badge-slot flex aspect-square items-center justify-center rounded-full border-2 border-dashed border-base-content/30 text-sm opacity-70"
+        data-earned="false"
+        aria-label={"Badge #{n} of 8"}
+      >
+        {n}
+      </li>
+    </ul>
+  </section>
+</Layouts.app>

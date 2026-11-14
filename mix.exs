@@ -14,7 +14,7 @@ defmodule Maya.MixProject do
       listeners: [Phoenix.CodeReloader],
       # Coverage floor (spec: delivery-pipeline "Test coverage floor"): only ever raise it.
       test_coverage: [
-        summary: [threshold: 32],
+        summary: [threshold: 38],
         ignore_modules: [Maya.DataCase, MayaWeb.ConnCase, Maya.Release]
       ]
     ]
