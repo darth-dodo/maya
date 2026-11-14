@@ -12,8 +12,6 @@ services:
       # Postgres lives on Supabase (docs/adr/002-postgres-on-supabase.md).
       - key: DATABASE_URL # Supabase session pooler URL, port 5432
         sync: false
-      - key: DATABASE_CA_CERT # Supabase CA certificate, PEM text
-        sync: false
       - key: SECRET_KEY_BASE # mix phx.gen.secret (generateValue is too short, Phoenix needs 64 bytes)
         sync: false
       - key: POOL_SIZE

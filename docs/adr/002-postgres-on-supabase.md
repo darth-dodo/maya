@@ -16,8 +16,8 @@
 
 ## How
 
-- Render reads `DATABASE_URL` (Supabase session pooler, port 5432, IPv4) and `DATABASE_CA_CERT` (Supabase CA, PEM) from its env. Both are `sync: false` in `render.yaml`.
-- `config/runtime.exs` connects with `ssl:` peer verification against that CA, `POOL_SIZE` 5.
+- Render reads `DATABASE_URL` (Supabase session pooler, port 5432, IPv4) from its env, `sync: false` in `render.yaml`.
+- `config/runtime.exs` connects with `ssl:` peer verification against the Supabase Root 2021 CA in `priv/certs/` (public, valid until 2031), `POOL_SIZE` 5.
 - Session pooler, not transaction mode, because Ecto uses prepared statements. Not direct, because direct connections are IPv6 only.
 - Migrations run in Render's `preDeployCommand` (`/app/bin/migrate`). Enable pgvector with a migration: `CREATE EXTENSION IF NOT EXISTS vector`.
 - `/health` does not touch the database, so a paused project never restarts the app.
@@ -25,7 +25,7 @@
 ## Consequences
 
 - Easier: $7/mo total instead of $13, no 30-day expiry.
-- Harder: one more account, two manual secrets, a weekly pause to restore by hand, no backups. Game data is re-importable; the journal is not.
+- Harder: one more account, a manual `DATABASE_URL` secret, a weekly pause to restore by hand, no backups. Game data is re-importable; the journal is not.
 - Revisit when: the journal holds data worth keeping, or the pause bites during play. Then move to Supabase Pro ($25/mo) or Render Postgres ($6/mo).
 
 Sources: https://render.com/docs/free, https://supabase.com/pricing, https://supabase.com/docs/guides/database/connecting-to-postgres

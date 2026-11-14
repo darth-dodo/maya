@@ -20,5 +20,6 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - Phoenix 1.8.16 LiveView app scaffold, CLAUDE.md and FACTORY.md handoff docs
 
 ### Changed
+- Supabase CA certificate shipped in `priv/certs/` instead of the `DATABASE_CA_CERT` env var (#5)
 - Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)
 - Project name written as "Maya", never all caps, across docs and skills (#2)

@@ -49,16 +49,9 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  # Supabase signs with its own CA (Database Settings > SSL Configuration), passed as PEM text.
-  # Without it, ssl: true still verifies the peer against the system CAs.
-  database_ssl =
-    case System.get_env("DATABASE_CA_CERT") do
-      nil -> true
-      pem -> [cacerts: for({:Certificate, der, _} <- :public_key.pem_decode(pem), do: der)]
-    end
-
   config :maya, Maya.Repo,
-    ssl: database_ssl,
+    # Supabase signs with its own public root CA (Database Settings > SSL Configuration).
+    ssl: [cacertfile: Application.app_dir(:maya, "priv/certs/supabase-root-2021-ca.crt")],
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     # For machines with several cores, consider starting multiple pools of `pool_size`
