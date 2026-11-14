@@ -14,6 +14,7 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | `render.yaml` | Blueprint: service, plan, region, health check, pre-deploy, env vars |
 | `Dockerfile`, `.dockerignore`, `rel/overlays/bin/*`, `lib/maya/release.ex` | Release image from `mix phx.gen.release --docker` |
 | `config/runtime.exs` | Prod config read at boot: DB URL and SSL, host, port, secret |
+| `priv/certs/supabase-root-2021-ca.crt` | Supabase public root CA for DB SSL, valid until 2031-04-26 |
 | `lib/maya_web/controllers/health_controller.ex` | `/health`, Render's health check |
 
 ## Rules
@@ -45,8 +46,8 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | Symptom | Likely cause |
 |---|---|
 | Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
-| Pre-deploy fails | Wrong `DATABASE_URL`, missing or wrong `DATABASE_CA_CERT`, or Supabase project paused |
-| `ssl` or `certificate` errors | `DATABASE_CA_CERT` not the Supabase CA from Database Settings > SSL Configuration |
+| Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused |
+| `ssl` or `certificate` errors | Supabase rotated its CA: download the new one (Database Settings > SSL Configuration) into `priv/certs/` and update the path in `config/runtime.exs` |
 | Page loads, LiveView keeps reconnecting | Host mismatch: `PHX_HOST` unset and `RENDER_EXTERNAL_HOSTNAME` missing |
 | Too many connections | Lower `POOL_SIZE` in `render.yaml` |
 | Everything worked, now DB errors | Supabase free paused after a week idle: restore it in the Supabase dashboard |
