@@ -1,5 +1,7 @@
 # Maya
 
+[![Coverage](https://img.shields.io/codecov/c/github/darth-dodo/maya?style=flat-square&label=coverage)](https://codecov.io/gh/darth-dodo/maya)
+
 ## Local development
 
 Requires Docker for Postgres (with pgvector). Env vars: copy `.env.template` to `.env` (see the comments in it).

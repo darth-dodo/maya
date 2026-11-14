@@ -30,7 +30,7 @@ Every pull request SHALL build the production release image and start it, and SH
 - **THEN** its liveness endpoint answers HTTP 200 within 60 seconds
 
 ### Requirement: Test coverage floor
-Every pull request SHALL fail when total line coverage of application modules falls below the threshold recorded in the project, SHALL print coverage per module, and SHALL NOT lower that threshold.
+Every pull request SHALL fail when total line coverage of application modules falls below the threshold recorded in the project, SHALL print coverage per module, and SHALL NOT lower that threshold. The test job SHALL also produce a line coverage report in a format Codecov accepts and upload it to Codecov, and an upload failure SHALL NOT fail the pipeline.
 
 #### Scenario: Coverage drops below the floor
 - **WHEN** a pull request makes total line coverage of application modules fall below the recorded threshold
@@ -40,6 +40,15 @@ Every pull request SHALL fail when total line coverage of application modules fa
 #### Scenario: Coverage report visible
 - **WHEN** the test job runs
 - **THEN** its log shows a coverage table with one row per application module
+
+#### Scenario: Coverage uploaded to Codecov
+- **WHEN** the test job passes
+- **THEN** an LCOV report with one record per application source file is uploaded to Codecov for that commit
+
+#### Scenario: Codecov upload fails
+- **WHEN** the Codecov token is missing or Codecov does not accept the upload
+- **THEN** the test job still succeeds
+- **AND** `ci-success` is decided by the other jobs only
 
 ### Requirement: Security scans on every pull request
 Every pull request SHALL fail when a dependency has a known vulnerability advisory or the code has a high-confidence web security finding.

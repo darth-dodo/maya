@@ -10,7 +10,6 @@ defmodule Maya.Application do
     children = [
       MayaWeb.Telemetry,
       Maya.Repo,
-      {DNSCluster, query: Application.get_env(:maya, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Maya.PubSub},
       # The voice loop (ARCHITECTURE.md 2): one Conversation, found by name, its turn work in Tasks.
       {Registry, keys: :unique, name: Maya.ConversationRegistry},
