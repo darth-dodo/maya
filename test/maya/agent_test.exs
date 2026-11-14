@@ -162,4 +162,12 @@ defmodule Maya.AgentTest do
     assert {:ok, "Hi."} = Agent.answer("Hi", [], model: "openai/gpt-5.4-mini")
     assert_received {:request, _, %{"model" => "openai/gpt-5.4-mini"}}
   end
+
+  # Production #57: no progress row crashed in Horizon.next_gym(nil) via Prompt.system/1.
+  test "no Progress row is an error, not a crash, and OpenRouter is never called" do
+    Repo.delete_all("progress")
+    Req.Test.stub(Maya.OpenRouter, fn _conn -> flunk("OpenRouter was called") end)
+
+    assert Agent.answer("Hello", []) == {:error, :no_progress}
+  end
 end

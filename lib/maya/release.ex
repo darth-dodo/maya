@@ -11,6 +11,9 @@ defmodule Maya.Release do
     for repo <- repos() do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
+
+    # Every deploy seeds game data; Progress only when its row is missing (ADR-006).
+    import_data()
   end
 
   @doc "The release form of `mix maya.import`: loads game data and seeds Progress from priv/."

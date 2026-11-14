@@ -8,6 +8,8 @@ defmodule Maya.Conversation do
   """
   use GenServer
 
+  require Logger
+
   alias Maya.Agent
   alias Maya.Voice.{STT, Turn, TTS}
 
@@ -143,7 +145,8 @@ defmodule Maya.Conversation do
     %{state | current: %{c | stage: :agent, task: task, turn: %{c.turn | question: question}}}
   end
 
-  defp finished(:stt, {:error, _reason}, state) do
+  defp finished(:stt, {:error, reason}, state) do
+    warn(:stt, reason)
     broadcast(state, :voice_down)
     %{state | current: nil}
   end
@@ -152,15 +155,18 @@ defmodule Maya.Conversation do
     do: speak(state, state.current.turn.question, answer)
 
   # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
-  defp finished(:agent, {:error, _reason}, state),
-    do: speak(state, state.current.turn.question, @lost)
+  defp finished(:agent, {:error, reason}, state) do
+    warn(:agent, reason)
+    speak(state, state.current.turn.question, @lost)
+  end
 
   defp finished(:tts, :ok, state) do
     broadcast(state, :audio_done)
     store(state, state.current.turn)
   end
 
-  defp finished(:tts, {:error, _reason}, state) do
+  defp finished(:tts, {:error, reason}, state) do
+    warn(:tts, reason)
     state = store(state, %{state.current.turn | voice_down: true})
     broadcast(state, :voice_down)
     state
@@ -210,6 +216,15 @@ defmodule Maya.Conversation do
 
   defp all_turns(%{current: %{stage: :tts, turn: turn}, turns: turns}), do: turns ++ [turn]
   defp all_turns(%{turns: turns}), do: turns
+
+  # Only the reason (atom, HTTP status, exception message): never transcripts, Answers or keys.
+  # A crashed Task arrives here as its exit reason `{exception, stacktrace}`.
+  defp warn(stage, {%{__exception__: true} = e, _stack}), do: warn(stage, e)
+
+  defp warn(stage, %{__exception__: true} = e),
+    do: Logger.warning("#{stage} failed: #{Exception.message(e)}")
+
+  defp warn(stage, reason), do: Logger.warning("#{stage} failed: #{inspect(reason)}")
 
   defp run(fun), do: Task.Supervisor.async_nolink(Maya.TaskSupervisor, fun)
 

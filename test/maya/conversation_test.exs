@@ -2,6 +2,8 @@ defmodule Maya.ConversationTest do
   # Not async: the Conversation and its Tasks run outside the test process (shared sandbox and stubs).
   use Maya.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias Maya.Conversation
   alias Maya.Voice.Turn
 
@@ -98,11 +100,32 @@ defmodule Maya.ConversationTest do
     stub(text("How do I earn Roxanne's badge?"), &speak/1)
     Req.Test.stub(Maya.OpenRouter, &Plug.Conn.send_resp(&1, 500, "down"))
 
-    Conversation.question(id, "RIFF", "question.wav")
+    log =
+      capture_log(fn ->
+        Conversation.question(id, "RIFF", "question.wav")
 
-    assert_receive {:conversation, {:audio, _}}
-    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
-    assert %Turn{answer: "Lost my train of thought, ask again?"} = Repo.get!(Turn, turn_id)
+        assert_receive {:conversation, {:audio, _}}
+        assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+        assert %Turn{answer: "Lost my train of thought, ask again?"} = Repo.get!(Turn, turn_id)
+      end)
+
+    assert log =~ "[warning] agent failed: {:http, 500}"
+    refute log =~ "Roxanne"
+  end
+
+  test "a crashed agent Task logs its exception and the error line is spoken", %{id: id} do
+    stub(text("How do I earn Roxanne's badge?"), &speak/1)
+    Req.Test.stub(Maya.OpenRouter, fn _conn -> raise "boom" end)
+
+    log =
+      capture_log(fn ->
+        Conversation.question(id, "RIFF", "question.wav")
+
+        assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+        assert %Turn{answer: "Lost my train of thought, ask again?"} = Repo.get!(Turn, turn_id)
+      end)
+
+    assert log =~ "[warning] agent failed: boom"
   end
 
   test "an empty transcript is answered without calling the agent", %{id: id} do
@@ -164,9 +187,14 @@ defmodule Maya.ConversationTest do
   test "TTS down: the Answer stays as text with the voice down flag, and is stored", %{id: id} do
     stub(text("Where is Ralts"), &Plug.Conn.send_resp(&1, 503, "down"))
 
-    Conversation.question(id, "RIFF", "question.wav")
+    log =
+      capture_log(fn ->
+        Conversation.question(id, "RIFF", "question.wav")
+        assert_receive {:conversation, :voice_down}
+      end)
 
-    assert_receive {:conversation, :voice_down}
+    assert log =~ "[warning] tts failed: {:http, 503}"
+    refute log =~ "Ralts"
     assert [%Turn{answer: "Where is Ralts", voice_down: true}] = Conversation.turns(id)
     assert [%Turn{answer: "Where is Ralts"}] = Turn.recent()
   end
@@ -174,9 +202,13 @@ defmodule Maya.ConversationTest do
   test "STT down: voice down and no turn", %{id: id} do
     stub(&Plug.Conn.send_resp(&1, 500, "down"), &speak/1)
 
-    Conversation.question(id, "RIFF", "question.wav")
+    log =
+      capture_log(fn ->
+        Conversation.question(id, "RIFF", "question.wav")
+        assert_receive {:conversation, :voice_down}
+      end)
 
-    assert_receive {:conversation, :voice_down}
+    assert log =~ "[warning] stt failed: {:http, 500}"
     assert Conversation.turns(id) == []
     assert Turn.recent() == []
   end

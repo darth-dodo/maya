@@ -14,13 +14,13 @@ defmodule Maya.Agent do
 
   @spec answer(String.t(), [map()], keyword()) :: {:ok, String.t()} | {:error, term()}
   def answer(question, turns, opts \\ []) do
-    progress = GameData.progress()
     model = opts[:model] || voice(:agent_model)
 
     # One budget for the whole stage, so 4 slow rounds cannot leave the player in silence.
     deadline = System.monotonic_time(:millisecond) + voice(:agent_timeout_ms)
 
-    with {:ok, req} <- client() do
+    with %{} = progress <- GameData.progress() || {:error, :no_progress},
+         {:ok, req} <- client() do
       loop(
         {req, deadline},
         model,
