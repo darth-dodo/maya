@@ -20,6 +20,9 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - `docker-compose.yml` for a local pgvector Postgres bound to localhost (#1)
 - Phoenix 1.8.16 LiveView app scaffold, CLAUDE.md and FACTORY.md handoff docs
 
+### Fixed
+- App refuses to boot when `SECRET_KEY_BASE` is under 64 bytes, so a bad key fails the deploy instead of serving 500s (#8)
+
 ### Changed
 - Supabase project recorded as Ireland (eu-west-1); `DATABASE_URL` pitfalls (API URL, direct host, port 6543) and a local connection test documented (#7)
 - Supabase CA certificate shipped in `priv/certs/` instead of the `DATABASE_CA_CERT` env var (#5)

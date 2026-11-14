@@ -55,6 +55,7 @@ Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRE
 
 | Symptom | Likely cause |
 |---|---|
+| Deploy fails with `SECRET_KEY_BASE is N bytes, needs at least 64` | Key empty or truncated. Regenerate with `mix phx.gen.secret` and paste the whole value |
 | Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
 | Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused. Test it locally first (below) |
 | `Ecto.InvalidURLError ... path should be a database name` | `DATABASE_URL` is the `https://<ref>.supabase.co` API URL. Use the session pooler URI |
