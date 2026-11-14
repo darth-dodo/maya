@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Use when cutting a MAYA release, bumping the version, tagging, writing GitHub release notes, or moving CHANGELOG.md Unreleased entries into a version
+description: Use when cutting a Maya release, bumping the version, tagging, writing GitHub release notes, or moving CHANGELOG.md Unreleased entries into a version
 ---
 
 # Release manager

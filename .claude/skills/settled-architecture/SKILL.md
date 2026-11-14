@@ -1,6 +1,6 @@
 ---
 name: settled-architecture
-description: Use before proposing a new library, service, host, model provider or architecture change in MAYA, or when a task seems to need something outside the frozen MVP stack
+description: Use before proposing a new library, service, host, model provider or architecture change in Maya, or when a task seems to need something outside the frozen MVP stack
 ---
 
 # Settled architecture

@@ -1,12 +1,12 @@
 # Factory learnings from sibling repos
 Last updated: 14 Nov 2026
 
-What MAYA takes from `cantastorie`, `habla-hermano` and `voxpopuli`, and when.
-"Now" items ship in the PR that adds this file. Later items are tied to an F1 step or MAYA block so they land when they are needed, not before.
+What Maya takes from `cantastorie`, `habla-hermano` and `voxpopuli`, and when.
+"Now" items ship in the PR that adds this file. Later items are tied to an F1 step or Maya block so they land when they are needed, not before.
 
 ## Adopted now
 
-| Practice | Source | In MAYA |
+| Practice | Source | In Maya |
 |---|---|---|
 | Settled architecture skill with "explicitly NOT" list and red flags | cantastorie `.claude/skills/settled-architecture` | `.claude/skills/settled-architecture/SKILL.md` |
 | Next-task skill: gather git + PR + Issue state, rank what to do next | cantastorie `.claude/skills/next-task` | `.claude/skills/next-task/SKILL.md` (GitHub Issues instead of Linear) |
@@ -33,11 +33,11 @@ What MAYA takes from `cantastorie`, `habla-hermano` and `voxpopuli`, and when.
 
 Read before building the voice loop.
 
-- Proxy STT and TTS through the server so API keys never reach the browser (`src/api/routes/voice.py`). In MAYA: one GenServer per voice session, under a supervisor.
+- Proxy STT and TTS through the server so API keys never reach the browser (`src/api/routes/voice.py`). In Maya: one GenServer per voice session, under a supervisor.
 - WebSocket TTS gave a faster first byte than REST (`docs/plans/2026-03-17-websocket-tts-design.md`).
 - Check the audio formats the provider streams. Deepgram streamed raw PCM, not mp3, and the client had to add a WAV header (`docs/plans/2026-04-06-fix-websocket-tts.md`). Verify this for Voxtral TTS 3 before writing playback code.
-- Browser voice code raced: iOS AudioContext unlock, `onended` not firing, frames sent before the pipeline was ready, double play. The fix was a small finite state machine plus one AbortController per session (`docs/design/phase21-voice-fsm-refactor.md`). In MAYA: build the LiveView JS hook as an explicit state machine from day one.
-- Write the ADR success criteria with a cost per session and "degrade gracefully when the key is missing" (`docs/adr/ADR-010-deepgram-voice-stt-tts.md`). MAYA's fallback is the browser Web Speech API.
+- Browser voice code raced: iOS AudioContext unlock, `onended` not firing, frames sent before the pipeline was ready, double play. The fix was a small finite state machine plus one AbortController per session (`docs/design/phase21-voice-fsm-refactor.md`). In Maya: build the LiveView JS hook as an explicit state machine from day one.
+- Write the ADR success criteria with a cost per session and "degrade gracefully when the key is missing" (`docs/adr/ADR-010-deepgram-voice-stt-tts.md`). Maya's fallback is the browser Web Speech API.
 
 ## Skipped
 

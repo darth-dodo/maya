@@ -1,6 +1,6 @@
 ---
 name: next-task
-description: Use at the start of a session, or after finishing a task, to decide what to work on next in MAYA
+description: Use at the start of a session, or after finishing a task, to decide what to work on next in Maya
 ---
 
 # Next task

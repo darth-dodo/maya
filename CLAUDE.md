@@ -1,4 +1,4 @@
-# CLAUDE.md: MAYA Handoff for Claude Code
+# CLAUDE.md: Maya Handoff for Claude Code
 Last updated: 14 Nov 2026
 
 Read this first, then FACTORY.md, then AGENTS.md (Phoenix generator guidelines). Repo: `maya`.
@@ -7,15 +7,16 @@ Read this first, then FACTORY.md, then AGENTS.md (Phoenix generator guidelines).
 - Abhishek. Prefers small, finishable blocks with a clear "done when".
 - Crisp answers. Cite sources (docs links) for any library or API claim.
 - No em or en dashes in anything you write.
+- Write the name as "Maya" (or "maya" for repo, paths and code). Never all caps.
 - Scope creep guard: new ideas go to PHASE_2.md, never into the MVP.
 
 ## What we are building
-MAYA = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokemon Emerald companion on a phone.
+Maya = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokemon Emerald companion on a phone.
 Push to talk, ask out loud, hear a short answer based on current badges and team.
 
 ## Two goals this weekend
 1. Build the software factory (FACTORY.md).
-2. Let the factory build the MAYA MVP.
+2. Let the factory build the Maya MVP.
 
 ## Product principle
 Voice is the experience. Every decision optimizes the push-to-talk loop: latency, reliability, short spoken answers.
@@ -36,7 +37,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 2. pgvector: walkthrough notes by location, tagged `badge_required` (spoiler guard).
 3. `progress.json`: badges, team, location, personality settings.
 
-## Agent tools (MAYA runtime)
+## Agent tools (Maya runtime)
 `find_pokemon(name)`, `gym_counter(leader, my_team)`, `search_guide(query)` filtered by badges, `set_setting(name, value)`, `log_event(text)`
 
 ## Personality

@@ -1,6 +1,6 @@
 ---
 name: project-manager
-description: Use when planning or reviewing the MAYA plan as a whole: turning PRODUCT.md or ARCHITECTURE.md into GitHub Issues, checking progress against the weekend plan and estimates, proposing cuts, triaging new ideas, or writing a status report
+description: Use when planning or reviewing the Maya plan as a whole: turning PRODUCT.md or ARCHITECTURE.md into GitHub Issues, checking progress against the weekend plan and estimates, proposing cuts, triaging new ideas, or writing a status report
 ---
 
 # Project manager
@@ -27,7 +27,7 @@ One sentence.
 ```
 
 - Voice loop Issues add a "done when" with per-stage latency numbers and the `voice-loop` label.
-- One milestone per MAYA block (`Block 1: ...`).
+- One milestone per Maya block (`Block 1: ...`).
 - Draft the full list first and show it to Abhishek. Create Issues, labels and milestones only after his yes: `gh issue create --title ... --body-file ... --milestone ... --label ...`.
 
 ## Progress check

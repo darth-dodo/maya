@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to MAYA are listed here.
+All notable changes to Maya are listed here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
 Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), ending with the PR number.
@@ -15,3 +15,6 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - Credo as a dev and test dependency (#1)
 - `docker-compose.yml` for a local pgvector Postgres bound to localhost (#1)
 - Phoenix 1.8.16 LiveView app scaffold, CLAUDE.md and FACTORY.md handoff docs
+
+### Changed
+- Project name written as "Maya", never all caps, across docs and skills (#2)
