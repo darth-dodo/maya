@@ -49,8 +49,8 @@ Any fact about the game past the Spoiler horizon: places, trainers, Pokemon, ite
 _Avoid_: leak
 
 **Event**:
-A moment the player tells Maya about ("I just beat Roxanne", "Mudkip evolved") that changes their Progress.
-_Avoid_: update, log entry
+A moment the player tells Maya about ("I just earned Roxanne's badge", "Mudkip evolved") that changes their Progress.
+_Avoid_: update, log entry, "beat" or "defeat" (say "earned the badge")
 
 ### What Maya knows
 
