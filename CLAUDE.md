@@ -85,6 +85,8 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 5. PR open with `Closes #N` and CI green. Abhishek merges. Agents never merge.
 
 ## Factory conventions
+- Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
+- Every PR adds its lines to `CHANGELOG.md` under `Unreleased`, ending with the PR number.
 - Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next).
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).

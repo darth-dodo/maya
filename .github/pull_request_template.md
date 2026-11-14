@@ -6,6 +6,8 @@ Closes #
 ## How verified
 <!-- One line per "done when" item: the command, curl or screenshot that proves it. -->
 - [ ] `mix precommit` and `mix credo` green locally
+- [ ] `CHANGELOG.md` updated under `Unreleased`
+- [ ] PR title is a Conventional Commit (`feat:`, `fix:`, ...)
 
 ## Latency (only if the voice loop changed)
 <!-- Per stage, before and after: mic release, STT, agent, TTS first byte, playback start. -->
