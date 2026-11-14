@@ -1,8 +1,8 @@
-# FACTORY.md: MAYA Software Factory
+# FACTORY.md: Maya Software Factory
 Last updated: 14 Nov 2026
 
 ## Purpose
-An agent-run pipeline that builds MAYA from PRODUCT.md to a live Render deploy.
+An agent-run pipeline that builds Maya from PRODUCT.md to a live Render deploy.
 Human jobs: write PRODUCT.md, answer agents, tap Merge. Everything else is the factory.
 
 ## Product principle
@@ -69,13 +69,13 @@ Sat
 - F2 PRODUCT.md (1h): grill session. Done when committed.
 - F3 Plan (0.5h): ARCHITECTURE.md and Issues. Done when every Issue has a "done when".
 - F4 Telegram (0.5h): bot and watcher. Done when tapping Merge on my phone merges a dummy PR.
-- Factory builds MAYA Blocks 1 to 3. I review, merge, play a gym.
+- Factory builds Maya Blocks 1 to 3. I review, merge, play a gym.
 
 Sun
-- Factory builds MAYA Blocks 4 to 7. Done when I ask about Roxanne out loud and hear the answer.
+- Factory builds Maya Blocks 4 to 7. Done when I ask about Roxanne out loud and hear the answer.
 
 ## Guardrails
-- Kill switch: F1 past 3h means build MAYA by hand with Claude Code. Factory moves to PHASE_2.md.
+- Kill switch: F1 past 3h means build Maya by hand with Claude Code. Factory moves to PHASE_2.md.
 - Cut order: digest, Herdr watcher (check panes manually), then MVP cuts (embeddings, journal, dials).
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
 - Gym rule: at least one gym per build day.

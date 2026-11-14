@@ -1,4 +1,4 @@
-# CLAUDE.md: MAYA Handoff for Claude Code
+# CLAUDE.md: Maya Handoff for Claude Code
 Last updated: 14 Nov 2026
 
 Read this first, then FACTORY.md, then AGENTS.md (Phoenix generator guidelines). Repo: `maya`.
@@ -7,15 +7,16 @@ Read this first, then FACTORY.md, then AGENTS.md (Phoenix generator guidelines).
 - Abhishek. Prefers small, finishable blocks with a clear "done when".
 - Crisp answers. Cite sources (docs links) for any library or API claim.
 - No em or en dashes in anything you write.
+- Write the name as "Maya" (or "maya" for repo, paths and code). Never all caps.
 - Scope creep guard: new ideas go to PHASE_2.md, never into the MVP.
 
 ## What we are building
-MAYA = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokemon Emerald companion on a phone.
+Maya = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokemon Emerald companion on a phone.
 Push to talk, ask out loud, hear a short answer based on current badges and team.
 
 ## Two goals this weekend
 1. Build the software factory (FACTORY.md).
-2. Let the factory build the MAYA MVP.
+2. Let the factory build the Maya MVP.
 
 ## Product principle
 Voice is the experience. Every decision optimizes the push-to-talk loop: latency, reliability, short spoken answers.
@@ -36,7 +37,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 2. pgvector: walkthrough notes by location, tagged `badge_required` (spoiler guard).
 3. `progress.json`: badges, team, location, personality settings.
 
-## Agent tools (MAYA runtime)
+## Agent tools (Maya runtime)
 `find_pokemon(name)`, `gym_counter(leader, my_team)`, `search_guide(query)` filtered by badges, `set_setting(name, value)`, `log_event(text)`
 
 ## Personality
@@ -76,6 +77,22 @@ Ask me before: choosing Render plan tier, any paid service, changing the frozen 
 - Never commit secrets. See FACTORY.md for where each one lives.
 - Remind me: at least one gym per build day.
 
+## Definition of done
+Code that works is not done. Done means all of these, with evidence in the PR:
+1. Every "done when" item in the Issue is met, each shown with a command, curl or screenshot.
+2. `mix precommit` and `mix credo` are green locally. Never `--no-verify`.
+3. Voice loop touched: per-stage latency numbers, before and after.
+4. Docs match the code: CLAUDE.md, and an ADR in `docs/adr/` if a settled choice changed.
+5. PR open with `Closes #N` and CI green. Abhishek merges. Agents never merge.
+
+## Factory conventions
+- Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
+- Every PR adds its lines to `CHANGELOG.md` under `Unreleased`, ending with the PR number.
+- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes).
+- New ideas: one line in `PHASE_2.md`.
+- Decisions: `docs/adr/` (see its README).
+- What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.
+
 ## Gotchas
 - Not every OpenRouter model supports tools. `tool_calls` is an array; each `arguments` is a JSON string. Parse each.
 - Browser mic needs HTTPS. Test on phone only after Render deploy.
@@ -86,7 +103,7 @@ Ask me before: choosing Render plan tier, any paid service, changing the frozen 
 - Verify Render Postgres supports the `vector` extension on the chosen plan before step 4.
 
 ## PHASE_2.md (do not build)
-Battle Frontier strategizer, realtime speech-to-speech, narrated recap, custom voice, other games, cloud-hosted factory.
+See `PHASE_2.md`.
 
 ## Sources
 - Phoenix install: https://hexdocs.pm/phoenix/installation.html
