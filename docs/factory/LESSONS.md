@@ -25,4 +25,4 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 - Check each Issue "done when" against the skill and doc files too, not only the code, because review found a skill that never named the new checks (#22).
 
 ## Ship
-- Open the PR first, then add the CHANGELOG line with the real PR number and push again, because the number is unknown until the PR exists (#16, #22).
+- Open the PR first, then add the CHANGELOG line with the real PR number and push again, because the number is unknown until the PR exists (#16, #22). Superseded by changelog fragments (#23): no PR number needed.

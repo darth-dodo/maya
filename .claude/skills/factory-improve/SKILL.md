@@ -42,7 +42,7 @@ Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to
 - Branch `chore/factory-experiment-e<n>`, title `chore(factory): experiment E<n> <change>`.
 - Append a row to `docs/factory/experiments.md`: `| E<n> | <change> | <metric> | <baseline median> | <target> | running | #<pr> |`.
 - Fold the period's retro lessons into `docs/factory/LESSONS.md` under their station, deduplicated, each citing its PR, under 40 rules (merge or drop the weakest to stay under).
-- CHANGELOG line, `factory:test`, `factory:review`, then stop for Abhishek.
+- Changelog fragment in `changelog.d/`, `factory:test`, `factory:review`, then stop for Abhishek.
 
 ## Rules
 
