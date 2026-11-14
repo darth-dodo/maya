@@ -3,11 +3,18 @@
 All notable changes to Maya are listed here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-PRs add a fragment in `changelog.d/` (see its README) instead of editing this file; `release-manager` folds fragments in at release time. The lines under `Unreleased` below predate fragments.
+PRs add a fragment in `changelog.d/` (see its README) instead of editing this file; `release-manager` folds fragments in at release time.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-14
+
 ### Added
+- PRODUCT.md from the grill-with-docs session, GLOSSARY.md, and ADR-004 (facts only from tools and data) (#27)
+- Pokemon themed welcome page: Emerald edition CSS Poke Ball on a calm tide backdrop, Mudkip hype line, spoiler-free badge case with 8 empty slots; app header shows only the Maya wordmark and theme toggle; id-based landing-page tests; coverage floor raised to 38% (#24)
+- Three Gemini-generated backdrop images (tide, dusk, night) in `priv/static/images/backdrops/`; the home page uses tide (#24)
+- Factory flywheel: `factory:retro` (metrics row and one lesson per merged PR in `~/maya-factory/`), `factory:improve` (one measured experiment per 5 retros, kept or reverted), `factory:recap` (under 15 line digest); `docs/factory/LESSONS.md` and `docs/factory/experiments.md` (#25)
+- Factory freeze rule: after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships; onboarding and coverage-88 move behind Block 1 (#23)
 - CI/CD hardening: parallel format, credo, test (coverage floor 32%), security (mix_audit, sobelow) and docker boot jobs behind one `ci-success` check; strict Content-Security-Policy; `/health/version`; post-deploy smoke check that opens a bug Issue (#22)
 - `factory:pause`, `factory:resume` and `factory:cleanup` skills; `next-task` ranks `paused` Issues (#21)
 - OpenSpec changes `ci-cd-hardening`, `factory-flywheel` (retro, improve, recap) and `pokemon-welcome-page`; `.claude/worktrees/` ignored (#17)
@@ -31,9 +38,14 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 - Phoenix 1.8.16 LiveView app scaffold, CLAUDE.md and FACTORY.md handoff docs
 
 ### Fixed
+- Post-deploy smoke check runs every 15 minutes instead of on push, so it can no longer deadlock Render's checksPass deploys; it keeps one open bug Issue per commit and always exits 0 (#28)
 - App refuses to boot when `SECRET_KEY_BASE` is under 64 bytes, so a bad key fails the deploy instead of serving 500s (#8)
 
 ### Changed
+- Welcome page hero shows more of the sea: the frosted panel sits at the top, smaller and more transparent, above a band of open waves (#30)
+- Voice outage shows Answers as text; the browser Web Speech fallback moved to PHASE_2.md (#27)
+- `factory:build` reads `docs/factory/LESSONS.md` at step 4 and runs `factory:retro` at step 11; the daily digest is `factory:recap` (#25)
+- Changelog entries are per-PR fragments in `changelog.d/`, folded into CHANGELOG.md by release-manager, so PRs no longer conflict on the changelog (#23)
 - Home page is a minimal Maya landing page (heading, tagline, title "Maya"); generator content removed. Factory dry run; spec `openspec/specs/landing-page/` (#16)
 - Plan station: one OpenSpec change and one GitHub Issue per block; builders archive the change in their PR. Matt `to-spec` and `to-tickets` retired (#11)
 - Telegram bot and watcher (F4) moved to PHASE_2.md (#10)
@@ -43,3 +55,6 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 - Supabase CA certificate shipped in `priv/certs/` instead of the `DATABASE_CA_CERT` env var (#5)
 - Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)
 - Project name written as "Maya", never all caps, across docs and skills (#2)
+
+[Unreleased]: https://github.com/darth-dodo/maya/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/darth-dodo/maya/releases/tag/v0.1.0
