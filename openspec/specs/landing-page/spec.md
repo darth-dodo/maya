@@ -32,12 +32,24 @@ The home page, including the app layout around it, SHALL NOT show web framework 
 - **THEN** the HTML title is "Maya"
 
 ### Requirement: Poke Ball themed hero
-The home page SHALL show a Poke Ball drawn without images, in an element with id `pokeball`, inside a hero that uses the red, white and black Poke Ball palette.
+The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside a hero with id `maya-hero` whose background is the calm tide backdrop served from `/images/backdrops/tide.jpg`.
 
 #### Scenario: Poke Ball is present
 - **WHEN** a visitor requests `/`
 - **THEN** the element `#pokeball` exists
 - **AND** it contains no `img` element
+
+#### Scenario: Emerald ball on the tide backdrop
+- **WHEN** a visitor requests `/`
+- **THEN** `#pokeball` has the class `pokeball-emerald`
+- **AND** `#maya-hero` has `data-backdrop="tide"`
+
+### Requirement: Backdrop images
+Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokemon, people, text or logos.
+
+#### Scenario: Backdrops are served
+- **WHEN** a visitor requests `/images/backdrops/tide.jpg`, `/images/backdrops/dusk.jpg` or `/images/backdrops/night.jpg`
+- **THEN** the response is 200 with content type `image/jpeg`
 
 ### Requirement: Mudkip hype
 The home page SHALL show the line "Mudkip hype: 100. Best starter, no debate." in the element with id `mudkip-hype`.

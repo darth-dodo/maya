@@ -55,6 +55,21 @@ defmodule MayaWeb.PageControllerTest do
     assert count(html, "#pokeball img") == 0
   end
 
+  test "Emerald ball sits on the tide backdrop", %{conn: conn} do
+    html = home(conn)
+
+    assert attrs(html, "#pokeball", "class") |> hd() =~ "pokeball-emerald"
+    assert attrs(html, "#maya-hero", "data-backdrop") == ["tide"]
+  end
+
+  test "all three backdrops are served from Maya's own origin", %{conn: conn} do
+    for name <- ~w(tide dusk night) do
+      conn = get(conn, "/images/backdrops/#{name}.jpg")
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") |> hd() =~ "image/jpeg"
+    end
+  end
+
   test "Mudkip hype line", %{conn: conn} do
     assert conn |> home() |> text_of("#mudkip-hype") ==
              "Mudkip hype: 100. Best starter, no debate."

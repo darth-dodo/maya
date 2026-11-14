@@ -104,29 +104,56 @@
 
 /* This file is for your main application CSS */
 
-/* Poke Ball palette, scoped to the hero so the daisyUI themes stay intact */
+/* Emerald edition hero, scoped so the daisyUI themes stay intact.
+   Backdrop: original scenery generated with Gemini (no Pokemon, people or text), served from /images/backdrops/ */
 .maya-hero {
-  --pokeball-red: #e3350d;
-  --pokeball-white: #f8f8f8;
-  --pokeball-black: #1a1a1a;
-  border: 4px solid var(--pokeball-black);
-  border-top: 1rem solid var(--pokeball-red);
-  background: var(--pokeball-white);
-  color: var(--pokeball-black);
+  --ball-green: #1d9a5b;
+  --ball-green-dark: #0f6b3d;
+  --ball-green-light: #3fc283;
+  --ball-white: #f8f8f8;
+  --ball-black: #1a1a1a;
+  display: grid;
+  place-items: center;
+  min-height: 22rem;
+  padding: 2rem 1rem;
+  border: 4px solid var(--ball-black);
+  background: #d3ede6 url("/images/backdrops/tide.jpg") center / cover no-repeat;
+  color: var(--ball-black);
 }
 
-/* CSS only: red over white, black band, centre button */
+/* Frosted panel keeps the text readable on the photo-like backdrop */
+.maya-hero-panel {
+  max-width: 28rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* CSS only: faceted green over white, black band, gem button */
 .pokeball {
   position: relative;
   width: 8rem;
   height: 8rem;
   border-radius: 9999px;
-  border: 0.375rem solid var(--pokeball-black);
-  background: linear-gradient(
-    var(--pokeball-red) 0 calc(50% - 0.25rem),
-    var(--pokeball-black) calc(50% - 0.25rem) calc(50% + 0.25rem),
-    var(--pokeball-white) calc(50% + 0.25rem) 100%
-  );
+  border: 0.375rem solid var(--ball-black);
+  box-shadow: 0 14px 20px -10px rgb(0 0 0 / 0.4);
+  background:
+    linear-gradient(
+      transparent calc(50% - 0.25rem),
+      var(--ball-black) calc(50% - 0.25rem) calc(50% + 0.25rem),
+      transparent calc(50% + 0.25rem)
+    ),
+    conic-gradient(
+        from 200deg at 50% 25%,
+        var(--ball-green) 0 25%,
+        var(--ball-green-dark) 0 50%,
+        var(--ball-green) 0 75%,
+        var(--ball-green-light) 0
+      )
+      top / 100% 50% no-repeat,
+    var(--ball-white);
 }
 
 .pokeball-button {
@@ -137,10 +164,6 @@
   height: 2.25rem;
   transform: translate(-50%, -50%);
   border-radius: 9999px;
-  border: 0.375rem solid var(--pokeball-black);
-  background: var(--pokeball-white);
-}
-
-.pokeball:hover .pokeball-button {
-  background: var(--pokeball-red);
+  border: 0.375rem solid var(--ball-black);
+  background: radial-gradient(circle at 40% 35%, #d4f8e4, var(--ball-green-light) 60%, var(--ball-green-dark));
 }
