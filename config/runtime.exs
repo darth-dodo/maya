@@ -142,3 +142,6 @@ if config_env() == :prod do
   #
   # See https://swoosh.hexdocs.pm/Swoosh.html#module-installation for details.
 end
+
+# TEMPORARY (task 2.2 red proof, reverted in the next commit)
+if config_env() == :prod, do: raise("temporary boot break: proves the CI docker gate")
