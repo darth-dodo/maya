@@ -8,6 +8,8 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- Permission deny rules for `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs`, so Superpowers keeps TDD and debugging (#9)
+- Matt Pocock skills setup: `docs/agents/` (GitHub tracker, default triage labels, single-context domain docs) and an Agent skills section in CLAUDE.md (#9)
 - `.env.template` listing every env var, with the Supabase pooler URI format (#6)
 - Render deploy: `render.yaml` (Frankfurt, `0.5c-512mb`, deploy after CI, migrations pre-deploy), release Dockerfile, `/health` route, `render-deploy` skill (#4)
 - ADR-002: Postgres on Supabase (#4)
@@ -24,6 +26,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - App refuses to boot when `SECRET_KEY_BASE` is under 64 bytes, so a bad key fails the deploy instead of serving 500s (#8)
 
 ### Changed
+- Skill names updated to the current Matt Pocock set: `to-spec` and `to-tickets` replace `to-prd` and `to-issues` (#9)
 - Supabase project recorded as Ireland (eu-west-1); `DATABASE_URL` pitfalls (API URL, direct host, port 6543) and a local connection test documented (#7)
 - Supabase CA certificate shipped in `priv/certs/` instead of the `DATABASE_CA_CERT` env var (#5)
 - Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)

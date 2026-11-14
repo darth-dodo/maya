@@ -14,7 +14,7 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 
 | Station | Owner |
 |---|---|
-| Intake, plan, review | Matt Pocock skills (`grill-with-docs`, `to-prd`, `to-issues`, `code-review`) |
+| Intake, plan, review | Matt Pocock skills (`grill-with-docs`, `to-spec`, `to-tickets`, `code-review`) |
 | Build, verify | Superpowers (plan, TDD, subagents, verification) |
 | Work queue | GitHub Issues, each with a "done when" |
 | Check | GitHub Actions: compile with warnings as errors, format, credo, tests |
@@ -28,8 +28,8 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 flowchart TD
     idea([Idea from Abhishek]) --> intake
     subgraph agents [Agents in Herdr panes]
-        intake["1 Intake<br/>planner: grill-with-docs, to-prd<br/>writes PRODUCT.md"]
-        plan["2 Plan<br/>planner: to-issues, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
         verify["4 Verify<br/>builder: definition of done, opens PR"]
         review["5 Review<br/>reviewer: code-review"]
@@ -59,6 +59,7 @@ Full walkthrough, including one Issue's life: `FACTORY.md`, "How it works".
 | "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
 | Scope creep | New ideas go to `PHASE_2.md` | Repo |
 | Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Overlapping skills (Matt `tdd`, `diagnosing-bugs` vs Superpowers) | `Skill(skill:...)` deny rules | `.claude/settings.json` |
 | Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
 
 Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.

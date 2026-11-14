@@ -27,7 +27,9 @@
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git push origin main *)",
-      "Read(./.env)"
+      "Read(./.env)",
+      "Skill(skill:mattpocock-skills:tdd)",
+      "Skill(skill:mattpocock-skills:diagnosing-bugs)"
     ]
   }
 }

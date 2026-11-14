@@ -23,8 +23,8 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ## Lines
 | # | Line | Where | Skill / action | Output | Done when |
 |---|---|---|---|---|---|
-| 1 | Intake | Chat or Herdr pane `planner` | `grill-with-docs`, `to-prd` | PRODUCT.md | Committed |
-| 2 | Plan | Pane `planner` | `to-issues` | ARCHITECTURE.md, GitHub Issues | Every Issue has a "done when" |
+| 1 | Intake | Chat or Herdr pane `planner` | `grill-with-docs`, `to-spec` | PRODUCT.md | Committed |
+| 2 | Plan | Pane `planner` | `to-tickets` | ARCHITECTURE.md, GitHub Issues | Every Issue has a "done when" |
 | 3 | Build | Pane `builder-<issue>` | Superpowers plan, TDD, subagents | Branch with code and tests | Tests pass locally |
 | 4 | Verify | Pane `builder-<issue>` | Superpowers verify, finish branch | PR | PR opened, linked to Issue |
 | 5 | Review | Pane `reviewer` (spawned by builder) | Matt `code-review` | PR review comments | No blocking comments |
@@ -40,8 +40,8 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 flowchart TD
     idea([Idea from Abhishek]) --> intake
     subgraph agents [Agents in Herdr panes]
-        intake["1 Intake<br/>planner: grill-with-docs, to-prd<br/>writes PRODUCT.md"]
-        plan["2 Plan<br/>planner: to-issues, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
         verify["4 Verify<br/>builder: definition of done, opens PR"]
         review["5 Review<br/>reviewer: code-review"]
@@ -93,6 +93,7 @@ sequenceDiagram
 | "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
 | Scope creep | New ideas go to `PHASE_2.md` | Repo |
 | Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Overlapping skills (Matt `tdd`, `diagnosing-bugs` vs Superpowers) | `Skill(skill:...)` deny rules | `.claude/settings.json` |
 | Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
 
 Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.
