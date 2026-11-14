@@ -1,0 +1,14 @@
+Closes #
+
+## Done when
+<!-- Copy from the Issue. -->
+
+## How verified
+<!-- One line per "done when" item: the command, curl or screenshot that proves it. -->
+- [ ] `mix precommit` and `mix credo` green locally
+
+## Latency (only if the voice loop changed)
+<!-- Per stage, before and after: mic release, STT, agent, TTS first byte, playback start. -->
+
+## Out of scope
+<!-- Anything deferred. New ideas go to PHASE_2.md. -->

@@ -76,6 +76,20 @@ Ask me before: choosing Render plan tier, any paid service, changing the frozen 
 - Never commit secrets. See FACTORY.md for where each one lives.
 - Remind me: at least one gym per build day.
 
+## Definition of done
+Code that works is not done. Done means all of these, with evidence in the PR:
+1. Every "done when" item in the Issue is met, each shown with a command, curl or screenshot.
+2. `mix precommit` and `mix credo` are green locally. Never `--no-verify`.
+3. Voice loop touched: per-stage latency numbers, before and after.
+4. Docs match the code: CLAUDE.md, and an ADR in `docs/adr/` if a settled choice changed.
+5. PR open with `Closes #N` and CI green. Abhishek merges. Agents never merge.
+
+## Factory conventions
+- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next).
+- New ideas: one line in `PHASE_2.md`.
+- Decisions: `docs/adr/` (see its README).
+- What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.
+
 ## Gotchas
 - Not every OpenRouter model supports tools. `tool_calls` is an array; each `arguments` is a JSON string. Parse each.
 - Browser mic needs HTTPS. Test on phone only after Render deploy.
@@ -86,7 +100,7 @@ Ask me before: choosing Render plan tier, any paid service, changing the frozen 
 - Verify Render Postgres supports the `vector` extension on the chosen plan before step 4.
 
 ## PHASE_2.md (do not build)
-Battle Frontier strategizer, realtime speech-to-speech, narrated recap, custom voice, other games, cloud-hosted factory.
+See `PHASE_2.md`.
 
 ## Sources
 - Phoenix install: https://hexdocs.pm/phoenix/installation.html
