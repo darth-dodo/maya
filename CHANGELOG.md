@@ -8,6 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- OpenSpec changes `ci-cd-hardening`, `factory-flywheel` (retro, improve, recap) and `pokemon-welcome-page`; `.claude/worktrees/` ignored (#17)
 - Factory station skills `factory:plan`, `factory:build`, `factory:test`, `factory:review`: ordered, gated wrappers over the existing skills; "Skills by station" in FACTORY.md (#15)
 - `quiz-me` skill: on-demand 5 question quiz on recent PRs, specs and ADRs, code structure and factory ops, with spaced repetition borrowed from coding-tutor (#14)
 - OpenSpec change `hello-page-says-maya`: Maya landing page, the factory dry run (#12)
