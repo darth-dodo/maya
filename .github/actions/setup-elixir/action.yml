@@ -9,6 +9,10 @@ runs:
       with:
         otp-version: '29'
         elixir-version: '1.20.5'
+        # Fallback mirror: #42's first CI run failed only because builds.hex.pm was unreachable
+        hexpm-mirrors: |
+          https://builds.hex.pm
+          https://cdn.jsdelivr.net/hex
 
     - uses: actions/cache@v6
       with:
