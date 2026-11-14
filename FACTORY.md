@@ -11,25 +11,25 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ## Tools
 | Tool | Role |
 |---|---|
-| Herdr | Local runtime. Hosts each agent in its own pane, tracks state, lets agents spawn and prompt each other via socket API |
-| Claude Code | The agent in every pane |
+| Claude Code | The agent in every role, and the default runtime: one session per role, builders in their own git worktree, background sessions, Remote Control for the phone |
+| Herdr (optional) | Devex layer on the same sessions: panes with working/blocked/done state in one sidebar, agents prompting each other via socket API |
 | Matt Pocock skills | Upstream: grill, PRD, issues, code review |
 | Superpowers (obra) | Downstream: plan, TDD, subagent execution, verify, finish branch |
 | GitHub | Repo, Issues (work queue), PRs |
-| GitHub Actions | CI checks and Telegram notifications |
+| GitHub Actions | CI checks |
 | Render | Auto-deploy on merge to main (Frankfurt) |
-| Telegram bot | Human gate: notifications, Merge/Hold buttons, replies to blocked agents, daily digest |
+| GitHub app + Remote Control | Human gate on the phone: merge in the GitHub app, answer blocked sessions via Claude Code Remote Control |
 
 ## Lines
 | # | Line | Where | Skill / action | Output | Done when |
 |---|---|---|---|---|---|
-| 1 | Intake | Chat or Herdr pane `planner` | `grill-with-docs`, `to-spec` | PRODUCT.md | Committed |
-| 2 | Plan | Pane `planner` | `to-tickets` | ARCHITECTURE.md, GitHub Issues | Every Issue has a "done when" |
-| 3 | Build | Pane `builder-<issue>` | Superpowers plan, TDD, subagents | Branch with code and tests | Tests pass locally |
-| 4 | Verify | Pane `builder-<issue>` | Superpowers verify, finish branch | PR | PR opened, linked to Issue |
-| 5 | Review | Pane `reviewer` (spawned by builder) | Matt `code-review` | PR review comments | No blocking comments |
+| 1 | Intake | Session `planner` | `grill-with-docs`, `to-spec` | PRODUCT.md | Committed |
+| 2 | Plan | Session `planner` | `to-tickets` | ARCHITECTURE.md, GitHub Issues | Every Issue has a "done when" |
+| 3 | Build | Session `builder-<issue>` | Superpowers plan, TDD, subagents | Branch with code and tests | Tests pass locally |
+| 4 | Verify | Session `builder-<issue>` | Superpowers verify, finish branch | PR | PR opened, linked to Issue |
+| 5 | Review | `reviewer` (spawned by builder) | Matt `code-review` | PR review comments | No blocking comments |
 | 6 | Check | GitHub Actions | `mix format --check-formatted`, `mix credo`, `mix test` | CI status | Green |
-| 7 | Gate | Telegram | Merge / Hold buttons | Merge or hold | You tapped |
+| 7 | Gate | GitHub (web or mobile app) | Squash merge | Merged | You merged |
 | 8 | Ship | Render | Auto-deploy from main | Live app | Health check passes |
 | 9 | Feedback | Actions / watcher | Failures become Issues | New Issue | Back to line 3 |
 
@@ -39,7 +39,7 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ```mermaid
 flowchart TD
     idea([Idea from Abhishek]) --> intake
-    subgraph agents [Agents in Herdr panes]
+    subgraph agents [Agents: Claude Code sessions, Herdr optional]
         intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
         plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
@@ -101,22 +101,25 @@ Critical rules are enforced by machines that ignore prompts (GitHub, the permiss
 ## Skill ownership rules
 1. One owner per station. Matt owns intake, plan, review. Superpowers owns build and verify.
 2. TDD: Superpowers only. Do not invoke Matt `tdd`.
-3. Superpowers auto-triggers via SessionStart hook. Disable it in the `planner` pane, or accept its brainstorming at intake. Decide in F1.
+3. Superpowers auto-triggers via SessionStart hook. Decided 2026-11-14: keep it in every session, `planner` included. At intake, invoke `grill-with-docs` explicitly; it owns the interview, not Superpowers brainstorming.
 4. Run `/setup-matt-pocock-skills` once: tracker = GitHub, docs = `docs/`.
 
-## Herdr layout
-- `planner`: lines 1 and 2. Long-lived.
-- `builder-<issue>`: one per Issue. Max 2 in parallel (avoid merge conflicts, protect API budget).
-- `reviewer`: spawned by builder via `herdr agent start reviewer`, prompted with `--wait`, read back.
-- Fan-out inside a build: Superpowers subagents, not new Herdr panes.
+## Runtime
 
-## Telegram watcher (local script)
-1. Poll Herdr for `blocked` or `done` panes. Message me.
-2. Poll Telegram `getUpdates` (no public endpoint needed).
-3. Merge tap: `gh pr merge <n> --squash`. Always answer the callback query.
-4. Text reply to a blocked-pane message: forward into that pane.
-5. 21:00 digest: merged PRs, open Issues, blocked panes, CI failures.
-6. CI posts pass/fail directly via `curl` to the Bot API.
+Default, Claude Code only:
+- `planner`: lines 1 and 2. One long-lived session in the repo: `claude --remote-control planner`.
+- `builder-<issue>`: one per Issue, each in its own worktree: `claude -w <issue> --remote-control builder-<issue>`. Max 2 in parallel (avoid merge conflicts, protect API budget). Background runs: `claude --bg`, listed by `claude agents`.
+- `reviewer`: a subagent the builder starts with Matt `code-review`, not a separate session.
+- Blocked or done: Remote Control shows every session on the phone and pushes when a prompt or question is waiting (user setting `inputNeededNotifEnabled: true`). Resume with `claude --continue` or `--resume`.
+- Fan-out inside a build: Superpowers subagents.
+
+Optional, Herdr (devex): the same roles as panes, with one sidebar of agent states.
+- Setup: `brew install herdr`, `herdr integration install claude`, then `herdr` in the repo and `claude` in the first pane.
+- `reviewer` as a pane: the builder splits a pane (`herdr pane split --current --direction right --cwd "$PWD" --no-focus`), starts it (`herdr agent start reviewer --kind claude --pane <new pane id>`), prompts it (`herdr agent prompt reviewer "..." --wait --timeout 120000`) and reads the answer (`herdr agent read reviewer --source recent-unwrapped --lines 120`).
+- Agents control Herdr only from inside a Herdr pane (`HERDR_ENV=1`). Commands: `.claude/skills/herdr/SKILL.md` (from `herdr --skill`, Herdr 0.9.5).
+
+## Telegram watcher: moved to PHASE_2.md (2026-11-14)
+Remote Control (blocked sessions, push notifications) and the GitHub mobile app (merge) cover the human gate. The daily digest is the `project-manager` status report.
 
 ## Secrets
 | Secret | Lives in |
@@ -131,10 +134,10 @@ Never commit `.env`. Add it to `.gitignore` in F1.
 
 ## Weekend plan
 Sat
-- F1 Skeleton (1.5h): repo, CI workflow, Render auto-deploy, Herdr, Claude Code, both plugins, setup skill. Done when a dummy PR passes CI and merge deploys a hello page.
+- F1 Skeleton (1.5h): repo, CI workflow, Render auto-deploy, Claude Code (Herdr optional), both plugins, setup skill. Done when a dummy PR passes CI and merge deploys a hello page.
 - F2 PRODUCT.md (1h): grill session. Done when committed.
 - F3 Plan (0.5h): ARCHITECTURE.md and Issues. Done when every Issue has a "done when".
-- F4 Telegram (0.5h): bot and watcher. Done when tapping Merge on my phone merges a dummy PR.
+- F4 Telegram: moved to PHASE_2.md. Merging from the phone works in the GitHub app.
 - Factory builds Maya Blocks 1 to 3. I review, merge, play a gym.
 
 Sun
@@ -142,19 +145,19 @@ Sun
 
 ## Guardrails
 - Kill switch: F1 past 3h means build Maya by hand with Claude Code. Factory moves to PHASE_2.md.
-- Cut order: digest, Herdr watcher (check panes manually), then MVP cuts (embeddings, journal, dials).
+- Cut order: MVP cuts (embeddings, journal, dials). Digest and watcher already moved to PHASE_2.md.
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
 - Gym rule: at least one gym per build day.
 - New ideas go to PHASE_2.md.
 
 ## Known limits
-- Herdr is local. Factory runs only while my machine is on.
-- Agents need tool permissions pre-approved per pane, or they block (Telegram will ping).
-- Herdr agent detection relies on process names and output, so it can misread a new CLI version.
+- Sessions are local. Factory runs only while my machine is on.
+- Agents need tool permissions pre-approved, or they block (Remote Control will push).
+- Herdr (optional) detects agents from process names and output, so it can misread a new CLI version.
 
 ## Sources
-- Herdr: https://www.mindstudio.ai/blog/herder-terminal-agent-multiplexer/
-- Herdr launch: https://aiunderstanding.org/news/herdr-launches-open-source-terminal-for-managing-multiple-ai-coding-agents
+- Herdr: https://github.com/herdrdev/herdr (docs: https://herdr.dev/docs/)
+- Claude Code CLI: `claude --help` (`-w/--worktree`, `--bg`, `claude agents`, `--remote-control`)
 - Superpowers: https://github.com/obra/superpowers
 - Matt Pocock skills: https://github.com/mattpocock/skills
 - Telegram Bot API: https://core.telegram.org/bots/api
