@@ -15,7 +15,9 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | `Dockerfile`, `.dockerignore`, `rel/overlays/bin/*`, `lib/maya/release.ex` | Release image from `mix phx.gen.release --docker` |
 | `config/runtime.exs` | Prod config read at boot: DB URL and SSL, host, port, secret |
 | `priv/certs/supabase-root-2021-ca.crt` | Supabase public root CA for DB SSL, valid until 2031-04-26 |
-| `lib/maya_web/controllers/health_controller.ex` | `/health`, Render's health check |
+| `lib/maya_web/controllers/health_controller.ex` | `/health` (Render's health check) and `/health/version` (deployed commit, from `RENDER_GIT_COMMIT`) |
+| `.github/workflows/ci.yml` | Jobs format, credo, test (coverage floor), security, docker (boots the release with no DB) behind the required `ci-success` check |
+| `.github/workflows/post-deploy.yml` | After each push to main: waits for `/health/version` to show the commit, checks `/` and `/health`, opens a `bug` Issue on failure |
 
 ## Rules
 
@@ -46,10 +48,11 @@ Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRE
 
 ## Verify a deploy
 
-1. The merged PR's CI run is green (`gh run list --branch main --limit 1`).
-2. The Render dashboard shows a live deploy for that commit.
-3. `curl -fsS https://<service>.onrender.com/health` prints `ok`.
-4. The home page loads over HTTPS and the LiveView socket connects (no reconnect loop in the browser console).
+1. The merged PR's `ci-success` check is green (`gh run list --branch main --limit 1`).
+2. The "Post-deploy smoke check" run for that commit is green (`gh run list --workflow post-deploy.yml --limit 1`); it already confirmed `/health/version`, `/` and `/health`.
+3. If it failed or never ran, the Render dashboard shows the deploy state for that commit.
+4. `curl -fsS https://<service>.onrender.com/health/version` prints the merged commit SHA.
+5. The home page loads over HTTPS and the LiveView socket connects (no reconnect loop or CSP errors in the browser console).
 
 ## When it breaks
 
@@ -63,5 +66,7 @@ Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRE
 | Connects, then `prepared statement ... does not exist` errors | Port 6543 (transaction mode). Use 5432 (session mode) |
 | `ssl` or `certificate` errors | Supabase rotated its CA: download the new one (Database Settings > SSL Configuration) into `priv/certs/` and update the path in `config/runtime.exs` |
 | Page loads, LiveView keeps reconnecting | Host mismatch: `PHX_HOST` unset and `RENDER_EXTERNAL_HOSTNAME` missing |
+| A `bug` Issue "deploy of <sha> failed the smoke check" | Read its Failure line: "not live after 20 minutes" means Render did not deploy (CI red on main, or a Render failure); a URL and status means the app is up but broken |
+| CSP errors in the browser console | Something loads from another origin, or the inline theme script changed: update the `sha256` in `router.ex` (the CSP test prints the mismatch) |
 | Too many connections | Lower `POOL_SIZE` in `render.yaml` |
 | Everything worked, now DB errors | Supabase free paused after a week idle: restore it in the Supabase dashboard |

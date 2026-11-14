@@ -48,18 +48,19 @@ defmodule MayaWeb.ContentSecurityPolicyTest do
   test "policy names no third-party origins", %{conn: conn} do
     {policy, _html} = home(conn)
 
-    sources =
-      policy
-      |> String.split([";", " "], trim: true)
-      |> Enum.reject(
-        &(String.ends_with?(&1, "-src") or &1 in ["frame-ancestors", "base-uri", "form-action"])
-      )
+    # Beyond 'self' and 'none': data: only for images, 'unsafe-inline' only for styles,
+    # sha256 hashes only for scripts.
+    extra = %{"img-src" => ["data:"], "style-src" => ["'unsafe-inline'"]}
 
-    allowed = ["'self'", "'none'", "data:", "'unsafe-inline'"]
+    for directive <- String.split(policy, ";", trim: true) do
+      [name | sources] = String.split(directive)
 
-    for source <- sources do
-      assert source in allowed or String.starts_with?(source, "'sha256-"),
-             "unexpected source #{source}"
+      for source <- sources do
+        script_hash? = name == "script-src" and String.starts_with?(source, "'sha256-")
+
+        assert source in ["'self'", "'none'" | Map.get(extra, name, [])] or script_hash?,
+               "unexpected source #{source} in #{name}"
+      end
     end
   end
 end

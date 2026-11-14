@@ -4,6 +4,6 @@ defmodule MayaWeb.HealthController do
   # Render's health check: stays cheap and skips the DB so a paused database does not restart the app.
   def show(conn, _params), do: text(conn, "ok")
 
-  # Read at request time: Render sets RENDER_GIT_COMMIT per deploy; the post-deploy check polls this.
-  def version(conn, _params), do: text(conn, System.get_env("RENDER_GIT_COMMIT", "unknown"))
+  # RENDER_GIT_COMMIT, read in config/runtime.exs; the post-deploy check polls this.
+  def version(conn, _params), do: text(conn, Application.get_env(:maya, :git_commit, "unknown"))
 end

@@ -25,7 +25,7 @@ jobs:
       - name: Wait for this commit to go live
         run: |
           for _ in $(seq 1 40); do
-            live="$(curl -fsS "$SITE/health/version" || true)"
+            live="$(curl -fsS --max-time 10 "$SITE/health/version" || true)"
             if [ "$live" = "$GITHUB_SHA" ]; then echo "live: $live"; exit 0; fi
             echo "waiting: live=${live:-none} want=$GITHUB_SHA"
             sleep 30
@@ -36,7 +36,7 @@ jobs:
       - name: Check home page and liveness
         run: |
           for path in / /health; do
-            status="$(curl -s -o /dev/null -w '%{http_code}' "$SITE$path")"
+            status="$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$SITE$path")"
             echo "$path -> $status"
             if [ "$status" != "200" ]; then
               echo "FAILURE=$SITE$path answered $status" >> "$GITHUB_ENV"

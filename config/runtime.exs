@@ -22,6 +22,9 @@ end
 
 config :maya, MayaWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Commit Render deployed (set by Render per deploy); served by /health/version for the smoke check.
+config :maya, :git_commit, System.get_env("RENDER_GIT_COMMIT", "unknown")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :maya, MayaWeb.Endpoint,

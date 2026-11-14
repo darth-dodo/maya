@@ -146,6 +146,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |
+| `RENDER_EXTERNAL_HOSTNAME`, `RENDER_GIT_COMMIT` | Set by Render on every deploy (not secret); read in `config/runtime.exs` |
 
 Never commit `.env`. Add it to `.gitignore` in F1.
 

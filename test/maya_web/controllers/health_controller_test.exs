@@ -1,5 +1,5 @@
 defmodule MayaWeb.HealthControllerTest do
-  # Not async: the version tests change the global RENDER_GIT_COMMIT env var.
+  # Not async: the version tests change the global :git_commit app env.
   use MayaWeb.ConnCase, async: false
 
   # Scenarios from openspec/specs/service-health/spec.md
@@ -13,17 +13,18 @@ defmodule MayaWeb.HealthControllerTest do
 
   describe "GET /health/version" do
     setup do
-      previous = System.get_env("RENDER_GIT_COMMIT")
+      previous = Application.fetch_env(:maya, :git_commit)
 
       on_exit(fn ->
-        if previous,
-          do: System.put_env("RENDER_GIT_COMMIT", previous),
-          else: System.delete_env("RENDER_GIT_COMMIT")
+        case previous do
+          {:ok, value} -> Application.put_env(:maya, :git_commit, value)
+          :error -> Application.delete_env(:maya, :git_commit)
+        end
       end)
     end
 
     test "answers the deployed commit", %{conn: conn} do
-      System.put_env("RENDER_GIT_COMMIT", "abc123")
+      Application.put_env(:maya, :git_commit, "abc123")
 
       conn = get(conn, ~p"/health/version")
 
@@ -32,7 +33,7 @@ defmodule MayaWeb.HealthControllerTest do
     end
 
     test "answers unknown when no commit is available", %{conn: conn} do
-      System.delete_env("RENDER_GIT_COMMIT")
+      Application.delete_env(:maya, :git_commit)
 
       conn = get(conn, ~p"/health/version")
 
