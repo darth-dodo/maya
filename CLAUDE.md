@@ -64,8 +64,8 @@ Do these in order. Stop at each "done when" and report.
 Ask me before: choosing Render plan tier, any paid service, or changing the frozen stack. (Superpowers SessionStart hook: decided, kept in every pane, see FACTORY.md skill ownership rule 3.)
 
 ## After F1
-- F2: run the grill (`grill-with-docs`, then `to-spec`) with me to write PRODUCT.md. Resume at Q1.
-- F3: `to-tickets`, write ARCHITECTURE.md. Every Issue has a "done when".
+- F2: run the grill (`grill-with-docs`) with me to write PRODUCT.md. Resume at Q1.
+- F3: write ARCHITECTURE.md, then `openspec-propose` one change per block and one GitHub Issue per change (`project-manager`). Every Issue has a "done when".
 - F4: Telegram moved to PHASE_2.md. Phone gate: GitHub app to merge, Remote Control for blocked sessions.
 
 ## Rules
@@ -82,7 +82,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 1. Every "done when" item in the Issue is met, each shown with a command, curl or screenshot.
 2. `mix precommit` and `mix credo` are green locally. Never `--no-verify`.
 3. Voice loop touched: per-stage latency numbers, before and after.
-4. Docs match the code: CLAUDE.md, and an ADR in `docs/adr/` if a settled choice changed.
+4. Docs match the code: CLAUDE.md, an ADR in `docs/adr/` if a settled choice changed, and the Issue's OpenSpec change archived (`openspec-archive-change`) in the same PR.
 5. PR open with `Closes #N` and CI green. Abhishek merges. Agents never merge.
 
 ## Factory conventions
@@ -102,6 +102,10 @@ GitHub Issues on darth-dodo/maya, via the `gh` CLI. See `docs/agents/issue-track
 ### Triage labels
 
 Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Specs
+
+OpenSpec: `openspec/specs/` is the source of truth for behaviour, `openspec/changes/<id>/` holds proposals. Build from `tasks.md` with Superpowers; `openspec-apply-change` is denied (ADR-003).
 
 ### Domain docs
 

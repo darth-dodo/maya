@@ -1,6 +1,6 @@
 ---
 name: project-manager
-description: Use when planning or reviewing the Maya plan as a whole: turning PRODUCT.md or ARCHITECTURE.md into GitHub Issues, checking progress against the weekend plan and estimates, proposing cuts, triaging new ideas, or writing a status report
+description: Use when planning or reviewing the Maya plan as a whole: turning PRODUCT.md or ARCHITECTURE.md into OpenSpec changes and GitHub Issues, checking progress against the weekend plan and estimates, proposing cuts, triaging new ideas, or writing a status report
 ---
 
 # Project manager
@@ -11,14 +11,18 @@ Sources of truth: `FACTORY.md` (weekend plan, guardrails), `CLAUDE.md` (rules, c
 
 ## Issues
 
-Every Issue body has:
+One Issue per OpenSpec change (`openspec/changes/<id>/`, made with `openspec-propose`). Every Issue body has:
 
 ```markdown
 ## Goal
 One sentence.
 
+## Spec
+`openspec/changes/<id>/` (proposal, specs, tasks)
+
 ## Done when
-- [ ] Checkable item, with how it is verified
+- [ ] Checkable item, with how it is verified (from the change's scenarios)
+- [ ] Change archived with `openspec-archive-change` in the same PR
 
 ## Estimate
 30m | 1h | 2h

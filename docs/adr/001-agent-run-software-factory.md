@@ -14,7 +14,8 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 
 | Station | Owner |
 |---|---|
-| Intake, plan, review | Matt Pocock skills (`grill-with-docs`, `to-spec`, `to-tickets`, `code-review`) |
+| Intake, review | Matt Pocock skills (`grill-with-docs`, `code-review`) |
+| Specs | OpenSpec (`openspec-propose`, `openspec-archive-change`), see ADR-003 |
 | Build, verify | Superpowers (plan, TDD, subagents, verification) |
 | Work queue | GitHub Issues, each with a "done when" |
 | Check | GitHub Actions: compile with warnings as errors, format, credo, tests |
@@ -28,8 +29,8 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 flowchart TD
     idea([Idea from Abhishek]) --> intake
     subgraph agents [Agents: Claude Code sessions, Herdr optional]
-        intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
-        plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        intake["1 Intake<br/>planner: grill-with-docs<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: openspec-propose, project-manager<br/>writes OpenSpec changes and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
         verify["4 Verify<br/>builder: definition of done, opens PR"]
         review["5 Review<br/>reviewer: code-review"]
