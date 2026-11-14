@@ -15,6 +15,13 @@
   </section>
 
   <section class="mt-8">
+    <h2 class="text-lg font-semibold">Poke facts</h2>
+    <ul id="poke-facts" class="poke-facts mt-4 rounded-2xl" aria-label="Poke facts">
+      <li :for={fact <- poke_facts()} class="poke-fact">{fact}</li>
+    </ul>
+  </section>
+
+  <section class="mt-8">
     <h2 class="text-lg font-semibold">Badge case</h2>
     <ul id="badge-case" class="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-8">
       <li

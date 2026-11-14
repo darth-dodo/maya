@@ -92,6 +92,28 @@ defmodule MayaWeb.PageControllerTest do
     for name <- @badges, do: refute(html =~ "#{name} Badge", "#{name} Badge on the page")
   end
 
+  test "Poke facts: 10 to 14 non-empty facts", %{conn: conn} do
+    facts = conn |> home() |> doc() |> LazyHTML.query("#poke-facts .poke-fact")
+
+    assert Enum.count(facts) in 10..14
+
+    for fact <- facts,
+        do: assert(fact |> LazyHTML.text() |> String.trim() != "", "empty .poke-fact")
+  end
+
+  test "Poke facts never name an evolved Hoenn starter", %{conn: conn} do
+    facts = conn |> home() |> text_of("#poke-facts")
+
+    assert facts =~ "Mudkip"
+
+    for name <- ~w(Grovyle Sceptile Combusken Blaziken Marshtomp Swampert),
+        do: refute(facts =~ name, "#{name} in the Poke facts")
+  end
+
+  test "no script in the page content", %{conn: conn} do
+    assert conn |> home() |> count("main script") == 0
+  end
+
   test "only own assets and no img elements", %{conn: conn} do
     html = home(conn)
     refs = attrs(html, "[src]", "src") ++ attrs(html, "link[rel=stylesheet]", "href")
