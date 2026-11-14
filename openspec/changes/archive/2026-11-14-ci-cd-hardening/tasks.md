@@ -9,8 +9,8 @@
 
 ## 2. CI jobs and aggregate check
 
-- [ ] 2.1 Split `.github/workflows/ci.yml` into parallel `format`, `credo`, `test` (with the pgvector service), `docker` and `security` jobs, plus `ci-success` (`needs:` all, `if: always()`, fails unless all succeeded); verify on the PR that each job appears and `ci-success` is green
-- [ ] 2.2 Docker job: build the image with layer caching, run it with a generated `SECRET_KEY_BASE` and unreachable `DATABASE_URL`, poll `/health` up to 60 s; verify by pushing a temporary commit that breaks `config/runtime.exs` and seeing the docker job fail, then revert it
+- [x] 2.1 Split `.github/workflows/ci.yml` into parallel `format`, `credo`, `test` (with the pgvector service), `docker` and `security` jobs, plus `ci-success` (`needs:` all, `if: always()`, fails unless all succeeded); verify on the PR that each job appears and `ci-success` is green
+- [x] 2.2 Docker job: build the image with layer caching, run it with a generated `SECRET_KEY_BASE` and unreachable `DATABASE_URL`, poll `/health` up to 60 s; verify by pushing a temporary commit that breaks `config/runtime.exs` and seeing the docker job fail, then revert it
 - [x] 2.3 Add `mix_audit` and `sobelow` (only: [:dev, :test], runtime: false); security job runs `mix deps.audit` and `mix sobelow` failing on high confidence; verify both run clean on the PR and record any suppression with its reason
 
 - [x] 2.4 Add `test_coverage` to `mix.exs` (ignore `Maya.DataCase`, `MayaWeb.ConnCase`, `Maya.Release`), measure, set `threshold` to the measured total rounded down; the CI test job runs `mix test --cover`; verify by setting the threshold one point above the measured total and seeing `mix test --cover` fail, then restore it
@@ -22,7 +22,7 @@
 ## 4. Docs and settings
 
 - [x] 4.1 Update FACTORY.md, ADR-001 guardrails, `factory:test` and the `render-deploy` skill to name `ci-success` and the new jobs; verify `git grep -n "\`test\` check"` finds no stale reference
-- [ ] 4.2 Run `factory:test`; verify all gates green
+- [x] 4.2 Run `factory:test`; verify all gates green
 
 ## Workflow follow-up
 
