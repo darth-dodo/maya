@@ -32,5 +32,5 @@ Main: CI success 17:19, smoke success
 Trend (last 5 vs previous 5): lead 0.4h vs n/a, blockers 0 vs n/a, first-pass green 100% vs n/a
 Lessons: <one per line, max 3>
 Experiment: none running | E<n> <change>
-Gym: did you beat one today?
+Gym: did you earn a badge today?
 ```

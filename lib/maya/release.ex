@@ -13,6 +13,12 @@ defmodule Maya.Release do
     end
   end
 
+  @doc "The release form of `mix maya.import`: loads game data and seeds Progress from priv/."
+  def import_data do
+    load_app()
+    {:ok, :ok, _} = Ecto.Migrator.with_repo(Maya.Repo, fn _repo -> Maya.GameData.import!() end)
+  end
+
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))

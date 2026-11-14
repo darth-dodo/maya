@@ -22,6 +22,8 @@ One Phoenix app on Render (Frankfurt), one Postgres on Supabase (Ireland, ADR-00
 
 Voice is the experience (CLAUDE.md product principle), so the stack is chosen for the push-to-talk loop, not for AI libraries.
 
+New to Elixir or Phoenix? Start with [docs/elixir-phoenix-in-5-minutes.md](docs/elixir-phoenix-in-5-minutes.md).
+
 - **One process per Conversation.** A turn is a small concurrent workflow: upload, STT, agent rounds, a TTS stream, and a barge-in that can arrive at any moment. A GenServer with monitored Tasks models that directly; cancelling a turn is killing its Tasks ([GenServer](https://hexdocs.pm/elixir/GenServer.html), [Task.Supervisor](https://hexdocs.pm/elixir/Task.Supervisor.html)).
 - **Crash recovery without dropping the player.** A failed STT or agent call crashes one Task, not the screen. Supervisors restart the Conversation, which reloads its turns from Postgres (ADR-006), while the LiveView stays connected ([Supervisor](https://hexdocs.pm/elixir/Supervisor.html)).
 - **One socket for everything.** LiveView already holds a WebSocket to the phone. Audio goes in as a LiveView upload and PCM comes back as pushed events on the same connection (ADR-005): no separate API server, no SPA, no CSP changes, and keys never reach the browser ([Phoenix.LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html)).
@@ -107,7 +109,7 @@ flowchart TD
 A hand-written loop inside the Conversation's Task: call OpenRouter with the messages and `tools`, run each `tool_calls` entry, append one `role: "tool"` message per call with its `tool_call_id`, repeat until the model answers in text (cap: 4 rounds). `tools` is sent on every request; each `arguments` is a JSON string parsed per call ([OpenRouter tool calling](https://openrouter.ai/docs/guides/features/tool-calling)). Calls go through Req.
 
 - **Model:** a name in config. Block 3 runs the Roxanne Question through 2 or 3 fast models that support tools and keeps the one with the best agent-stage latency that gets the Facts right. The choice and the numbers go in an ADR.
-- **System prompt rules:** game Facts only from tool results this turn (ADR-004); never past the Spoiler horizon; 2 to 3 spoken sentences; the **Dials** (humor from Progress settings, honesty 90, sass 40, spoilers 0 locked, Mudkip hype 100); the **Catchphrase** after good news.
+- **System prompt rules:** game Facts only from tool results this turn (ADR-004); never past the Spoiler horizon; 2 to 3 spoken sentences; the **Dials** (humor from Progress settings, honesty 90, sass 40, spoilers 0 locked, Mudkip hype 100); the **Catchphrase** after good news; inclusive language (earn a badge, battle, get past; never "beat" or "defeat").
 
 | Tool | Arguments | Returns | Spoiler horizon |
 |---|---|---|---|
@@ -148,7 +150,7 @@ Each block becomes one OpenSpec change and one GitHub Issue. Blocks 1 to 4 reach
 |---|---|---|---|---|
 | 1 | Data and horizon | `mix maya.fetch_data` and `mix maya.import` fill the tables from committed files; Roxanne's team and Ralts' Route 102 rate are queryable; horizon tests pass for 0 and 1 badges | 2h | `game-data-and-horizon` |
 | 2 | Voice spine | Format spike recorded; on the phone, a hold is transcribed and spoken back (echo, no agent) with all five stage timings on the turn row; barge-in stops speech; voice outage shows text | 2h | `voice-spine` |
-| 3 | Agent | "How do I beat Roxanne?" out loud returns 2 to 3 sentences naming a counter from the Team and Roxanne's ace; model choice ADR with numbers | 2h | `agent-loop` |
+| 3 | Agent | "How do I earn Roxanne's badge?" out loud returns 2 to 3 sentences naming a counter from the Team and Roxanne's ace; model choice ADR with numbers | 2h | `agent-loop` |
 | 4 | Sunday proof | Ralts Question in the same Conversation; 20-question spoiler probe set passes; 10 holds in a row make 10 Questions; Answer time under 8 s | 1h | `sunday-proof` |
 | 5 | After Sunday | `log_event` with undo, Humor dial by voice, `search_guide` with Walkthrough notes Littleroot to Dewford | 2h | `events-dials-guide` |
 
