@@ -29,6 +29,16 @@ Voice is the experience (CLAUDE.md product principle), so the stack is chosen fo
 - **Timing is built in.** `:telemetry.span` gives per-stage latency for the five voice stages with no extra service ([telemetry](https://hexdocs.pm/telemetry/telemetry.html)).
 - **Small surface.** One deployable (a release in one Docker image), one language for server and screen logic, and the JavaScript limited to one hook for the mic and Web Audio.
 
+### Functional programming
+
+Elixir is functional: data is immutable and code is mostly pure functions over it. Maya leans on that to keep its one promise (zero Spoilers, correct Facts) testable.
+
+- **A pure core, a thin shell.** The rules live in pure functions with no IO: `Horizon.allowed?(location, progress)`, `Horizon.next_gym(progress)`, the matchup math in `gym_counter`, and turning tool results into the messages sent to the model. Processes, HTTP and Postgres sit around that core. The spoiler probe set and the Roxanne and Ralts checks then run as plain unit tests on data, with no mocks and no network.
+- **Immutable state, changed in one place.** A Conversation's state (turns, the turn in flight, playback status) is a value the GenServer replaces on each message. Nothing else can change it behind its back, so a barge-in racing a TTS chunk resolves in the order the messages arrive.
+- **Pattern matching on untrusted shapes.** Model replies and tool calls are matched by shape (`%{"tool_calls" => calls}` versus a text answer, `{:ok, _}` versus `{:error, _}` per call), so a malformed `arguments` string becomes an explicit branch, not a crash deep in the loop ([pattern matching](https://hexdocs.pm/elixir/pattern-matching.html)).
+- **Pipelines for data.** The import is a chain of small transformations (`File.read!/1 |> Jason.decode!() |> to_rows() |> Repo.insert_all/2`), each testable on its own with a fixture from `priv/data/`.
+- **Tagged results, not exceptions.** Tools return `{:ok, fact}`, `{:error, :not_found}` or `{:error, :past_horizon}`. The agent turns each into the right spoken line ("Not sure", "Further ahead"), so every failure in the PRODUCT.md table is a value we can assert on.
+
 What it costs:
 - **No official AI SDKs.** OpenRouter and Mistral are called with Req, and the agent loop is hand-written (CLAUDE.md). That is a few hundred lines we own and test, which also keeps ADR-004's rules visible in our code rather than inside a framework.
 - **No local ML.** Bumblebee models do not fit in 512 MB, so embeddings use the Mistral API.
