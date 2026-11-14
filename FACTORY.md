@@ -36,37 +36,51 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ## How it works
 
 ### The pipeline
-```
- YOU                       AGENTS (Claude Code)                  MACHINES
- idea --> [1 Intake]  planner: grill-with-docs, to-prd -> PRODUCT.md
-            |
-          [2 Plan]    planner: to-issues, project-manager
-            |           -> ARCHITECTURE.md + Issues (done when, estimate)
-          [3 Build]   builder-<issue>: next-task, Superpowers plan, TDD
-            |
-          [4 Verify]  builder: definition of done -> PR (Closes #N)
-            |
-          [5 Review]  reviewer pane: code-review
-            |
-          [6 Check]  -------------------------------------> GitHub Actions
-            |                compile, format, credo, test
- merge <- [7 Gate]    only Abhishek merges (squash, PR title)
-            |
-          [8 Ship]   -------------------------------------> Render <-> Supabase
-            |                migrate, /health, live
-          [9 Feedback] failures become Issues --> back to [3]
+```mermaid
+flowchart TD
+    idea([Idea from Abhishek]) --> intake
+    subgraph agents [Agents in Herdr panes]
+        intake["1 Intake<br/>planner: grill-with-docs, to-prd<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: to-issues, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
+        verify["4 Verify<br/>builder: definition of done, opens PR"]
+        review["5 Review<br/>reviewer: code-review"]
+    end
+    check["6 Check<br/>GitHub Actions: compile, format, credo, test"]
+    gate{"7 Gate<br/>Abhishek squash merges"}
+    ship["8 Ship<br/>Render: migrate, health check, live"]
+    db[(Supabase Postgres)]
+    feedback["9 Feedback<br/>failures become Issues"]
+    intake --> plan --> build --> verify --> review --> check
+    check -- red --> build
+    check -- green --> gate
+    gate --> ship
+    ship <--> db
+    ship -- failure --> feedback --> build
 ```
 
 ### One Issue's life
-```
-Issue #12 "find_pokemon tool" (done when, estimate 1h)
-  -> builder picks it (next-task: stale loops, green PRs, red PRs, then new)
-  -> branch feat/find-pokemon: test first, code, mix precommit
-  -> PR "feat: add find_pokemon tool", Closes #12
-  -> CI red: builder fixes (systematic-debugging). CI green: wait for merge
-  -> Abhishek squash merges
-  -> Render: CI passed, /app/bin/migrate, /health ok, live
-  -> Issue closes, next-task picks the next one
+```mermaid
+sequenceDiagram
+    participant B as builder
+    participant GH as GitHub
+    participant CI as GitHub Actions
+    actor A as Abhishek
+    participant R as Render
+    B->>GH: next-task picks Issue 12 (done when, estimate 1h)
+    B->>B: branch, test first, code, mix precommit
+    B->>GH: PR "feat: add find_pokemon tool" that closes Issue 12
+    GH->>CI: run checks
+    alt CI red
+        CI-->>B: failure
+        B->>GH: fix and push (systematic-debugging)
+    else CI green
+        CI-->>GH: test passed
+    end
+    A->>GH: squash merge
+    GH->>R: main changed and checks passed
+    R->>R: migrate, health check, live
+    GH-->>B: Issue 12 closed, next-task picks the next one
 ```
 
 ### Guardrails that agents cannot talk past

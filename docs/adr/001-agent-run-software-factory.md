@@ -24,25 +24,27 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 
 ## How
 
-```
- YOU                       AGENTS (Claude Code)                  MACHINES
- idea --> [1 Intake]  planner: grill-with-docs, to-prd -> PRODUCT.md
-            |
-          [2 Plan]    planner: to-issues, project-manager
-            |           -> ARCHITECTURE.md + Issues (done when, estimate)
-          [3 Build]   builder-<issue>: next-task, Superpowers plan, TDD
-            |
-          [4 Verify]  builder: definition of done -> PR (Closes #N)
-            |
-          [5 Review]  reviewer pane: code-review
-            |
-          [6 Check]  -------------------------------------> GitHub Actions
-            |                compile, format, credo, test
- merge <- [7 Gate]    only Abhishek merges (squash, PR title)
-            |
-          [8 Ship]   -------------------------------------> Render <-> Supabase
-            |                migrate, /health, live
-          [9 Feedback] failures become Issues --> back to [3]
+```mermaid
+flowchart TD
+    idea([Idea from Abhishek]) --> intake
+    subgraph agents [Agents in Herdr panes]
+        intake["1 Intake<br/>planner: grill-with-docs, to-prd<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: to-issues, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
+        verify["4 Verify<br/>builder: definition of done, opens PR"]
+        review["5 Review<br/>reviewer: code-review"]
+    end
+    check["6 Check<br/>GitHub Actions: compile, format, credo, test"]
+    gate{"7 Gate<br/>Abhishek squash merges"}
+    ship["8 Ship<br/>Render: migrate, health check, live"]
+    db[(Supabase Postgres)]
+    feedback["9 Feedback<br/>failures become Issues"]
+    intake --> plan --> build --> verify --> review --> check
+    check -- red --> build
+    check -- green --> gate
+    gate --> ship
+    ship <--> db
+    ship -- failure --> feedback --> build
 ```
 
 Full walkthrough, including one Issue's life: `FACTORY.md`, "How it works".
