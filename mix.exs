@@ -16,7 +16,7 @@ defmodule Maya.MixProject do
       # Maya.LcovCoverage also writes cover/lcov.info for the Codecov upload in CI.
       test_coverage: [
         tool: Maya.LcovCoverage,
-        summary: [threshold: 89],
+        summary: [threshold: 90],
         ignore_modules: [Maya.DataCase, MayaWeb.ConnCase, Maya.LcovCoverage, Maya.Release]
       ]
     ]

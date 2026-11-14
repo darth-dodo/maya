@@ -4,3 +4,4 @@ Added: System prompt with the Answer rules (Facts only from tools, no spoilers, 
 Added: `turns.agent_ms` and the agent stage in `mix maya.latency`; `mix maya.compare_models` and ADR-007 (Proposed) for the agent model choice
 Changed: The Answer is no longer an echo; an agent failure speaks "Lost my train of thought, ask again?"
 Changed: `OPENROUTER_API_KEY` is read in `config/runtime.exs` and listed in `render.yaml`
+Changed: Coverage floor raised from 89 to 90 percent (measured 90.97)

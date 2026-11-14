@@ -7,20 +7,20 @@
 
 ## 2. Shell
 
-- [ ] 2.1 Config (`:openrouter`, `agent_model`, `agent_timeout_ms`), `OPENROUTER_API_KEY` in `config/runtime.exs`, `render.yaml` (`sync: false`), FACTORY.md secrets table; verify the docker smoke test
-- [ ] 2.2 `Maya.Agent.Tools` (definitions, dispatch, DB layer) with tests over imported data; verify tests
-- [ ] 2.3 `Maya.Agent` loop over Req with `Req.Test` stubs (Roxanne round trip, malformed arguments, round cap, HTTP error, last 5 turns); verify tests
-- [ ] 2.4 `turns.agent_ms` migration, `Timing`, `Turn` and `Latency` know the agent stage; verify `mix maya.latency` test
-- [ ] 2.5 `Maya.Conversation` calls the agent with the last 5 turns inside the agent span, speaks the agent error line on failure, keeps "I did not catch that." without the agent; verify Conversation tests
+- [x] 2.1 Config (`:openrouter`, `agent_model`, `agent_timeout_ms`), `OPENROUTER_API_KEY` in `config/runtime.exs`, `render.yaml` (`sync: false`), FACTORY.md secrets table; verify the docker smoke test
+- [x] 2.2 `Maya.Agent.Tools` (definitions, dispatch, DB layer) with tests over imported data; verify tests
+- [x] 2.3 `Maya.Agent` loop over Req with `Req.Test` stubs (Roxanne round trip, malformed arguments, round cap, HTTP error, last 5 turns); verify tests
+- [x] 2.4 `turns.agent_ms` migration, `Timing`, `Turn` and `Latency` know the agent stage; verify `mix maya.latency` test
+- [x] 2.5 `Maya.Conversation` calls the agent with the last 5 turns inside the agent span, speaks the agent error line on failure, keeps "I did not catch that." without the agent; verify Conversation tests
 
 ## 3. Model choice
 
-- [ ] 3.1 `mix maya.compare_models` with a stubbed test; verify the test prints one line per model
+- [x] 3.1 `mix maya.compare_models` with a stubbed test; verify the test prints one line per model
 - [x] 3.2 `docs/adr/007-agent-model.md` (Proposed, candidates, empty results table) and the ADR index; verify the files
 
 ## 4. Gates
 
-- [ ] 4.1 Run `factory:test`; verify every gate is green and the coverage floor is not lowered
+- [x] 4.1 Run `factory:test`; verify every gate is green and the coverage floor is not lowered
 
 ## Workflow follow-up
 
