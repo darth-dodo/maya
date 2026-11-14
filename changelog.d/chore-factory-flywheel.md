@@ -1,2 +1,0 @@
-Added: Factory flywheel: `factory:retro` (metrics row and one lesson per merged PR in `~/maya-factory/`), `factory:improve` (one measured experiment per 5 retros, kept or reverted), `factory:recap` (under 15 line digest); `docs/factory/LESSONS.md` and `docs/factory/experiments.md`
-Changed: `factory:build` reads `docs/factory/LESSONS.md` at step 4 and runs `factory:retro` at step 11; the daily digest is `factory:recap`
