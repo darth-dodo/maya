@@ -1,0 +1,22 @@
+name: Setup Elixir
+description: Install OTP and Elixir, restore the deps and _build cache, fetch deps
+
+runs:
+  using: composite
+  steps:
+    - uses: erlef/setup-beam@v1
+      id: beam
+      with:
+        otp-version: '29'
+        elixir-version: '1.20.5'
+
+    - uses: actions/cache@v6
+      with:
+        path: |
+          deps
+          _build
+        key: ${{ runner.os }}-mix-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-mix-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+    - run: mix deps.get
+      shell: bash

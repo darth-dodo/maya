@@ -27,6 +27,18 @@ Every pull request SHALL build the production release image and start it, and SH
 - **WHEN** the image builds and is started with test configuration and no reachable database
 - **THEN** its liveness endpoint answers HTTP 200 within 60 seconds
 
+### Requirement: Test coverage floor
+Every pull request SHALL fail when total line coverage of application modules falls below the threshold recorded in the project, SHALL print coverage per module, and SHALL NOT lower that threshold.
+
+#### Scenario: Coverage drops below the floor
+- **WHEN** a pull request makes total line coverage of application modules fall below the recorded threshold
+- **THEN** the test job fails
+- **AND** the log shows the total coverage and the threshold
+
+#### Scenario: Coverage report visible
+- **WHEN** the test job runs
+- **THEN** its log shows a coverage table with one row per application module
+
 ### Requirement: Security scans on every pull request
 Every pull request SHALL fail when a dependency has a known vulnerability advisory or the code has a high-confidence web security finding.
 
