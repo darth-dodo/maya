@@ -2,7 +2,7 @@
 
 ## Local development
 
-Requires Docker for Postgres (with pgvector).
+Requires Docker for Postgres (with pgvector). Env vars: copy `.env.template` to `.env` (see the comments in it).
 
 ```sh
 docker compose up -d db
