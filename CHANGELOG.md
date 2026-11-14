@@ -8,6 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- `.env.template` listing every env var, with the Supabase pooler URI format (#6)
 - Render deploy: `render.yaml` (Frankfurt, `0.5c-512mb`, deploy after CI, migrations pre-deploy), release Dockerfile, `/health` route, `render-deploy` skill (#4)
 - ADR-002: Postgres on Supabase (#4)
 - ADR-001: agent-run software factory, why, what and how, with a Mermaid pipeline diagram and guardrails; "How it works" section in FACTORY.md (#3)
