@@ -58,19 +58,19 @@ Do these in order. Stop at each "done when" and report.
 3. **CI.** `.github/workflows/ci.yml` with a Postgres + pgvector service: `mix format --check-formatted`, `mix credo`, `mix test`. Add `credo` dep. Done when CI is green on a PR.
 4. **Render.** `render.yaml` blueprint: web service, region frankfurt, deploy from main after CI passes, Postgres on Supabase (ADR-002). Pre-deploy command runs migrations. Done when merging to main deploys the hello page over HTTPS.
 5. **Plugins.** Install Superpowers and Matt Pocock skills. Run `/setup-matt-pocock-skills` (tracker: GitHub, docs: `docs/`). Done when both are listed and setup config is committed.
-6. **Herdr.** Install, run `herdr integration install claude`. Create panes `planner` and `builder-1`. Done when Herdr shows both panes with correct state.
+6. **Runtime.** Claude Code sessions: `planner` and `builder-<issue>` (own worktree via `claude -w`), Remote Control on. Herdr optional for devex (installed, see FACTORY.md "Runtime"). Done when both sessions run and show in Remote Control.
 7. **Proof.** A dummy PR (edit hello page text) goes through CI and deploys. Done when the change is live.
 
-Ask me before: choosing Render plan tier, any paid service, changing the frozen stack, or deciding the Superpowers SessionStart hook question in the planner pane.
+Ask me before: choosing Render plan tier, any paid service, or changing the frozen stack. (Superpowers SessionStart hook: decided, kept in every pane, see FACTORY.md skill ownership rule 3.)
 
 ## After F1
 - F2: run the grill (`grill-with-docs`, then `to-spec`) with me to write PRODUCT.md. Resume at Q1.
 - F3: `to-tickets`, write ARCHITECTURE.md. Every Issue has a "done when".
-- F4: Telegram bot + local watcher (see FACTORY.md). Done when tapping Merge on my phone merges a dummy PR.
+- F4: Telegram moved to PHASE_2.md. Phone gate: GitHub app to merge, Remote Control for blocked sessions.
 
 ## Rules
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
-- Cut order: Telegram digest, Herdr watcher, embeddings, journal, dials.
+- Cut order: embeddings, journal, dials (Telegram digest and watcher already in PHASE_2.md).
 - Voice fallback: browser Web Speech API.
 - TDD via Superpowers only. Do not use Matt `tdd`. Enforced: `.claude/settings.json` denies `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs` (Superpowers owns build and debug).
 - Max 2 builders in parallel. Squash merges.
@@ -88,7 +88,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 ## Factory conventions
 - Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
 - Every PR adds its lines to `CHANGELOG.md` under `Unreleased`, ending with the PR number.
-- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes).
+- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes), `herdr` (optional, only inside a Herdr pane).
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).
 - What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.
@@ -112,7 +112,7 @@ Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents
 - Browser mic needs HTTPS. Test on phone only after Render deploy.
 - Telegram: always answer the callback query after a button press, or the button spins forever.
 - `getUpdates` and webhooks are mutually exclusive. Watcher uses polling.
-- Herdr is local. Factory runs only while my machine is on.
+- Sessions (and optional Herdr) are local. Factory runs only while my machine is on.
 - Sesame has a voice model also named Maya. Avoid confusion in docs and search.
 - Supabase free pauses after 1 week of inactivity: restore it in the dashboard. Connect through the session pooler (port 5432); direct connections are IPv6 only.
 - Render deploys and ops: `render-deploy` skill.
@@ -128,7 +128,7 @@ See `PHASE_2.md`.
 - Mistral audio API: https://docs.mistral.ai/studio-api/audio
 - Render pricing: https://render.com/pricing.md
 - PokeAPI: https://pokeapi.co/
-- Herdr: https://www.mindstudio.ai/blog/herder-terminal-agent-multiplexer/
+- Herdr (optional): https://github.com/herdrdev/herdr
 - Superpowers: https://github.com/obra/superpowers
 - Matt Pocock skills: https://github.com/mattpocock/skills
 - Telegram Bot API: https://core.telegram.org/bots/api

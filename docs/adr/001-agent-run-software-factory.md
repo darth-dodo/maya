@@ -20,14 +20,14 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 | Check | GitHub Actions: compile with warnings as errors, format, credo, tests |
 | Gate | Abhishek merges. Agents never do |
 | Ship | Render deploys main after CI passes |
-| Runtime | Herdr panes on Abhishek's Mac (`planner`, max 2 `builder-<issue>`) |
+| Runtime | Claude Code sessions on Abhishek's Mac (`planner`, max 2 `builder-<issue>` in their own worktrees), Remote Control for the phone. Herdr panes optional for devex |
 
 ## How
 
 ```mermaid
 flowchart TD
     idea([Idea from Abhishek]) --> intake
-    subgraph agents [Agents in Herdr panes]
+    subgraph agents [Agents: Claude Code sessions, Herdr optional]
         intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
         plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
