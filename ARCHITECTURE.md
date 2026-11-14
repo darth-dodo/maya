@@ -22,6 +22,8 @@ One Phoenix app on Render (Frankfurt), one Postgres on Supabase (Ireland, ADR-00
 
 Voice is the experience (CLAUDE.md product principle), so the stack is chosen for the push-to-talk loop, not for AI libraries.
 
+New to Elixir or Phoenix? Start with [docs/elixir-phoenix-in-5-minutes.md](docs/elixir-phoenix-in-5-minutes.md).
+
 - **One process per Conversation.** A turn is a small concurrent workflow: upload, STT, agent rounds, a TTS stream, and a barge-in that can arrive at any moment. A GenServer with monitored Tasks models that directly; cancelling a turn is killing its Tasks ([GenServer](https://hexdocs.pm/elixir/GenServer.html), [Task.Supervisor](https://hexdocs.pm/elixir/Task.Supervisor.html)).
 - **Crash recovery without dropping the player.** A failed STT or agent call crashes one Task, not the screen. Supervisors restart the Conversation, which reloads its turns from Postgres (ADR-006), while the LiveView stays connected ([Supervisor](https://hexdocs.pm/elixir/Supervisor.html)).
 - **One socket for everything.** LiveView already holds a WebSocket to the phone. Audio goes in as a LiveView upload and PCM comes back as pushed events on the same connection (ADR-005): no separate API server, no SPA, no CSP changes, and keys never reach the browser ([Phoenix.LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html)).
