@@ -1,7 +1,7 @@
 defmodule Maya.Voice.Latency do
   @moduledoc "Pure p50 and p95 per voice stage over stored turns (nearest rank)."
 
-  @stages [:mic_release_ms, :stt_ms, :tts_first_byte_ms, :playback_start_ms]
+  @stages [:mic_release_ms, :stt_ms, :agent_ms, :tts_first_byte_ms, :playback_start_ms]
 
   def stages, do: @stages
 

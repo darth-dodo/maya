@@ -20,10 +20,17 @@ config :maya, :voice,
   # Generated speech is mono at 24 kHz (Mistral audio formats page); the hook plays at this rate.
   tts_sample_rate: 24_000,
   stt_timeout_ms: 8_000,
-  tts_timeout_ms: 8_000
+  tts_timeout_ms: 8_000,
+  # Agent model on OpenRouter with tool calling (ADR-007 picks it by measured agent ms).
+  agent_model: "anthropic/claude-haiku-5.5",
+  # The whole agent stage (up to 4 OpenRouter requests).
+  agent_timeout_ms: 8_000
 
 # Mistral HTTP client; the key is set in config/runtime.exs, tests stub with Req.Test.
 config :maya, :mistral, base_url: "https://api.mistral.ai", req_options: []
+
+# OpenRouter HTTP client for the agent; the key is set in config/runtime.exs, tests stub with Req.Test.
+config :maya, :openrouter, base_url: "https://openrouter.ai/api", req_options: []
 
 # Configure the endpoint
 config :maya, MayaWeb.Endpoint,

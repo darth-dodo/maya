@@ -1,16 +1,18 @@
 defmodule Maya.Conversation do
   @moduledoc """
   The one Conversation (ARCHITECTURE.md 2). It owns the turn in flight: STT, then the
-  Answer (an echo of the transcript until the agent lands), then a streamed TTS Answer.
+  agent (with the last 5 turns), then a streamed TTS Answer.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
   `{:audio, pcm}`, `:audio_done` and `:voice_down`.
   """
   use GenServer
 
+  alias Maya.Agent
   alias Maya.Voice.{STT, Turn, TTS}
 
   @not_heard "I did not catch that."
+  @lost "Lost my train of thought, ask again?"
 
   ## Client
 
@@ -124,8 +126,48 @@ defmodule Maya.Conversation do
 
   ## Turn steps
 
-  defp finished(:stt, {:ok, text}, %{current: c} = state) do
-    {question, answer} = if text == "", do: {"(nothing heard)", @not_heard}, else: {text, text}
+  defp finished(:stt, {:ok, ""}, state), do: speak(state, "(nothing heard)", @not_heard)
+
+  defp finished(:stt, {:ok, question}, %{current: c} = state) do
+    me = self()
+    ref = c.ref
+    turns = state.turns
+
+    task =
+      run(fn ->
+        :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
+          {Agent.answer(question, turns), %{conversation: me, ref: ref}}
+        end)
+      end)
+
+    %{state | current: %{c | stage: :agent, task: task, turn: %{c.turn | question: question}}}
+  end
+
+  defp finished(:stt, {:error, _reason}, state) do
+    broadcast(state, :voice_down)
+    %{state | current: nil}
+  end
+
+  defp finished(:agent, {:ok, answer}, state),
+    do: speak(state, state.current.turn.question, answer)
+
+  # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
+  defp finished(:agent, {:error, _reason}, state),
+    do: speak(state, state.current.turn.question, @lost)
+
+  defp finished(:tts, :ok, state) do
+    broadcast(state, :audio_done)
+    store(state, state.current.turn)
+  end
+
+  defp finished(:tts, {:error, _reason}, state) do
+    state = store(state, %{state.current.turn | voice_down: true})
+    broadcast(state, :voice_down)
+    state
+  end
+
+  # Starts streaming the Answer; the turn shows on screen from here.
+  defp speak(%{current: c} = state, question, answer) do
     me = self()
     ref = c.ref
 
@@ -145,22 +187,6 @@ defmodule Maya.Conversation do
     state
   end
 
-  defp finished(:stt, {:error, _reason}, state) do
-    broadcast(state, :voice_down)
-    %{state | current: nil}
-  end
-
-  defp finished(:tts, :ok, state) do
-    broadcast(state, :audio_done)
-    store(state, state.current.turn)
-  end
-
-  defp finished(:tts, {:error, _reason}, state) do
-    state = store(state, %{state.current.turn | voice_down: true})
-    broadcast(state, :voice_down)
-    state
-  end
-
   # Cancels the turn in flight. A spoken Answer is kept as text and marked cut.
   defp cut(%{current: nil} = state), do: state
 
@@ -170,7 +196,7 @@ defmodule Maya.Conversation do
 
     case c.stage do
       :tts -> store(state, %{c.turn | cut: true})
-      :stt -> %{state | current: nil}
+      _stt_or_agent -> %{state | current: nil}
     end
   end
 

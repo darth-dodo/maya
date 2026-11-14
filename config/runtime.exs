@@ -28,6 +28,8 @@ config :maya, :git_commit, System.get_env("RENDER_GIT_COMMIT", "unknown")
 # Mistral key for STT and TTS. Missing means "voice is down" (Answers as text), not a boot failure.
 if config_env() != :test do
   config :maya, :mistral, api_key: System.get_env("MISTRAL_API_KEY")
+  # Agent key. Missing means every Answer is the spoken agent error line, not a boot failure.
+  config :maya, :openrouter, api_key: System.get_env("OPENROUTER_API_KEY")
 end
 
 if config_env() == :dev do

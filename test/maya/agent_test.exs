@@ -1,0 +1,165 @@
+defmodule Maya.AgentTest do
+  use Maya.DataCase, async: true
+
+  alias Maya.Agent
+  alias Maya.Voice.Turn
+
+  @roxanne "How do I earn Roxanne's badge?"
+
+  setup do
+    :ok = Maya.GameData.import!()
+    :ok
+  end
+
+  # Replies with `replies` in order, sending each decoded request body to the test.
+  defp script(replies) do
+    me = self()
+    {:ok, agent} = Elixir.Agent.start_link(fn -> replies end)
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(me, {:request, conn.request_path, Jason.decode!(body)})
+      reply = Elixir.Agent.get_and_update(agent, fn [r | rest] -> {r, rest ++ [r]} end)
+      Req.Test.json(conn, reply)
+    end)
+  end
+
+  defp text(content),
+    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
+
+  defp calls(calls) do
+    tool_calls =
+      for {id, name, args} <- calls,
+          do: %{
+            "id" => id,
+            "type" => "function",
+            "function" => %{"name" => name, "arguments" => args}
+          }
+
+    %{
+      "choices" => [
+        %{"message" => %{"role" => "assistant", "content" => nil, "tool_calls" => tool_calls}}
+      ]
+    }
+  end
+
+  defp tool_messages(%{"messages" => messages}),
+    do: for(%{"role" => "tool"} = m <- messages, do: m)
+
+  test "Roxanne: one gym_counter round trip, then the Answer names her ace and a counter" do
+    answer =
+      "Roxanne's ace is Nosepass at level 15. Lead with Mudkip, its water moves hit rock twice as hard. Mudkip would approve."
+
+    script([calls([{"call_1", "gym_counter", ~s({"leader":"Roxanne"})}]), text(answer)])
+
+    assert Agent.answer(@roxanne, []) == {:ok, answer}
+
+    assert_received {:request, "/v1/chat/completions", first}
+    assert_received {:request, "/v1/chat/completions", second}
+
+    for body <- [first, second] do
+      assert body["model"] == "anthropic/claude-haiku-5.5"
+      assert Enum.map(body["tools"], & &1["function"]["name"]) == ["gym_counter", "find_pokemon"]
+      refute Map.has_key?(body, "temperature")
+    end
+
+    assert [%{"role" => "system"}, %{"role" => "user", "content" => @roxanne}] = first["messages"]
+
+    assert [%{"tool_call_id" => "call_1", "content" => content}] = tool_messages(second)
+
+    assert %{
+             "fact" => %{
+               "ace" => %{"species" => "nosepass", "level" => 15},
+               "suggested_lead" => "mudkip"
+             }
+           } =
+             Jason.decode!(content)
+
+    # The assistant's tool call is replayed before its result.
+    assert %{"role" => "assistant", "tool_calls" => [%{"id" => "call_1"}]} =
+             Enum.at(second["messages"], 2)
+  end
+
+  test "two calls in one round get one tool message each, in order" do
+    script([
+      calls([
+        {"a", "find_pokemon", ~s({"name":"Ralts"})},
+        {"b", "gym_counter", ~s({"leader":"Brawly"})}
+      ]),
+      text("Ralts is on Route 102. Further ahead, no spoilers.")
+    ])
+
+    assert {:ok, _} = Agent.answer("Where is Ralts and what about Brawly?", [])
+    assert_received {:request, _, _}
+    assert_received {:request, _, second}
+
+    assert [
+             %{"tool_call_id" => "a", "content" => ralts},
+             %{"tool_call_id" => "b", "content" => brawly}
+           ] =
+             tool_messages(second)
+
+    assert ralts =~ "Route 102"
+    assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(brawly)
+  end
+
+  test "malformed arguments are a tool error the model sees, not a crash" do
+    script([calls([{"bad", "gym_counter", "{leader: Roxanne"}]), text("Not sure.")])
+
+    assert Agent.answer(@roxanne, []) == {:ok, "Not sure."}
+    assert_received {:request, _, _}
+    assert_received {:request, _, second}
+    assert [%{"tool_call_id" => "bad", "content" => content}] = tool_messages(second)
+    assert Jason.decode!(content) == %{"error" => "malformed_arguments"}
+  end
+
+  test "arguments that are JSON but not an object are malformed too" do
+    script([calls([{"bad", "gym_counter", ~s(["Roxanne"])}]), text("Not sure.")])
+    assert {:ok, "Not sure."} = Agent.answer(@roxanne, [])
+  end
+
+  test "the loop stops after 4 requests" do
+    script([calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])])
+
+    assert Agent.answer(@roxanne, []) == {:error, :round_cap}
+
+    for _ <- 1..4, do: assert_received({:request, _, _})
+    refute_received {:request, _, _}
+  end
+
+  test "an OpenRouter error is an agent error" do
+    Req.Test.stub(Maya.OpenRouter, &Plug.Conn.send_resp(&1, 502, "bad gateway"))
+    assert Agent.answer(@roxanne, []) == {:error, {:http, 502}}
+  end
+
+  test "a reply with neither text nor tool calls is an agent error" do
+    script([%{"error" => %{"message" => "provider down"}}])
+    assert Agent.answer(@roxanne, []) == {:error, :bad_reply}
+  end
+
+  test "the last 5 turns go between the system prompt and the Question" do
+    script([text("Brawly is past the Next gym. Further ahead, no spoilers.")])
+    turns = for n <- 1..7, do: %Turn{question: "q#{n}", answer: "a#{n}"}
+
+    assert {:ok, _} = Agent.answer("What about Brawly?", turns)
+    assert_received {:request, _, %{"messages" => [%{"role" => "system"} | rest]}}
+
+    expected =
+      Enum.flat_map(
+        3..7,
+        &[
+          %{"role" => "user", "content" => "q#{&1}"},
+          %{"role" => "assistant", "content" => "a#{&1}"}
+        ]
+      ) ++
+        [%{"role" => "user", "content" => "What about Brawly?"}]
+
+    assert rest == expected
+  end
+
+  test "the model can be chosen per call" do
+    script([text("Hi.")])
+    assert {:ok, "Hi."} = Agent.answer("Hi", [], model: "openai/gpt-5.4-mini")
+    assert_received {:request, _, %{"model" => "openai/gpt-5.4-mini"}}
+  end
+end

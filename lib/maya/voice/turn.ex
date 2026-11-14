@@ -13,6 +13,7 @@ defmodule Maya.Voice.Turn do
     field :cut, :boolean, default: false
     field :mic_release_ms, :integer
     field :stt_ms, :integer
+    field :agent_ms, :integer
     field :tts_first_byte_ms, :integer
     field :playback_start_ms, :integer
     # In memory only: the screen shows "voice is down" for this turn.
