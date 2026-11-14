@@ -8,6 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- Factory flywheel: `factory:retro` (metrics row and one lesson per merged PR in `~/maya-factory/`), `factory:improve` (one measured experiment per 5 retros, kept or reverted), `factory:recap` (under 15 line digest); `docs/factory/LESSONS.md` read by `factory:build` at step 4, `docs/factory/experiments.md` (#25)
 - CI/CD hardening: parallel format, credo, test (coverage floor 32%), security (mix_audit, sobelow) and docker boot jobs behind one `ci-success` check; strict Content-Security-Policy; `/health/version`; post-deploy smoke check that opens a bug Issue (#22)
 - `factory:pause`, `factory:resume` and `factory:cleanup` skills; `next-task` ranks `paused` Issues (#21)
 - OpenSpec changes `ci-cd-hardening`, `factory-flywheel` (retro, improve, recap) and `pokemon-welcome-page`; `.claude/worktrees/` ignored (#17)
