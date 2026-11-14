@@ -31,6 +31,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - App refuses to boot when `SECRET_KEY_BASE` is under 64 bytes, so a bad key fails the deploy instead of serving 500s (#8)
 
 ### Changed
+- Home page is a minimal Maya landing page (heading, tagline, title "Maya"); generator content removed. Factory dry run; spec `openspec/specs/landing-page/` (#16)
 - Plan station: one OpenSpec change and one GitHub Issue per block; builders archive the change in their PR. Matt `to-spec` and `to-tickets` retired (#11)
 - Telegram bot and watcher (F4) moved to PHASE_2.md (#10)
 - Superpowers SessionStart hook kept in every pane, planner included; intake invokes `grill-with-docs` explicitly (#10)
