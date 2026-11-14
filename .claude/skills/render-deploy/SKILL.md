@@ -1,0 +1,52 @@
+---
+name: render-deploy
+description: Use when changing render.yaml, the Dockerfile, runtime config or env vars for Maya, checking whether a deploy went live, or debugging a failed Render deploy, health check, migration or database connection
+---
+
+# Render deploy
+
+Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Supabase (ADR-002).
+
+## Files
+
+| File | Role |
+|---|---|
+| `render.yaml` | Blueprint: service, plan, region, health check, pre-deploy, env vars |
+| `Dockerfile`, `.dockerignore`, `rel/overlays/bin/*`, `lib/maya/release.ex` | Release image from `mix phx.gen.release --docker` |
+| `config/runtime.exs` | Prod config read at boot: DB URL and SSL, host, port, secret |
+| `lib/maya_web/controllers/health_controller.ex` | `/health`, Render's health check |
+
+## Rules
+
+- Region `frankfurt` and the service name are permanent. Never change them in `render.yaml`.
+- Plan changes cost money: ask Abhishek first.
+- `autoDeployTrigger: checksPass`: main deploys only after CI is green. Never switch to `commit`.
+- Migrations run in `preDeployCommand: /app/bin/migrate`. A failed migration stops the deploy and the old version keeps serving.
+- Secrets are `sync: false`. Abhishek sets them in the Render dashboard. Never put a value in `render.yaml`, a commit or chat.
+- `SECRET_KEY_BASE` comes from `mix phx.gen.secret`. `generateValue` is too short for Phoenix (needs 64 bytes).
+- Keep `/health` cheap and DB free. A paused Supabase project must not restart the app.
+- New env var: add it to `render.yaml` (with `sync: false` if secret), `config/runtime.exs`, and the secrets table in `FACTORY.md`.
+
+## Before opening a deploy PR
+
+1. `mix precommit` and `mix credo` green.
+2. `docker build -t maya:local .` succeeds.
+3. Smoke test the image: `docker run --rm -p 4001:4001 -e PORT=4001 -e DATABASE_URL=ecto://postgres:postgres@host.docker.internal/maya_dev -e SECRET_KEY_BASE=$(mix phx.gen.secret) maya:local`, then `curl -fsS localhost:4001/health` prints `ok`. Local Postgres has no SSL, so DB errors in the log are expected; `/health` must still answer.
+
+## Verify a deploy
+
+1. The merged PR's CI run is green (`gh run list --branch main --limit 1`).
+2. The Render dashboard shows a live deploy for that commit.
+3. `curl -fsS https://<service>.onrender.com/health` prints `ok`.
+4. The home page loads over HTTPS and the LiveView socket connects (no reconnect loop in the browser console).
+
+## When it breaks
+
+| Symptom | Likely cause |
+|---|---|
+| Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
+| Pre-deploy fails | Wrong `DATABASE_URL`, missing or wrong `DATABASE_CA_CERT`, or Supabase project paused |
+| `ssl` or `certificate` errors | `DATABASE_CA_CERT` not the Supabase CA from Database Settings > SSL Configuration |
+| Page loads, LiveView keeps reconnecting | Host mismatch: `PHX_HOST` unset and `RENDER_EXTERNAL_HOSTNAME` missing |
+| Too many connections | Lower `POOL_SIZE` in `render.yaml` |
+| Everything worked, now DB errors | Supabase free paused after a week idle: restore it in the Supabase dashboard |

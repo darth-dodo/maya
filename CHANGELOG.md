@@ -8,6 +8,8 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- Render deploy: `render.yaml` (Frankfurt, `0.5c-512mb`, deploy after CI, migrations pre-deploy), release Dockerfile, `/health` route, `render-deploy` skill (#4)
+- ADR-002: Postgres on Supabase (#4)
 - ADR-001: agent-run software factory, why, what and how, with a Mermaid pipeline diagram and guardrails; "How it works" section in FACTORY.md (#3)
 - Factory docs from sibling repos: `settled-architecture` and `next-task` skills, definition of done, ADR convention, PR template, `PHASE_2.md`, this changelog (#2)
 - `.claude/settings.json` allowlist for mix, git read and `gh` commands, denying `gh pr merge`, force pushes, pushes to main and reading `.env` (#2)
@@ -18,4 +20,5 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - Phoenix 1.8.16 LiveView app scaffold, CLAUDE.md and FACTORY.md handoff docs
 
 ### Changed
+- Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)
 - Project name written as "Maya", never all caps, across docs and skills (#2)

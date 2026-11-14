@@ -49,8 +49,16 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
+  # Supabase signs with its own CA (Database Settings > SSL Configuration), passed as PEM text.
+  # Without it, ssl: true still verifies the peer against the system CAs.
+  database_ssl =
+    case System.get_env("DATABASE_CA_CERT") do
+      nil -> true
+      pem -> [cacerts: for({:Certificate, der, _} <- :public_key.pem_decode(pem), do: der)]
+    end
+
   config :maya, Maya.Repo,
-    # ssl: true,
+    ssl: database_ssl,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     # For machines with several cores, consider starting multiple pools of `pool_size`
@@ -69,7 +77,8 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  # LiveView only accepts sockets from this host, so fall back to the hostname Render sets.
+  host = System.get_env("PHX_HOST") || System.get_env("RENDER_EXTERNAL_HOSTNAME") || "example.com"
 
   config :maya, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

@@ -123,7 +123,8 @@ Critical rules are enforced by machines that ignore prompts (GitHub, the permiss
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | GitHub Actions secrets, local `.env` |
 | `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` | Render env, local `.env` |
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
-| `DATABASE_URL` | Render (auto) |
+| `DATABASE_URL`, `DATABASE_CA_CERT` | Render env, copied from Supabase (session pooler URL, CA certificate) |
+| `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |
 
 Never commit `.env`. Add it to `.gitignore` in F1.
 

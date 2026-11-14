@@ -10,12 +10,12 @@ The MVP stack is frozen. Build inside it. Changing it needs Abhishek's explicit 
 | Concern | Settled | Explicitly NOT |
 |---|---|---|
 | Web | Elixir, Phoenix + LiveView | React, Vue or any SPA, a separate API server |
-| Data | Postgres + pgvector (`{:pgvector, "~> 0.4"}`) | A separate vector DB, Redis, SQLite |
+| Data | Postgres + pgvector (`{:pgvector, "~> 0.4"}`) on Supabase free, Frankfurt (ADR-002) | A separate vector DB, Redis, SQLite, Render Postgres |
 | Agent LLM | OpenRouter, tool calling via Req, model name in config | Direct provider SDKs, hard-coded model ids |
 | Agent loop | Hand-written GenServer | LangChain, Jido or any agent library |
 | STT / TTS | Mistral `voxtral-mini-transcribe-3`, Voxtral TTS 3 | Other voice vendors. Fallback is the browser Web Speech API only |
 | Embeddings | Mistral embeddings API | Bumblebee or any local model (Render has 512 MB) |
-| Hosting | Render, Frankfurt | Other hosts or regions |
+| Hosting | Render web service, Frankfurt | Other hosts or regions |
 | Auth | `Plug.BasicAuth` | `phx.gen.auth`, OAuth, user accounts |
 
 ## Red flags: stop and ask
