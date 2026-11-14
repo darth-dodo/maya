@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hero.svg" alt="Maya: Maps, Answers, Yaps, Advice. A spoiler-free Pokemon Emerald companion. An Emerald green ball with a gem button floats above soft tide waves at sunrise." width="100%">
+  <img src="docs/assets/hero.svg" alt="Maya: Maps, Answers, Yaps, Advice. A spoiler-free Pokemon Emerald companion. Mudkip hype: 100. An Emerald green ball with a gem button floats above soft tide waves at sunrise." width="100%">
 </p>
 
 <p align="center"><b>Maya</b> is a talking, spoiler-free Pokémon Emerald companion on a phone.</p>
