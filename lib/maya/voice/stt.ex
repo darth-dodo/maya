@@ -1,6 +1,6 @@
 defmodule Maya.Voice.STT do
   @moduledoc """
-  Voxtral speech to text: `POST /v1/audio/transcriptions`, multipart `model` and `file`,
+  Voxtral speech to text: `POST /v1/audio/transcriptions`, multipart `model`, `language` and `file`,
   transcript in `text` (https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files).
   """
 
@@ -12,7 +12,11 @@ defmodule Maya.Voice.STT do
       req
       |> Req.post(
         url: "/v1/audio/transcriptions",
-        form_multipart: [model: Mistral.voice(:stt_model), file: {audio, filename: filename}]
+        form_multipart: [
+          model: Mistral.voice(:stt_model),
+          language: Mistral.voice(:stt_language),
+          file: {audio, filename: filename}
+        ]
       )
       |> case do
         {:ok, %{status: 200, body: %{"text" => text}}} -> {:ok, String.trim(text)}

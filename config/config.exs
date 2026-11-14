@@ -14,6 +14,8 @@ config :maya,
 # Voice loop (ARCHITECTURE.md 5). Models: https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats
 config :maya, :voice,
   stt_model: "voxtral-mini-transcribe-3",
+  # ISO 639-1; pinned because Voxtral guessed Hindi on short clips (#58). English only (PRODUCT.md).
+  stt_language: "en",
   tts_model: "voxtral-mini-tts-3-0",
   # Preset "Sky" (en_GB, female), chosen by ear 2026-11-14; ids from GET /v1/audio/voices.
   tts_voice: "01a135c4-d896-70d9-a498-2db10c5915ff",

@@ -23,6 +23,16 @@ defmodule Maya.Voice.MistralTest do
       assert STT.transcribe("RIFFclip", "question.wav") == {:ok, "How do I earn the first badge"}
     end
 
+    test "pins the transcription language to English" do
+      Req.Test.stub(Maya.Mistral, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert body =~ ~r/name="language"\r\n(?:[^\r\n]+\r\n)*\r\nen\r\n/
+        Req.Test.json(conn, %{"text" => "Hi"})
+      end)
+
+      assert STT.transcribe("RIFF", "q.wav") == {:ok, "Hi"}
+    end
+
     test "an HTTP error is an error tuple" do
       Req.Test.stub(Maya.Mistral, &Plug.Conn.send_resp(&1, 500, "down"))
       assert STT.transcribe("RIFF", "question.wav") == {:error, {:http, 500}}
