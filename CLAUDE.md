@@ -64,15 +64,15 @@ Do these in order. Stop at each "done when" and report.
 Ask me before: choosing Render plan tier, any paid service, changing the frozen stack, or deciding the Superpowers SessionStart hook question in the planner pane.
 
 ## After F1
-- F2: run the grill (`grill-with-docs`, then `to-prd`) with me to write PRODUCT.md. Resume at Q1.
-- F3: `to-issues`, write ARCHITECTURE.md. Every Issue has a "done when".
+- F2: run the grill (`grill-with-docs`, then `to-spec`) with me to write PRODUCT.md. Resume at Q1.
+- F3: `to-tickets`, write ARCHITECTURE.md. Every Issue has a "done when".
 - F4: Telegram bot + local watcher (see FACTORY.md). Done when tapping Merge on my phone merges a dummy PR.
 
 ## Rules
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
 - Cut order: Telegram digest, Herdr watcher, embeddings, journal, dials.
 - Voice fallback: browser Web Speech API.
-- TDD via Superpowers only. Do not use Matt `tdd`.
+- TDD via Superpowers only. Do not use Matt `tdd`. Enforced: `.claude/settings.json` denies `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs` (Superpowers owns build and debug).
 - Max 2 builders in parallel. Squash merges.
 - Never commit secrets. See FACTORY.md for where each one lives.
 - Remind me: at least one gym per build day.
@@ -92,6 +92,20 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).
 - What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on darth-dodo/maya, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
 ## Gotchas
 - Not every OpenRouter model supports tools. `tool_calls` is an array; each `arguments` is a JSON string. Parse each.
