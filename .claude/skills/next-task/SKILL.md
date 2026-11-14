@@ -18,7 +18,7 @@ description: Use at the start of a session, or after finishing a task, to decide
 2. **Green PRs waiting for merge:** tell Abhishek. Never merge yourself; merging is the human gate.
 3. **Uncommitted work** in any worktree: finish it or ask.
 4. **Red PRs:** fix CI first (use superpowers:systematic-debugging).
-5. **In progress:** an Issue with an open branch and no PR.
+5. **In progress:** an Issue labelled `paused` (run `factory:resume`), or with an open branch and no PR.
 6. **New work:** the lowest numbered open Issue that has a "done when". No "done when" means ask, do not guess.
 
 Limits: max 2 builders in parallel, one block at a time, stop at "done when".
