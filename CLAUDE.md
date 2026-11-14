@@ -35,7 +35,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 ## Knowledge source
 1. Postgres tables from pret/pokeemerald `wild_encounters.json`, `src/data/trainer_parties.h`, and PokeAPI (Emerald). Imported via Mix tasks.
 2. pgvector: walkthrough notes by location, tagged `badge_required` (spoiler guard).
-3. `progress.json`: badges, team, location, personality settings.
+3. `progress.json`: the seed for Progress (badges, team, location, settings), imported once into Postgres (ADR-006).
 
 ## Agent tools (Maya runtime)
 `find_pokemon(name)`, `gym_counter(leader, my_team)`, `search_guide(query)` filtered by badges, `set_setting(name, value)`, `log_event(text)`
@@ -46,7 +46,8 @@ Dials: humor 75, honesty 90, sass 40, spoilers 0 (locked), Mudkip hype 100.
 
 ## Current status
 - FACTORY.md: done.
-- PRODUCT.md: done (F2, `grill-with-docs` on 2026-11-14). Terms in GLOSSARY.md; facts only from tools (ADR-004). Next: F3, ARCHITECTURE.md and the Maya block Issues.
+- PRODUCT.md: done (F2, `grill-with-docs` on 2026-11-14). Terms in GLOSSARY.md; facts only from tools (ADR-004).
+- ARCHITECTURE.md: done (F3, grilling on 2026-11-14; ADR-005 voice transport, ADR-006 state in Postgres). Next: the 5 block Issues after Abhishek's yes, then factory:plan per block.
 - F1 step 1 done: Phoenix 1.8.16 app generated (Elixir 1.20.5 / OTP 29 via Homebrew).
 
 ## Your first task: F1 Factory skeleton (1.5h, kill switch at 3h)

@@ -32,3 +32,5 @@ What gets easier, what gets harder, what we will check.
 | 002 | [Postgres on Supabase](002-postgres-on-supabase.md) | Accepted |
 | 003 | [OpenSpec owns the spec station](003-openspec-for-specs.md) | Accepted |
 | 004 | [Facts only from tools and data](004-facts-only-from-tools.md) | Accepted |
+| 005 | [Voice transport over the LiveView socket](005-voice-transport-over-liveview.md) | Accepted |
+| 006 | [Progress and the Conversation live in Postgres](006-state-in-postgres.md) | Accepted |
