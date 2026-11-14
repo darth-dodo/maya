@@ -26,6 +26,12 @@ config :maya, :mistral,
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.Mistral}, retry: false]
 
+# OpenRouter calls never leave the test process (Req.Test stubs named Maya.OpenRouter).
+config :maya, :openrouter,
+  base_url: "http://openrouter.test",
+  api_key: "test-key",
+  req_options: [plug: {Req.Test, Maya.OpenRouter}, retry: false]
+
 # In test we don't send emails
 config :maya, Maya.Mailer, adapter: Swoosh.Adapters.Test
 

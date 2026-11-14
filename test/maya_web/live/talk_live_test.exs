@@ -10,6 +10,16 @@ defmodule MayaWeb.TalkLiveTest do
   setup {Req.Test, :set_req_test_to_shared}
 
   setup do
+    :ok = Maya.GameData.import!()
+
+    # The agent answers with the Question, so screen tests read one known text.
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      question = List.last(Jason.decode!(body)["messages"])["content"]
+      message = %{"role" => "assistant", "content" => question}
+      Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+    end)
+
     on_exit(fn -> Maya.Conversation.stop("main") end)
   end
 
@@ -61,7 +71,7 @@ defmodule MayaWeb.TalkLiveTest do
     assert {:error, [[_ref, :too_large]]} = render_upload(big, "question.wav")
   end
 
-  test "one upload is transcribed, echoed, spoken and shown", %{conn: conn} do
+  test "one upload is transcribed, answered, spoken and shown", %{conn: conn} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/")
 

@@ -140,6 +140,12 @@ defmodule Maya.GameData do
     ) || 1.0
   end
 
+  @doc "The Generation III type chart as `%{{attacker, defender} => multiplier}`; missing pairs are 1.0."
+  def type_chart do
+    Repo.all(from m in "type_matchups", select: {{m.attacker, m.defender}, m.multiplier})
+    |> Map.new()
+  end
+
   @doc "All hand-written locations."
   def locations, do: Repo.all(locations_query())
 

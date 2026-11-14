@@ -7,7 +7,7 @@ defmodule Maya.Voice.Timing do
   """
 
   # Stage event name => turn column.
-  @columns %{stt: :stt_ms, tts_first_byte: :tts_first_byte_ms}
+  @columns %{stt: :stt_ms, agent: :agent_ms, tts_first_byte: :tts_first_byte_ms}
 
   def attach do
     :telemetry.attach_many(

@@ -8,6 +8,14 @@ defmodule Maya.ConversationTest do
   setup {Req.Test, :set_req_test_to_shared}
 
   setup do
+    :ok = Maya.GameData.import!()
+    # The agent answers by repeating the Question unless a test stubs it otherwise.
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      %{"messages" => messages} = Jason.decode!(body)
+      Req.Test.json(conn, reply(List.last(messages)["content"]))
+    end)
+
     id = "test-#{System.unique_integer([:positive])}"
     {:ok, _pid} = Conversation.ensure_started(id)
     on_exit(fn -> Conversation.stop(id) end)
@@ -26,6 +34,9 @@ defmodule Maya.ConversationTest do
     end)
   end
 
+  defp reply(content),
+    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
+
   defp text(text), do: &Req.Test.json(&1, %{"text" => text})
 
   defp speak(conn) do
@@ -37,8 +48,11 @@ defmodule Maya.ConversationTest do
     conn |> Plug.Conn.put_resp_content_type("text/event-stream") |> Plug.Conn.send_resp(200, body)
   end
 
-  test "a Question is transcribed, echoed, spoken and stored with stage timings", %{id: id} do
-    stub(text("How do I earn the first badge"), &speak/1)
+  test "a Question is transcribed, answered by the agent, spoken and stored with stage timings",
+       %{id: id} do
+    answer = "Lead with Mudkip against Nosepass. Mudkip would approve."
+    stub(text("How do I earn Roxanne's badge?"), &speak/1)
+    Req.Test.stub(Maya.OpenRouter, &Req.Test.json(&1, reply(answer)))
 
     Conversation.question(id, "RIFF", "question.wav")
 
@@ -48,10 +62,11 @@ defmodule Maya.ConversationTest do
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
 
     [turn] = Turn.recent()
-    assert turn.question == "How do I earn the first badge"
-    assert turn.answer == "How do I earn the first badge"
+    assert turn.question == "How do I earn Roxanne's badge?"
+    assert turn.answer == answer
     refute turn.cut
     assert turn.stt_ms >= 0
+    assert turn.agent_ms >= 0
     assert turn.tts_first_byte_ms >= 0
 
     Conversation.playback_started(id, %{mic_release_ms: 180, playback_start_ms: 2400})
@@ -79,14 +94,47 @@ defmodule Maya.ConversationTest do
     assert %Turn{mic_release_ms: 90, playback_start_ms: 1500} = Repo.get!(Turn, turn_id)
   end
 
-  test "an empty transcript is answered with a short line", %{id: id} do
-    stub(text("  "), &speak/1)
+  test "agent down: the short error line is spoken and stored", %{id: id} do
+    stub(text("How do I earn Roxanne's badge?"), &speak/1)
+    Req.Test.stub(Maya.OpenRouter, &Plug.Conn.send_resp(&1, 500, "down"))
 
     Conversation.question(id, "RIFF", "question.wav")
 
-    # The stored turn is broadcast after :audio_done; wait for it before reading the table.
-    assert_receive {:conversation, {:turns, [%Turn{id: id}]}} when is_integer(id)
-    assert [%Turn{answer: "I did not catch that."}] = Turn.recent()
+    assert_receive {:conversation, {:audio, _}}
+    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+    assert %Turn{answer: "Lost my train of thought, ask again?"} = Repo.get!(Turn, turn_id)
+  end
+
+  test "an empty transcript is answered without calling the agent", %{id: id} do
+    stub(text("  "), &speak/1)
+    Req.Test.stub(Maya.OpenRouter, fn _conn -> flunk("the agent was called") end)
+
+    Conversation.question(id, "RIFF", "question.wav")
+
+    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+
+    assert %Turn{question: "(nothing heard)", answer: "I did not catch that."} =
+             Repo.get!(Turn, turn_id)
+  end
+
+  test "barge-in while the agent thinks drops the turn", %{id: id} do
+    me = self()
+    stub(text("Where is Ralts"), &speak/1)
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      send(me, {:agent_pid, self()})
+      Process.sleep(:infinity)
+      conn
+    end)
+
+    Conversation.question(id, "RIFF", "question.wav")
+    assert_receive {:agent_pid, agent_pid}
+    ref = Process.monitor(agent_pid)
+
+    Conversation.barge_in(id)
+
+    assert_receive {:DOWN, ^ref, :process, ^agent_pid, _}
+    assert Conversation.turns(id) == []
   end
 
   test "barge-in cancels the TTS stream, keeps the Answer as text and marks it cut", %{id: id} do

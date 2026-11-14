@@ -16,5 +16,7 @@ services:
         sync: false
       - key: MISTRAL_API_KEY # Voxtral STT and TTS; missing means "voice is down" (Answers as text)
         sync: false
+      - key: OPENROUTER_API_KEY # agent loop (tool calling); missing means the spoken agent error line
+        sync: false
       - key: POOL_SIZE
         value: "5"
