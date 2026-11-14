@@ -59,10 +59,10 @@ The home page SHALL show the line "Mudkip hype: 100. Best starter, no debate." i
 - **THEN** the element `#mudkip-hype` has the text "Mudkip hype: 100. Best starter, no debate."
 
 ### Requirement: Spoiler-free badge case
-The home page SHALL show a badge case with id `badge-case` holding exactly 8 badge slots, each marked as not earned and labelled only by its number, and SHALL NOT name any gym, gym leader or badge.
+The home page SHALL show, while the Conversation is empty, a badge case with id `badge-case` holding exactly 8 badge slots, each marked as not earned and labelled only by its number, and SHALL NOT name any gym, gym leader or badge. Once the Conversation has a turn, the badge case is not shown.
 
 #### Scenario: Eight empty slots
-- **WHEN** a visitor requests `/`
+- **WHEN** a visitor requests `/` and the Conversation is empty
 - **THEN** `#badge-case` contains exactly 8 elements with class `badge-slot`
 - **AND** every slot has `data-earned="false"`
 - **AND** the slots are labelled "Badge 1 of 8" through "Badge 8 of 8"
@@ -71,6 +71,10 @@ The home page SHALL show a badge case with id `badge-case` holding exactly 8 bad
 - **WHEN** a visitor requests `/`
 - **THEN** the page contains none of the Hoenn gym leader names (Roxanne, Brawly, Wattson, Flannery, Norman, Winona, Tate, Liza, Juan)
 - **AND** none of the Hoenn badge names (Stone, Knuckle, Dynamo, Heat, Balance, Feather, Mind, Rain) followed by "Badge"
+
+#### Scenario: Hidden once the Conversation starts
+- **WHEN** a visitor requests `/` and the Conversation has a turn
+- **THEN** the page has no `#badge-case`
 
 ### Requirement: Original art only
 The home page SHALL NOT load images, fonts, stylesheets or scripts from any host other than its own, and SHALL NOT contain `img` elements.
@@ -81,10 +85,10 @@ The home page SHALL NOT load images, fonts, stylesheets or scripts from any host
 - **AND** the page contains no `img` element
 
 ### Requirement: Rotating Poke facts
-The home page SHALL show a list with id `poke-facts` of between 10 and 14 short, spoiler-free Poke facts, each an element with class `poke-fact`, all present in the server-rendered HTML. Facts SHALL name only the Hoenn starters and wild Pokemon found before the first gym, and SHALL NOT name an evolved form of a Hoenn starter. The rotation SHALL be CSS only and SHALL NOT add a script to the page content; when reduced motion is requested there is no animation.
+While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokemon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
 
 #### Scenario: Facts are listed
-- **WHEN** a visitor requests `/`
+- **WHEN** a visitor requests `/` and the Conversation is empty
 - **THEN** the element `#poke-facts` exists
 - **AND** it contains between 10 and 14 elements with class `poke-fact`
 - **AND** every `.poke-fact` has non-empty text
@@ -97,3 +101,7 @@ The home page SHALL show a list with id `poke-facts` of between 10 and 14 short,
 #### Scenario: No script for the rotation
 - **WHEN** a visitor requests `/`
 - **THEN** the page content (`main`) contains no `script` element
+
+#### Scenario: Facts hidden once the Conversation starts
+- **WHEN** a visitor requests `/` and the Conversation has a turn
+- **THEN** the page has no `#poke-facts`
