@@ -9,7 +9,7 @@ Flywheel step 2 (FACTORY.md "Flywheel"). Inputs: `~/maya-factory/metrics.csv`, `
 
 ## When
 
-Run when 5 retros exist that are newer than the last improve run (the last row in `experiments.md`, or the first 5 retros ever). Fewer than 5: stop and say how many are missing.
+Run when `metrics.csv` has 5 rows with `merged_at` after the `Last improve run` line in `experiments.md` (`never`: the first 5 rows ever). Fewer than 5: stop and say how many are missing. Every run, including a close-only one, updates that line to the newest `merged_at` it used, in the same PR.
 
 ## 1. Close the running experiment
 
@@ -22,11 +22,11 @@ Record the result in the same PR as step 3, or in its own `chore(factory): close
 
 ## 2. Pick the worst metric
 
-Medians of the last 5 rows vs the 5 before (or vs the first 5 if only 5 exist). Metrics, and which way is better:
+Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to compare: pick the metric furthest from its ideal (0, or 100% for `first_pass_green`). Metrics, and which way is better:
 
 | Column | Better |
 |---|---|
-| `lead_time_h` (and its ratio to `estimate_h`) | lower |
+| `lead_time_h` | lower |
 | `first_pass_green` (share of `true`) | higher |
 | `ci_red_runs` | lower |
 | `gate_reds` | lower |
@@ -34,7 +34,7 @@ Medians of the last 5 rows vs the 5 before (or vs the first 5 if only 5 exist). 
 | `permission_prompts` | lower |
 | `denied_calls` | lower |
 
-`issue`, `pr` and `merged_at` identify rows; they are not scored. Skip a metric that is blank in more than 2 of the 10 rows. The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal (0, or 100% for `first_pass_green`).
+`issue`, `pr`, `merged_at` and `estimate_h` are context (an experiment may still cite `estimate_h`); they are not scored. Skip a metric that is blank in more than 2 of the rows used (today `permission_prompts` is always blank, so it competes only once retros can fill it). The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal.
 
 ## 3. One experiment PR
 

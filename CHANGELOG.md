@@ -8,7 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
-- Factory flywheel: `factory:retro` (metrics row and one lesson per merged PR in `~/maya-factory/`), `factory:improve` (one measured experiment per 5 retros, kept or reverted), `factory:recap` (under 15 line digest); `docs/factory/LESSONS.md` read by `factory:build` at step 4, `docs/factory/experiments.md` (#25)
+- Factory flywheel: `factory:retro` (metrics row and one lesson per merged PR in `~/maya-factory/`), `factory:improve` (one measured experiment per 5 retros, kept or reverted), `factory:recap` (under 15 line digest); `docs/factory/LESSONS.md` and `docs/factory/experiments.md` (#25)
 - CI/CD hardening: parallel format, credo, test (coverage floor 32%), security (mix_audit, sobelow) and docker boot jobs behind one `ci-success` check; strict Content-Security-Policy; `/health/version`; post-deploy smoke check that opens a bug Issue (#22)
 - `factory:pause`, `factory:resume` and `factory:cleanup` skills; `next-task` ranks `paused` Issues (#21)
 - OpenSpec changes `ci-cd-hardening`, `factory-flywheel` (retro, improve, recap) and `pokemon-welcome-page`; `.claude/worktrees/` ignored (#17)
@@ -35,6 +35,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 - App refuses to boot when `SECRET_KEY_BASE` is under 64 bytes, so a bad key fails the deploy instead of serving 500s (#8)
 
 ### Changed
+- `factory:build` reads `docs/factory/LESSONS.md` at step 4 and runs `factory:retro` at step 11; the daily digest is `factory:recap` (#25)
 - Home page is a minimal Maya landing page (heading, tagline, title "Maya"); generator content removed. Factory dry run; spec `openspec/specs/landing-page/` (#16)
 - Plan station: one OpenSpec change and one GitHub Issue per block; builders archive the change in their PR. Matt `to-spec` and `to-tickets` retired (#11)
 - Telegram bot and watcher (F4) moved to PHASE_2.md (#10)

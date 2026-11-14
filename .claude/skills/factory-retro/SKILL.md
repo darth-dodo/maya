@@ -18,7 +18,7 @@ Rerunning for the same Issue replaces its row and file; never add a second row.
 |---|---|
 | PR facts | `gh pr view <pr> --json number,headRefName,mergedAt,closingIssuesReferences,commits,body,comments` |
 | Issue and estimate | `gh issue view <issue> --json body` ("Estimate" section) |
-| CI runs | `gh run list --branch <headRefName> --event pull_request --json conclusion,createdAt` |
+| CI runs | `gh run list --branch <headRefName> --event pull_request --workflow CI --json conclusion,createdAt` (CI only; other workflows do not count) |
 | Transcript | Lines of `~/.claude/projects/<project>/*.jsonl` (and `*/subagents/*.jsonl`) whose `cwd` is the builder's worktree, up to `mergedAt` |
 
 ## 2. Metrics row
@@ -62,4 +62,4 @@ Ground every line in the gathered evidence (PR body, review comment, CI, transcr
 
 ## 4. Report
 
-Print the row and the lesson. If `~/maya-factory/retros/` now has 5 retros newer than the last `factory:improve` run (FACTORY.md "Flywheel"), say that `factory:improve` is due.
+Print the row and the lesson. If `metrics.csv` now has 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, say that `factory:improve` is due.
