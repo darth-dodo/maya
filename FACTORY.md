@@ -88,7 +88,7 @@ sequenceDiagram
 |---|---|---|
 | Agent merges its own PR | `gh pr merge` denied | `.claude/settings.json` |
 | Push to main, force push | Branch protection, admins included | GitHub settings |
-| Broken code ships | Required `test` check, Render `autoDeployTrigger: checksPass` | GitHub, `render.yaml` |
+| Broken code ships | Required `ci-success` check (format, credo, test with coverage floor, security, docker boot), Render `autoDeployTrigger: checksPass`, post-deploy smoke check | GitHub, `render.yaml` |
 | Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
 | "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
 | Scope creep | New ideas go to `PHASE_2.md` | Repo |
@@ -146,6 +146,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |
+| `RENDER_EXTERNAL_HOSTNAME`, `RENDER_GIT_COMMIT` | Set by Render on every deploy (not secret); read in `config/runtime.exs` |
 
 Never commit `.env`. Add it to `.gitignore` in F1.
 

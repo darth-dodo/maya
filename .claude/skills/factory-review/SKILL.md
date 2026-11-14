@@ -16,7 +16,7 @@ Invoke `mattpocock-skills:code-review` against `origin/main` (merge base). Its t
 | Check | Blocking if missing |
 |---|---|
 | `Closes #N`, Issue "done when" each shown with evidence | Yes |
-| `factory:test` green, CI `test` green | Yes |
+| `factory:test` green, CI `ci-success` green | Yes |
 | OpenSpec change archived in this PR, `openspec/specs/` matches the code | Yes, if the Issue has a change |
 | No secrets, `.env` untouched, new env vars in `render.yaml`, `runtime.exs` and FACTORY.md secrets table | Yes |
 | Frozen stack respected, or an ADR added | Yes |

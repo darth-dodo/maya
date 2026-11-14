@@ -8,6 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- CI/CD hardening: parallel format, credo, test (coverage floor 32%), security (mix_audit, sobelow) and docker boot jobs behind one `ci-success` check; strict Content-Security-Policy; `/health/version`; post-deploy smoke check that opens a bug Issue (#22)
 - `factory:pause`, `factory:resume` and `factory:cleanup` skills; `next-task` ranks `paused` Issues (#21)
 - OpenSpec changes `ci-cd-hardening`, `factory-flywheel` (retro, improve, recap) and `pokemon-welcome-page`; `.claude/worktrees/` ignored (#17)
 - Factory station skills `factory:plan`, `factory:build`, `factory:test`, `factory:review`: ordered, gated wrappers over the existing skills; "Skills by station" in FACTORY.md (#15)

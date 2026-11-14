@@ -7,7 +7,16 @@ defmodule MayaWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {MayaWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+    # Strict CSP. The sha256 is the inline theme script in root.html.heex: edit that
+    # script and the CSP test fails until this hash is updated.
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; " <>
+          "script-src 'self' 'sha256-BK52NP1e8rQFFVZCoDYB4YoCL0cZc/KAVl4dkMM7/QM='; " <>
+          "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; " <>
+          "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; " <>
+          "frame-ancestors 'none'"
+    }
   end
 
   pipeline :api do
@@ -16,6 +25,7 @@ defmodule MayaWeb.Router do
 
   scope "/", MayaWeb do
     get "/health", HealthController, :show
+    get "/health/version", HealthController, :version
   end
 
   scope "/", MayaWeb do

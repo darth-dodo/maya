@@ -1,0 +1,58 @@
+name: Post-deploy smoke check
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+
+# A newer push supersedes the check for an older one.
+concurrency:
+  group: post-deploy
+  cancel-in-progress: true
+
+env:
+  SITE: https://maya-j56u.onrender.com
+
+# Spec: openspec/specs/delivery-pipeline, "Post-deploy smoke check".
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Wait for this commit to go live
+        run: |
+          for _ in $(seq 1 40); do
+            live="$(curl -fsS --max-time 10 "$SITE/health/version" || true)"
+            if [ "$live" = "$GITHUB_SHA" ]; then echo "live: $live"; exit 0; fi
+            echo "waiting: live=${live:-none} want=$GITHUB_SHA"
+            sleep 30
+          done
+          echo "FAILURE=not live after 20 minutes" >> "$GITHUB_ENV"
+          exit 1
+
+      - name: Check home page and liveness
+        run: |
+          for path in / /health; do
+            status="$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$SITE$path")"
+            echo "$path -> $status"
+            if [ "$status" != "200" ]; then
+              echo "FAILURE=$SITE$path answered $status" >> "$GITHUB_ENV"
+              exit 1
+            fi
+          done
+
+      - name: Open a bug Issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" --label bug \
+            --title "bug: deploy of ${GITHUB_SHA::7} failed the smoke check" \
+            --body "Commit: $GITHUB_SHA
+          Failure: ${FAILURE:-see the run log}
+          Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+          If the deploy never went live, check the Render events for this commit."

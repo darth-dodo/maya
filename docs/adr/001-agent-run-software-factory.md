@@ -55,7 +55,7 @@ Full walkthrough, including one Issue's life: `FACTORY.md`, "How it works".
 |---|---|---|
 | Agent merges its own PR | `gh pr merge` denied | `.claude/settings.json` |
 | Push to main, force push | Branch protection, admins included | GitHub settings |
-| Broken code ships | Required `test` check, Render `autoDeployTrigger: checksPass` | GitHub, `render.yaml` |
+| Broken code ships | Required `ci-success` check (format, credo, test with coverage floor, security, docker boot), Render `autoDeployTrigger: checksPass`, post-deploy smoke check | GitHub, `render.yaml` |
 | Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
 | "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
 | Scope creep | New ideas go to `PHASE_2.md` | Repo |

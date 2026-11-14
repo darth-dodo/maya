@@ -11,7 +11,12 @@ defmodule Maya.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      # Coverage floor (spec: delivery-pipeline "Test coverage floor"): only ever raise it.
+      test_coverage: [
+        summary: [threshold: 32],
+        ignore_modules: [Maya.DataCase, MayaWeb.ConnCase, Maya.Release]
+      ]
     ]
   end
 
@@ -49,6 +54,8 @@ defmodule Maya.MixProject do
       {:phoenix_live_view, "~> 1.2.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.19.0", only: [:dev, :test], runtime: false},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},

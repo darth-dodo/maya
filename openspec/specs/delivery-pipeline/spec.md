@@ -1,8 +1,10 @@
+# delivery-pipeline Specification
+
 ## Purpose
 
 Defines what a change must pass before it can merge to main, and what is verified after main deploys, so broken releases are caught on the PR and failed deploys never go unnoticed.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Single required merge check
 A pull request to main SHALL be mergeable only when the aggregate check `ci-success` passes, and `ci-success` SHALL pass only when every pipeline job (format, credo, test, docker, security) succeeded.
@@ -26,6 +28,18 @@ Every pull request SHALL build the production release image and start it, and SH
 #### Scenario: Release starts
 - **WHEN** the image builds and is started with test configuration and no reachable database
 - **THEN** its liveness endpoint answers HTTP 200 within 60 seconds
+
+### Requirement: Test coverage floor
+Every pull request SHALL fail when total line coverage of application modules falls below the threshold recorded in the project, SHALL print coverage per module, and SHALL NOT lower that threshold.
+
+#### Scenario: Coverage drops below the floor
+- **WHEN** a pull request makes total line coverage of application modules fall below the recorded threshold
+- **THEN** the test job fails
+- **AND** the log shows the total coverage and the threshold
+
+#### Scenario: Coverage report visible
+- **WHEN** the test job runs
+- **THEN** its log shows a coverage table with one row per application module
 
 ### Requirement: Security scans on every pull request
 Every pull request SHALL fail when a dependency has a known vulnerability advisory or the code has a high-confidence web security finding.
