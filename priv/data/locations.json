@@ -1,0 +1,11 @@
+[
+{"name":"Littleroot Town","map":"MAP_LITTLEROOT_TOWN","badges_required":0},
+{"name":"Route 101","map":"MAP_ROUTE101","badges_required":0},
+{"name":"Oldale Town","map":"MAP_OLDALE_TOWN","badges_required":0},
+{"name":"Route 103","map":"MAP_ROUTE103","badges_required":0},
+{"name":"Route 102","map":"MAP_ROUTE102","badges_required":0},
+{"name":"Petalburg City","map":"MAP_PETALBURG_CITY","badges_required":0},
+{"name":"Route 104","map":"MAP_ROUTE104","badges_required":0},
+{"name":"Petalburg Woods","map":"MAP_PETALBURG_WOODS","badges_required":0},
+{"name":"Rustboro City","map":"MAP_RUSTBORO_CITY","badges_required":0}
+]
