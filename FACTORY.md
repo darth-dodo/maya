@@ -33,6 +33,56 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 | 8 | Ship | Render | Auto-deploy from main | Live app | Health check passes |
 | 9 | Feedback | Actions / watcher | Failures become Issues | New Issue | Back to line 3 |
 
+## How it works
+
+### The pipeline
+```
+ YOU                       AGENTS (Claude Code)                  MACHINES
+ idea --> [1 Intake]  planner: grill-with-docs, to-prd -> PRODUCT.md
+            |
+          [2 Plan]    planner: to-issues, project-manager
+            |           -> ARCHITECTURE.md + Issues (done when, estimate)
+          [3 Build]   builder-<issue>: next-task, Superpowers plan, TDD
+            |
+          [4 Verify]  builder: definition of done -> PR (Closes #N)
+            |
+          [5 Review]  reviewer pane: code-review
+            |
+          [6 Check]  -------------------------------------> GitHub Actions
+            |                compile, format, credo, test
+ merge <- [7 Gate]    only Abhishek merges (squash, PR title)
+            |
+          [8 Ship]   -------------------------------------> Render <-> Supabase
+            |                migrate, /health, live
+          [9 Feedback] failures become Issues --> back to [3]
+```
+
+### One Issue's life
+```
+Issue #12 "find_pokemon tool" (done when, estimate 1h)
+  -> builder picks it (next-task: stale loops, green PRs, red PRs, then new)
+  -> branch feat/find-pokemon: test first, code, mix precommit
+  -> PR "feat: add find_pokemon tool", Closes #12
+  -> CI red: builder fixes (systematic-debugging). CI green: wait for merge
+  -> Abhishek squash merges
+  -> Render: CI passed, /app/bin/migrate, /health ok, live
+  -> Issue closes, next-task picks the next one
+```
+
+### Guardrails that agents cannot talk past
+| Risk | Stopped by | Where |
+|---|---|---|
+| Agent merges its own PR | `gh pr merge` denied | `.claude/settings.json` |
+| Push to main, force push | Branch protection, admins included | GitHub settings |
+| Broken code ships | Required `test` check, Render `autoDeployTrigger: checksPass` | GitHub, `render.yaml` |
+| Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
+| "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
+| Scope creep | New ideas go to `PHASE_2.md` | Repo |
+| Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
+
+Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.
+
 ## Skill ownership rules
 1. One owner per station. Matt owns intake, plan, review. Superpowers owns build and verify.
 2. TDD: Superpowers only. Do not invoke Matt `tdd`.

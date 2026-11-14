@@ -24,13 +24,44 @@ Claude Code agents build Maya from PRODUCT.md to a live deploy. Humans write PRO
 
 ## How
 
-1. `planner` turns PRODUCT.md into ARCHITECTURE.md and Issues (`project-manager` skill).
-2. A builder takes one Issue (`next-task`), works on its own branch, and opens a PR that meets the definition of done in CLAUDE.md.
-3. CI runs. Branch protection on main requires a PR and the `test` check, for admins too, and allows squash merges only, titled by the PR title.
-4. Abhishek squash merges. `.claude/settings.json` denies `gh pr merge`, so agents cannot.
-5. Render deploys. Failures become new Issues.
+```
+ YOU                       AGENTS (Claude Code)                  MACHINES
+ idea --> [1 Intake]  planner: grill-with-docs, to-prd -> PRODUCT.md
+            |
+          [2 Plan]    planner: to-issues, project-manager
+            |           -> ARCHITECTURE.md + Issues (done when, estimate)
+          [3 Build]   builder-<issue>: next-task, Superpowers plan, TDD
+            |
+          [4 Verify]  builder: definition of done -> PR (Closes #N)
+            |
+          [5 Review]  reviewer pane: code-review
+            |
+          [6 Check]  -------------------------------------> GitHub Actions
+            |                compile, format, credo, test
+ merge <- [7 Gate]    only Abhishek merges (squash, PR title)
+            |
+          [8 Ship]   -------------------------------------> Render <-> Supabase
+            |                migrate, /health, live
+          [9 Feedback] failures become Issues --> back to [3]
+```
 
-Guardrails: frozen stack (`settled-architecture` skill), Conventional Commits and a changelog entry per PR, new ideas to PHASE_2.md, F1 kill switch at 3h.
+Full walkthrough, including one Issue's life: `FACTORY.md`, "How it works".
+
+### Guardrails
+| Risk | Stopped by | Where |
+|---|---|---|
+| Agent merges its own PR | `gh pr merge` denied | `.claude/settings.json` |
+| Push to main, force push | Branch protection, admins included | GitHub settings |
+| Broken code ships | Required `test` check, Render `autoDeployTrigger: checksPass` | GitHub, `render.yaml` |
+| Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
+| "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
+| Scope creep | New ideas go to `PHASE_2.md` | Repo |
+| Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
+
+Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.
+
+Also: Conventional Commits and a changelog entry per PR.
 
 ## Consequences
 
