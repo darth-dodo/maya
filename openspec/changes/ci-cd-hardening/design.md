@@ -1,0 +1,30 @@
+# Design
+
+## Context
+
+CI is one serial `test` job (`.github/workflows/ci.yml`), required by branch protection. Render deploys main only after checks pass (`autoDeployTrigger: checksPass`). Render sets `RENDER_GIT_COMMIT` at runtime (https://render.com/docs/environment-variables). `/health` exists and skips the database.
+
+## Goals / Non-Goals
+
+**Goals:** catch release breaks on the PR; one stable required check; detect a deploy that never goes live.
+**Non-Goals:** blue/green or rollback automation; scanning beyond deps and Phoenix code.
+
+## Decisions
+
+- **Aggregate `ci-success` job** (`needs:` all jobs, `if: always()`, fails unless every result is `success`). Alternative: require each job in branch protection; rejected because every new job would need a settings change.
+- **Docker job:** `docker build`, then run the image with `PORT`, a generated `SECRET_KEY_BASE` and an unreachable `DATABASE_URL`, and poll `/health` for up to 60 s. Proves boot and config without a database, the same smoke test as the `render-deploy` skill. Alternative: `mix release` only; rejected, it skips the Dockerfile and runtime config.
+- **Security:** `mix deps.audit` (`mix_audit`) and `mix sobelow --exit high`; dev/test only, so nothing ships to the release. Medium and low sobelow findings are printed, not failed, to avoid noise from generator defaults.
+- **Version endpoint:** `/health/version` in the same no-pipeline scope as `/health`, reading `RENDER_GIT_COMMIT` at request time, defaulting to `unknown`. Keeps `/health` exactly `ok` for Render's health check. Alternative: put the SHA in `/health`; rejected, it changes the liveness contract.
+- **Post-deploy workflow** on `push` to main: poll `https://maya-j56u.onrender.com/health/version` every 30 s for up to 20 min until it equals `$GITHUB_SHA`, then curl `/` and `/health`. On failure open an Issue with `gh issue create --label bug` using `GITHUB_TOKEN` (`permissions: issues: write`). Alternative: GitHub `deployment_status` events; rejected, Render's reporting of them is not verified and polling needs no integration.
+- **Required check switch:** after this PR shows `ci-success` green, Abhishek updates branch protection from `test` to `ci-success`. Until then `test` still exists as a job name, so nothing blocks.
+
+## Risks / Trade-offs
+
+- [Docker build adds minutes to every PR] → cache layers with `docker/build-push-action` and the GitHub Actions cache.
+- [sobelow flags generator code] → fail only on high confidence; record any suppression with a one-line reason.
+- [A merge that does not deploy (Render skips) waits 20 min and opens a false Issue] → the Issue body says "check Render events"; acceptable at this volume.
+- [Two merges in quick succession: the first smoke run sees the second SHA] → concurrency group on the workflow cancels the older run.
+
+## Migration Plan
+
+Merge with `test` still required; confirm `ci-success` green on the PR; switch the required check; update docs that name `test`. Rollback: revert the PR and switch the required check back to `test`.
