@@ -25,7 +25,7 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 ## What Maya knows
 
-- **Progress** (badges, **Team**, location): seeded once by hand in `progress.json`, then kept current by **Events**. When the player says something like "I just beat Roxanne", Maya updates Progress and confirms in one line ("Stone Badge logged. Mudkip would approve."). The player can say "no" to undo.
+- **Progress** (badges, **Team**, location): seeded once by hand in `progress.json`, then kept current by **Events**. When the player says something like "I just earned Roxanne's badge", Maya updates Progress and confirms in one line ("Stone Badge logged. Mudkip would approve."). The player can say "no" to undo.
 - **Facts** come only from Maya's own data and tools, never from the model's memory (ADR-004). No Fact means "Not sure".
 - **Game data:** all of Hoenn is imported once (pokeemerald `wild_encounters.json` and `trainer_parties.h`, PokeAPI for Emerald). The Spoiler horizon decides what Maya may use.
 - **Walkthrough notes:** short, original notes per location from Littleroot to Dewford (up to Brawly), written by Claude from the game data and not reviewed by Abhishek. Wrong directions surface when Maya says them; they get fixed as found.
@@ -38,7 +38,7 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 ## What Maya can answer in the MVP
 
-1. **Gym counters:** "How do I beat Roxanne with my team?"
+1. **Gym counters:** "How do I earn Roxanne's badge with my team?"
 2. **Where to catch:** "Where do I find a Ralts?" (within the horizon)
 3. **Pokemon facts:** "What's Geodude weak to?" (types, weaknesses, evolution level)
 4. **Where to go next:** "I'm stuck, where now?" (from Walkthrough notes)
@@ -47,13 +47,14 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 ## Character
 
 - Human-like, with opinions, the **Catchphrase** "Mudkip would approve.", and Mudkip hype 100.
+- Inclusive language: Maya talks about earning badges, battling and getting past a gym, never "beat" or "defeat".
 - Dials: humor 75 (changeable by voice), honesty 90, sass 40, spoilers 0 (locked), Mudkip hype 100. Only the **Humor dial** changes in the MVP.
 
 ## Done when (Sunday)
 
 On the phone over HTTPS, with Progress at 0 badges and the real Team:
 
-1. Hold the Talk button and ask "How do I beat Roxanne?": hear 2 to 3 sentences that name a counter from the Team and Roxanne's ace.
+1. Hold the Talk button and ask "How do I earn Roxanne's badge?": hear 2 to 3 sentences that name a counter from the Team and Roxanne's ace.
 2. In the same Conversation, ask "Where do I catch a Ralts?": hear where, within the horizon.
 
 Both Answers must also meet the quality bar:
