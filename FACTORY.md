@@ -33,6 +33,70 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 | 8 | Ship | Render | Auto-deploy from main | Live app | Health check passes |
 | 9 | Feedback | Actions / watcher | Failures become Issues | New Issue | Back to line 3 |
 
+## How it works
+
+### The pipeline
+```mermaid
+flowchart TD
+    idea([Idea from Abhishek]) --> intake
+    subgraph agents [Agents in Herdr panes]
+        intake["1 Intake<br/>planner: grill-with-docs, to-prd<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: to-issues, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
+        verify["4 Verify<br/>builder: definition of done, opens PR"]
+        review["5 Review<br/>reviewer: code-review"]
+    end
+    check["6 Check<br/>GitHub Actions: compile, format, credo, test"]
+    gate{"7 Gate<br/>Abhishek squash merges"}
+    ship["8 Ship<br/>Render: migrate, health check, live"]
+    db[(Supabase Postgres)]
+    feedback["9 Feedback<br/>failures become Issues"]
+    intake --> plan --> build --> verify --> review --> check
+    check -- red --> build
+    check -- green --> gate
+    gate --> ship
+    ship <--> db
+    ship -- failure --> feedback --> build
+```
+
+### One Issue's life
+```mermaid
+sequenceDiagram
+    participant B as builder
+    participant GH as GitHub
+    participant CI as GitHub Actions
+    actor A as Abhishek
+    participant R as Render
+    B->>GH: next-task picks Issue 12 (done when, estimate 1h)
+    B->>B: branch, test first, code, mix precommit
+    B->>GH: PR "feat: add find_pokemon tool" that closes Issue 12
+    GH->>CI: run checks
+    alt CI red
+        CI-->>B: failure
+        B->>GH: fix and push (systematic-debugging)
+    else CI green
+        CI-->>GH: test passed
+    end
+    A->>GH: squash merge
+    GH->>R: main changed and checks passed
+    R->>R: migrate, health check, live
+    GH-->>B: Issue 12 closed, next-task picks the next one
+```
+
+### Guardrails that agents cannot talk past
+| Risk | Stopped by | Where |
+|---|---|---|
+| Agent merges its own PR | `gh pr merge` denied | `.claude/settings.json` |
+| Push to main, force push | Branch protection, admins included | GitHub settings |
+| Broken code ships | Required `test` check, Render `autoDeployTrigger: checksPass` | GitHub, `render.yaml` |
+| Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
+| "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
+| Scope creep | New ideas go to `PHASE_2.md` | Repo |
+| Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
+
+Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.
+
 ## Skill ownership rules
 1. One owner per station. Matt owns intake, plan, review. Superpowers owns build and verify.
 2. TDD: Superpowers only. Do not invoke Matt `tdd`.
