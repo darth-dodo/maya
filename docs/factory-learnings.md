@@ -13,13 +13,13 @@ What MAYA takes from `cantastorie`, `habla-hermano` and `voxpopuli`, and when.
 | Definition of done: "code works is not done" | voxpopuli `vp-complete-milestone`, habla-hermano quality gates | "Definition of done" in `CLAUDE.md` |
 | ADR convention: `NNN-kebab-title.md`, status, index | cantastorie `docs/adr/README.md`, voxpopuli `docs/adr/` | `docs/adr/README.md` |
 | Acceptance criteria and how each was verified, in the PR body | cantastorie plans | `.github/pull_request_template.md` |
+| Tracked, curated permission allowlist (habla-hermano's grew prompt by prompt) | habla-hermano, cantastorie `settings.local.json` (lesson, not copy) | `.claude/settings.json`, with `gh pr merge` denied to keep the human gate. Edits to it are Abhishek's call |
 | Real PHASE_2 file instead of a section | FACTORY.md rule, no sibling had one | `PHASE_2.md` |
 
 ## Adopt later
 
 | Practice | Source | When |
 |---|---|---|
-| Tracked, curated permission allowlist in `.claude/settings.json`, with `gh pr merge` denied to keep the human gate (habla-hermano's grew prompt by prompt) | habla-hermano, cantastorie `settings.local.json` (lesson, not copy) | Abhishek adds it: permission files are his call. Proposed list is in the PR that added this file |
 | `ci-success` job that aggregates all jobs with `if: always()`, used as the single required check | cantastorie, habla-hermano `ci.yml` | With branch protection, after PR #1 merges |
 | Cheap `/health` route outside the browser pipeline, used as `healthCheckPath` | all three | F1 step 4 (Render) |
 | `render.yaml`: `region: frankfurt`, secrets `sync: false`, `generateValue: true` for `SECRET_KEY_BASE`, `preDeployCommand` for migrations | all three | F1 step 4 |
