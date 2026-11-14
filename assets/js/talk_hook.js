@@ -1,7 +1,7 @@
 // TalkHook: the Talk button as an explicit state machine (ARCHITECTURE.md 1, voice lessons in
 // docs/factory-learnings.md). idle -> recording -> uploading -> waiting -> speaking -> idle.
 // Records 16 kHz mono 16-bit WAV with Web Audio (ADR-005 fallback, no container support needed)
-// and plays the server's pushed PCM (signed 16-bit, at data-sample-rate) as it arrives.
+// and plays the server's pushed PCM (32-bit float little-endian, at data-sample-rate) as it arrives.
 
 const STT_RATE = 16000
 
@@ -52,11 +52,25 @@ export function encodeWav(samples, rate) {
   return new Blob([view], {type: "audio/wav"})
 }
 
-export function pcm16ToFloat(bytes) {
+// Voxtral streams pcm as float32 LE: 4 bytes per sample, sample count = completion_tokens.
+export function pcmF32ToFloat(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  const out = new Float32Array(bytes.byteLength >> 1)
-  for (let i = 0; i < out.length; i++) out[i] = view.getInt16(i * 2, true) / 0x8000
+  const out = new Float32Array(bytes.byteLength >> 2)
+  for (let i = 0; i < out.length; i++) out[i] = view.getFloat32(i * 4, true)
   return out
+}
+
+// Prepends last chunk's partial sample and holds back this chunk's. Copies with set(), not
+// spread: a ~75 KB chunk spread as arguments overflows the call stack.
+export function alignF32(leftover, bytes) {
+  if (leftover) {
+    const joined = new Uint8Array(leftover.length + bytes.length)
+    joined.set(leftover)
+    joined.set(bytes, leftover.length)
+    bytes = joined
+  }
+  const rem = bytes.length % 4
+  return rem ? [bytes.subarray(0, -rem), bytes.slice(-rem)] : [bytes, null]
 }
 
 function concat(chunks) {
@@ -158,11 +172,9 @@ export const TalkHook = {
   play(b64) {
     // A cut turn's late chunks arrive while recording or idle: drop them.
     if (this.state !== "waiting" && this.state !== "speaking") return
-    let bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
-    if (this.leftover) bytes = Uint8Array.of(...this.leftover, ...bytes)
-    this.leftover = bytes.length % 2 ? bytes.slice(-1) : null
-    if (this.leftover) bytes = bytes.slice(0, -1)
-    const samples = pcm16ToFloat(bytes)
+    const [bytes, rest] = alignF32(this.leftover, Uint8Array.from(atob(b64), c => c.charCodeAt(0)))
+    this.leftover = rest
+    const samples = pcmF32ToFloat(bytes)
     if (samples.length === 0) return
 
     const buffer = this.ctx.createBuffer(1, samples.length, this.sampleRate)

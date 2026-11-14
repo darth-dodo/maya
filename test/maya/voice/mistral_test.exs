@@ -51,7 +51,7 @@ defmodule Maya.Voice.MistralTest do
         assert %{
                  "input" => "Hello",
                  "model" => "voxtral-mini-tts-3-0",
-                 "voice_id" => "gb_jane_neutral",
+                 "voice_id" => "01a135c4-d896-70d9-a498-2db10c5915ff",
                  "response_format" => "pcm",
                  "stream" => true
                } = Jason.decode!(body)

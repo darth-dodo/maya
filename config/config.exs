@@ -15,7 +15,8 @@ config :maya,
 config :maya, :voice,
   stt_model: "voxtral-mini-transcribe-3",
   tts_model: "voxtral-mini-tts-3-0",
-  tts_voice: "gb_jane_neutral",
+  # Preset "Sky" (en_GB, female), chosen by ear 2026-11-14; ids from GET /v1/audio/voices.
+  tts_voice: "01a135c4-d896-70d9-a498-2db10c5915ff",
   # Generated speech is mono at 24 kHz (Mistral audio formats page); the hook plays at this rate.
   tts_sample_rate: 24_000,
   stt_timeout_ms: 8_000,

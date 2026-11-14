@@ -7,7 +7,7 @@ set -euo pipefail
 
 STT_MODEL="${STT_MODEL:-voxtral-mini-transcribe-3}"
 TTS_MODEL="${TTS_MODEL:-voxtral-mini-tts-3-0}"
-TTS_VOICE="${TTS_VOICE:-gb_jane_neutral}"
+TTS_VOICE="${TTS_VOICE:-01a135c4-d896-70d9-a498-2db10c5915ff}"
 API="https://api.mistral.ai/v1/audio"
 OUT="${OUT:-$(mktemp -d)}"
 DRY_RUN="${DRY_RUN:-}"
