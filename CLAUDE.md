@@ -25,11 +25,11 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 
 ## Frozen MVP stack (do not change without asking)
 - Elixir, Phoenix + LiveView
-- Postgres + pgvector (`{:pgvector, "~> 0.4"}`)
+- Postgres + pgvector (`{:pgvector, "~> 0.4"}`) on Supabase free, Frankfurt, via the session pooler (ADR-002)
 - OpenRouter for the agent: tool calling via Req, model name in config
 - Mistral Voxtral: `voxtral-mini-transcribe-3` (STT), Voxtral TTS 3
 - Mistral embeddings API (Bumblebee is too big for Render 512 MB)
-- Render, Frankfurt (permanent), Plug.BasicAuth
+- Render web service `0.5c-512mb`, Frankfurt (permanent), Plug.BasicAuth
 - Hand-written GenServer agent loop. No agent library.
 
 ## Knowledge source
@@ -56,7 +56,7 @@ Do these in order. Stop at each "done when" and report.
 1. **Repo.** `mix phx.new maya`, `git init`, `.gitignore` includes `.env`. Push to GitHub. Done when main exists on GitHub.
 2. **Local DB.** Docker `pgvector/pgvector:pg17`, `mix ecto.create`. Done when the app runs at localhost:4000.
 3. **CI.** `.github/workflows/ci.yml` with a Postgres + pgvector service: `mix format --check-formatted`, `mix credo`, `mix test`. Add `credo` dep. Done when CI is green on a PR.
-4. **Render.** `render.yaml` blueprint: web service + Postgres, region frankfurt, auto-deploy from main. Release command runs migrations. Done when merging to main deploys the hello page over HTTPS.
+4. **Render.** `render.yaml` blueprint: web service, region frankfurt, deploy from main after CI passes, Postgres on Supabase (ADR-002). Pre-deploy command runs migrations. Done when merging to main deploys the hello page over HTTPS.
 5. **Plugins.** Install Superpowers and Matt Pocock skills. Run `/setup-matt-pocock-skills` (tracker: GitHub, docs: `docs/`). Done when both are listed and setup config is committed.
 6. **Herdr.** Install, run `herdr integration install claude`. Create panes `planner` and `builder-1`. Done when Herdr shows both panes with correct state.
 7. **Proof.** A dummy PR (edit hello page text) goes through CI and deploys. Done when the change is live.
@@ -100,7 +100,8 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 - `getUpdates` and webhooks are mutually exclusive. Watcher uses polling.
 - Herdr is local. Factory runs only while my machine is on.
 - Sesame has a voice model also named Maya. Avoid confusion in docs and search.
-- Verify Render Postgres supports the `vector` extension on the chosen plan before step 4.
+- Supabase free pauses after 1 week of inactivity: restore it in the dashboard. Connect through the session pooler (port 5432); direct connections are IPv6 only.
+- Render deploys and ops: `render-deploy` skill.
 
 ## PHASE_2.md (do not build)
 See `PHASE_2.md`.

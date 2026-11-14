@@ -29,3 +29,4 @@ What gets easier, what gets harder, what we will check.
 | # | Title | Status |
 |---|---|---|
 | 001 | [Agent-run software factory](001-agent-run-software-factory.md) | Accepted |
+| 002 | [Postgres on Supabase](002-postgres-on-supabase.md) | Accepted |

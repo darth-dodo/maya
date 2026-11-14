@@ -1,0 +1,20 @@
+# Render blueprint. Rules and ops: .claude/skills/render-deploy/SKILL.md
+services:
+  - type: web
+    name: maya
+    runtime: docker
+    region: frankfurt # permanent, cannot change after creation
+    plan: 0.5c-512mb # paid: no cold starts, and preDeployCommand needs a paid instance
+    healthCheckPath: /health
+    preDeployCommand: /app/bin/migrate
+    autoDeployTrigger: checksPass # deploy main only after CI is green
+    envVars:
+      # Postgres lives on Supabase (docs/adr/002-postgres-on-supabase.md).
+      - key: DATABASE_URL # Supabase session pooler URL, port 5432
+        sync: false
+      - key: DATABASE_CA_CERT # Supabase CA certificate, PEM text
+        sync: false
+      - key: SECRET_KEY_BASE # mix phx.gen.secret (generateValue is too short, Phoenix needs 64 bytes)
+        sync: false
+      - key: POOL_SIZE
+        value: "5"

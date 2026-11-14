@@ -15,6 +15,10 @@ defmodule MayaWeb.Router do
   end
 
   scope "/", MayaWeb do
+    get "/health", HealthController, :show
+  end
+
+  scope "/", MayaWeb do
     pipe_through :browser
 
     get "/", PageController, :home

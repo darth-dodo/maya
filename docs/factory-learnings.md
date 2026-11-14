@@ -21,9 +21,9 @@ What Maya takes from `cantastorie`, `habla-hermano` and `voxpopuli`, and when.
 | Practice | Source | When |
 |---|---|---|
 | `ci-success` job that aggregates all jobs with `if: always()`, used as the single required check | cantastorie, habla-hermano `ci.yml` | With branch protection, after PR #1 merges |
-| Cheap `/health` route outside the browser pipeline, used as `healthCheckPath` | all three | F1 step 4 (Render) |
-| `render.yaml`: `region: frankfurt`, secrets `sync: false`, `generateValue: true` for `SECRET_KEY_BASE`, `preDeployCommand` for migrations | all three | F1 step 4 |
-| `plan: starter` because a free-tier cold start breaks a latency budget | cantastorie (4s budget) | F1 step 4, needs Abhishek's approval (paid) |
+| Cheap `/health` route outside the browser pipeline, used as `healthCheckPath` | all three | Done in #4, DB free so a paused Supabase does not restart the app |
+| `render.yaml`: `region: frankfurt`, secrets `sync: false`, `preDeployCommand` for migrations | all three | Done in #4. Not `generateValue` for `SECRET_KEY_BASE`: 256 bits is shorter than the 64 bytes Phoenix needs |
+| Paid web plan because a free-tier cold start breaks a latency budget | cantastorie (4s budget) | Done in #4: `0.5c-512mb`, DB on Supabase free (ADR-002) |
 | Preview environments that expire after 3 days, with `previewValue` blanking write keys | cantastorie, voxpopuli | After MVP, only if previews are wanted |
 | Per-stage timing with run ids in log metadata (`timed_step` in Python) | cantastorie `src/observability.py`, voxpopuli SSE `done` timings | First voice block: `:telemetry.span/3` per stage (mic release, STT, agent, TTS first byte, playback start) |
 | Black-box eval harness: cases JSON, weighted evaluators, latency p50/p95 per stage, errored runs excluded, `--baseline` diff, `LESSONS.md` | voxpopuli `evals/` | After the agent loop exists. Add a spoiler-leak evaluator next to source accuracy |
