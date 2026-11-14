@@ -105,11 +105,24 @@ Critical rules are enforced by machines that ignore prompts (GitHub, the permiss
 4. Superpowers auto-triggers via SessionStart hook. Decided 2026-11-14: keep it in every session, `planner` included. At intake, invoke `grill-with-docs` explicitly; it owns the interview, not Superpowers brainstorming.
 5. Run `/setup-matt-pocock-skills` once: tracker = GitHub, docs = `docs/`.
 
+## Skills by station
+
+Entry points (project skills, run in order, each step gated by its "done when"):
+
+| Command | Station | Runs |
+|---|---|---|
+| `factory:plan <block>` | 2 Plan | `settled-architecture`, `openspec-propose`, `openspec validate --strict`, spec PR, `project-manager` Issue, link both |
+| `factory:build #N` | 3 Build, 4 Verify | `next-task`, worktree check, `superpowers:writing-plans`, `superpowers:test-driven-development`, `factory:test`, `openspec-archive-change`, PR, `factory:review` |
+| `factory:test` | Verify | Every CI gate locally with real exit codes, spec scenario coverage, deploy smoke test, latency numbers |
+| `factory:review <pr>` | 5 Review | Matt `code-review`, the definition of done checklist, blocking vs non-blocking, one PR comment |
+
+Single-skill stations need no wrapper: intake (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
+
 ## Runtime
 
 Default, Claude Code only:
 - `planner`: lines 1 and 2. One long-lived session in the repo: `claude --remote-control planner`.
-- `builder-<issue>`: one per Issue, each in its own worktree: `claude -w <issue> --remote-control builder-<issue>`. Max 2 in parallel (avoid merge conflicts, protect API budget). Background runs: `claude --bg`, listed by `claude agents`.
+- `builder-<issue>`: one per Issue, each in its own worktree: `claude -w <issue> --remote-control builder-<issue>`, then `factory:build #<issue>`. Max 2 in parallel (avoid merge conflicts, protect API budget). Background runs: `claude --bg`, listed by `claude agents`.
 - `reviewer`: a subagent the builder starts with Matt `code-review`, not a separate session.
 - Blocked or done: Remote Control shows every session on the phone and pushes when a prompt or question is waiting (user setting `inputNeededNotifEnabled: true`). Resume with `claude --continue` or `--resume`.
 - Fan-out inside a build: Superpowers subagents.
