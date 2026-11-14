@@ -23,8 +23,8 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ## Lines
 | # | Line | Where | Skill / action | Output | Done when |
 |---|---|---|---|---|---|
-| 1 | Intake | Session `planner` | `grill-with-docs`, `to-spec` | PRODUCT.md | Committed |
-| 2 | Plan | Session `planner` | `to-tickets` | ARCHITECTURE.md, GitHub Issues | Every Issue has a "done when" |
+| 1 | Intake | Session `planner` | Matt `grill-with-docs` | PRODUCT.md, GLOSSARY.md | Committed |
+| 2 | Plan | Session `planner` | `openspec-propose`, `project-manager` | ARCHITECTURE.md, `openspec/changes/<id>/`, one GitHub Issue per change | Every Issue links its change and has a "done when" |
 | 3 | Build | Session `builder-<issue>` | Superpowers plan, TDD, subagents | Branch with code and tests | Tests pass locally |
 | 4 | Verify | Session `builder-<issue>` | Superpowers verify, finish branch | PR | PR opened, linked to Issue |
 | 5 | Review | `reviewer` (spawned by builder) | Matt `code-review` | PR review comments | No blocking comments |
@@ -40,8 +40,8 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 flowchart TD
     idea([Idea from Abhishek]) --> intake
     subgraph agents [Agents: Claude Code sessions, Herdr optional]
-        intake["1 Intake<br/>planner: grill-with-docs, to-spec<br/>writes PRODUCT.md"]
-        plan["2 Plan<br/>planner: to-tickets, project-manager<br/>writes ARCHITECTURE.md and Issues"]
+        intake["1 Intake<br/>planner: grill-with-docs<br/>writes PRODUCT.md"]
+        plan["2 Plan<br/>planner: openspec-propose, project-manager<br/>writes OpenSpec changes and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
         verify["4 Verify<br/>builder: definition of done, opens PR"]
         review["5 Review<br/>reviewer: code-review"]
@@ -99,10 +99,11 @@ sequenceDiagram
 Critical rules are enforced by machines that ignore prompts (GitHub, the permission deny list, Render). Skills only make the right path the easy one.
 
 ## Skill ownership rules
-1. One owner per station. Matt owns intake, plan, review. Superpowers owns build and verify.
-2. TDD: Superpowers only. Do not invoke Matt `tdd`.
-3. Superpowers auto-triggers via SessionStart hook. Decided 2026-11-14: keep it in every session, `planner` included. At intake, invoke `grill-with-docs` explicitly; it owns the interview, not Superpowers brainstorming.
-4. Run `/setup-matt-pocock-skills` once: tracker = GitHub, docs = `docs/`.
+1. One owner per station. Matt owns intake (`grill-with-docs`) and review (`code-review`). OpenSpec owns specs (`openspec-propose`, `openspec-update-change`, `openspec-archive-change`). Superpowers owns build and verify. Denied in `.claude/settings.json`: `openspec-apply-change`, Matt `to-spec`, `to-tickets`, `tdd`, `diagnosing-bugs` (ADR-003).
+2. Specs live in `openspec/specs/` and are the source of truth for behaviour. A builder implements an Issue from its change's `tasks.md` and `specs/`, then runs `openspec-archive-change` in the same PR, so specs and code merge together.
+3. TDD: Superpowers only. Do not invoke Matt `tdd`.
+4. Superpowers auto-triggers via SessionStart hook. Decided 2026-11-14: keep it in every session, `planner` included. At intake, invoke `grill-with-docs` explicitly; it owns the interview, not Superpowers brainstorming.
+5. Run `/setup-matt-pocock-skills` once: tracker = GitHub, docs = `docs/`.
 
 ## Runtime
 

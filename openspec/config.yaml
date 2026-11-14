@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Maya: push-to-talk, spoiler-free Pokemon Emerald companion. Frozen stack in CLAUDE.md and the settled-architecture skill.
+  Voice answers are 2 to 3 sentences. Spoilers are 0: never reveal content past the player's current badges.
+  Latency budget: answer audible within 5 seconds of mic release, measured per stage (mic release, STT, agent, TTS first byte, playback start).
+  Build with Superpowers (plan, TDD). Never use openspec-apply-change; it is denied in .claude/settings.json.
+
+rules:
+  proposal:
+    - State what is out of scope; new ideas go to PHASE_2.md
+    - Name the GitHub Issue this change belongs to, once it exists
+  specs:
+    - Every requirement has at least one concrete scenario that a test can check
+    - Changes touching the voice loop include a latency scenario with per-stage numbers
+  tasks:
+    - Each task fits in 2 hours or less and ends with something verifiable
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+# Example:
+#   context: |
+#     Designs and tasks must cover Windows, macOS, and Linux
+#     Write all artifacts in Spanish
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
