@@ -5,7 +5,7 @@ description: Use when changing render.yaml, the Dockerfile, runtime config or en
 
 # Render deploy
 
-Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Supabase (ADR-002).
+Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Supabase in Ireland, reached through the session pooler (ADR-002).
 
 ## Files
 
@@ -34,6 +34,16 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 2. `docker build -t maya:local .` succeeds.
 3. Smoke test the image: `docker run --rm -p 4001:4001 -e PORT=4001 -e DATABASE_URL=ecto://postgres:postgres@host.docker.internal/maya_dev -e SECRET_KEY_BASE=$(mix phx.gen.secret) maya:local`, then `curl -fsS localhost:4001/health` prints `ok`. Local Postgres has no SSL, so DB errors in the log are expected; `/health` must still answer.
 
+## Test `DATABASE_URL` locally (before touching Render)
+
+Put it in `.env`, then let Abhishek run (prints host, port, user and `CONNECTED` or the error, never the password):
+
+```
+set -a; source .env; set +a; mix run --no-start -e '{:ok,_}=Application.ensure_all_started(:postgrex); o=Ecto.Repo.Supervisor.parse_url(System.fetch_env!("DATABASE_URL")) ++ [ssl: [cacertfile: "priv/certs/supabase-root-2021-ca.crt"], types: Postgrex.DefaultTypes]; IO.puts("host=#{o[:hostname]} port=#{o[:port]} user=#{o[:username]}"); case Postgrex.Protocol.connect(o) do {:ok,_} -> IO.puts("CONNECTED"); {:error,e} -> IO.puts(Exception.message(e)) end'
+```
+
+Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRET_KEY_BASE=$(mix phx.gen.secret) maya:local /app/bin/migrate`.
+
 ## Verify a deploy
 
 1. The merged PR's CI run is green (`gh run list --branch main --limit 1`).
@@ -46,7 +56,10 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | Symptom | Likely cause |
 |---|---|
 | Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
-| Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused |
+| Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused. Test it locally first (below) |
+| `Ecto.InvalidURLError ... path should be a database name` | `DATABASE_URL` is the `https://<ref>.supabase.co` API URL. Use the session pooler URI |
+| `nxdomain` for `db.<ref>.supabase.co` | Direct host, IPv6 only. Use the pooler host `aws-0-<region>.pooler.supabase.com` |
+| Connects, then `prepared statement ... does not exist` errors | Port 6543 (transaction mode). Use 5432 (session mode) |
 | `ssl` or `certificate` errors | Supabase rotated its CA: download the new one (Database Settings > SSL Configuration) into `priv/certs/` and update the path in `config/runtime.exs` |
 | Page loads, LiveView keeps reconnecting | Host mismatch: `PHX_HOST` unset and `RENDER_EXTERNAL_HOSTNAME` missing |
 | Too many connections | Lower `POOL_SIZE` in `render.yaml` |
