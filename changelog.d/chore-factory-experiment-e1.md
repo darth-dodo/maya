@@ -1,0 +1,1 @@
+Changed: Factory experiment E1: `factory:build` step 9 merges main and finishes everything before the first push, then waits for the first CI run; first factory:improve run folds five retro lessons into docs/factory/LESSONS.md
