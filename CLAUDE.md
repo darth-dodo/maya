@@ -25,7 +25,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 
 ## Frozen MVP stack (do not change without asking)
 - Elixir, Phoenix + LiveView
-- Postgres + pgvector (`{:pgvector, "~> 0.4"}`) on Supabase free, Frankfurt, via the session pooler (ADR-002)
+- Postgres + pgvector (`{:pgvector, "~> 0.4"}`) on Supabase free, Ireland (eu-west-1), via the session pooler on port 5432 (ADR-002)
 - OpenRouter for the agent: tool calling via Req, model name in config
 - Mistral Voxtral: `voxtral-mini-transcribe-3` (STT), Voxtral TTS 3
 - Mistral embeddings API (Bumblebee is too big for Render 512 MB)
