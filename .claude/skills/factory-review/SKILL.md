@@ -21,7 +21,7 @@ Invoke `mattpocock-skills:code-review` against `origin/main` (merge base). Its t
 | No secrets, `.env` untouched, new env vars in `render.yaml`, `runtime.exs` and FACTORY.md secrets table | Yes |
 | Frozen stack respected, or an ADR added | Yes |
 | Voice loop touched: latency numbers, or the stated reason they are missing | Yes |
-| CHANGELOG line ending in the PR number, Conventional Commit title | No |
+| Changelog fragment in `changelog.d/` (no edit to `CHANGELOG.md`), Conventional Commit title | No |
 | No em or en dashes, name written as "Maya" | No |
 
 ## 3. Report

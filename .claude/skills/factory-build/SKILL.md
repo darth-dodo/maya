@@ -17,7 +17,7 @@ Build and verify stations (FACTORY.md lines 3 and 4). Argument: an Issue number,
 | 6 | Build | `superpowers:test-driven-development` per task; tick each `tasks.md` checkbox when its verification passes | All build tasks ticked |
 | 7 | Test | `factory:test` | All gates green |
 | 8 | Archive | `openspec-archive-change <change-id>` | Change moved to `openspec/changes/archive/`, `openspec/specs/` updated |
-| 9 | PR | CHANGELOG line, PR template filled, `Closes #<n>`, Conventional Commit title; `superpowers:verification-before-completion` before claiming done | PR open, CI green |
+| 9 | PR | Changelog fragment `changelog.d/<branch-with-dashes>.md`, PR template filled, `Closes #<n>`, Conventional Commit title; `superpowers:verification-before-completion` before claiming done | PR open, CI green |
 | 10 | Review | `factory:review <pr>` | No blocking findings, or they are fixed and step 7 rerun |
 | 11 | Stop | Report the PR link | Abhishek merges. Then run any post-merge task in `tasks.md` and comment the result on the Issue |
 
