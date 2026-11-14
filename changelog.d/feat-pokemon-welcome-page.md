@@ -1,0 +1,1 @@
+Added: Pokemon themed welcome page: CSS-only Poke Ball hero, Mudkip hype line, spoiler-free badge case with 8 empty slots; app header shows only the Maya wordmark and theme toggle; id-based landing-page tests; coverage floor raised to 38%
