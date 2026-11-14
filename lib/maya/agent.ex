@@ -17,8 +17,17 @@ defmodule Maya.Agent do
     progress = GameData.progress()
     model = opts[:model] || voice(:agent_model)
 
+    # One budget for the whole stage, so 4 slow rounds cannot leave the player in silence.
+    deadline = System.monotonic_time(:millisecond) + voice(:agent_timeout_ms)
+
     with {:ok, req} <- client() do
-      loop(req, model, messages(Prompt.system(progress), turns, question), progress, 1)
+      loop(
+        {req, deadline},
+        model,
+        messages(Prompt.system(progress), turns, question),
+        progress,
+        1
+      )
     end
   end
 
@@ -35,11 +44,11 @@ defmodule Maya.Agent do
   defp loop(_req, _model, _messages, _progress, round) when round > @max_rounds,
     do: {:error, :round_cap}
 
-  defp loop(req, model, messages, progress, round) do
-    case complete(req, model, messages) do
+  defp loop({req, deadline} = client, model, messages, progress, round) do
+    case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
         results = Enum.map(calls, &tool_message(&1, progress))
-        loop(req, model, messages ++ [message | results], progress, round + 1)
+        loop(client, model, messages ++ [message | results], progress, round + 1)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         {:ok, String.trim(text)}
@@ -77,9 +86,12 @@ defmodule Maya.Agent do
 
   defp decode(_), do: :error
 
-  defp complete(req, model, messages) do
+  defp complete(_req, left_ms, _model, _messages) when left_ms <= 0, do: {:error, :timeout}
+
+  defp complete(req, left_ms, model, messages) do
     req
     |> Req.post(
+      receive_timeout: left_ms,
       url: "/v1/chat/completions",
       json: %{model: model, messages: messages, tools: Tools.definitions()}
     )
@@ -101,7 +113,8 @@ defmodule Maya.Agent do
            [
              base_url: config[:base_url],
              auth: {:bearer, key},
-             receive_timeout: voice(:agent_timeout_ms)
+             # A retry costs more Answer time than the spoken error line saves.
+             retry: false
            ] ++ config[:req_options]
          )}
 

@@ -23,7 +23,7 @@ config :maya, :voice,
   tts_timeout_ms: 8_000,
   # Agent model on OpenRouter with tool calling (ADR-007 picks it by measured agent ms).
   agent_model: "anthropic/claude-haiku-5.5",
-  # Per OpenRouter request; the loop makes at most 4.
+  # The whole agent stage (up to 4 OpenRouter requests).
   agent_timeout_ms: 8_000
 
 # Mistral HTTP client; the key is set in config/runtime.exs, tests stub with Req.Test.
