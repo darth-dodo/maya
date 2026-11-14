@@ -1,6 +1,8 @@
-<h1 align="center">Maya</h1>
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="Maya: Maps, Answers, Yaps, Advice. Ask out loud, hear a spoiler-free answer. An Emerald green ball with a gem button floats above soft tide waves at sunrise." width="100%">
+</p>
 
-<p align="center"><b>Maps, Answers, Yaps, Advice</b>: a talking, spoiler-free Pokemon Emerald companion on a phone.</p>
+<p align="center"><b>Maya</b> is a talking, spoiler-free Pokemon Emerald companion on a phone.</p>
 
 <p align="center">
   <a href="ARCHITECTURE.md">Architecture</a>
@@ -103,3 +105,7 @@ Maya is built by an agent-run software factory ([ADR-001](docs/adr/001-agent-run
 | [Issue tracker](docs/agents/issue-tracker.md) · [triage labels](docs/agents/triage-labels.md) · [domain docs](docs/agents/domain.md) | how agent skills use GitHub Issues and these docs |
 | [Phase 2](PHASE_2.md) | ideas parked until after the MVP |
 | [Changelog](CHANGELOG.md) | what shipped, by version |
+
+<p align="center">
+  <img src="docs/assets/footer.svg" alt="Mudkip would approve. Eight empty badge circles, numbered 1 to 8, wait above a calm wave strip." width="100%">
+</p>
