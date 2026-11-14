@@ -41,3 +41,6 @@ npm-debug.log
 *.beam
 /config/*.secret.exs
 .elixir_ls/
+
+# Claude Code worktrees (factory builders)
+/.claude/worktrees/
