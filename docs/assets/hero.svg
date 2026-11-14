@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Maya: Maps, Answers, Yaps, Advice. A spoiler-free Pokemon Emerald companion. Mudkip hype: 100. An Emerald green ball with a gem button floats above soft tide waves at sunrise.">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Maya: Maps, Answers, Yaps, Advice. A spoiler-free Pokemon Emerald companion. So I hear you like Mudkip. Good. Correct choice. An Emerald green ball with a gem button floats above soft tide waves at sunrise.">
   <title>Maya: Maps, Answers, Yaps, Advice.</title>
   <defs>
     <clipPath id="card"><rect width="1200" height="400" rx="24"/></clipPath>
@@ -50,6 +50,6 @@
     <text x="80" y="108" font-size="17" font-weight="700" letter-spacing="2.4" fill="#2F6B5E">SPOILER-FREE POKEMON EMERALD COMPANION</text>
     <text x="76" y="202" font-size="104" font-weight="800" letter-spacing="-2" fill="#12432F">Maya</text>
     <text x="80" y="246" font-size="27" font-weight="500" fill="#2E4A45">Maps, Answers, Yaps, Advice.</text>
-    <text x="80" y="290" font-size="20" font-weight="700" fill="#12432F">Mudkip hype: 100. Best starter, no debate.</text>
+    <text x="80" y="290" font-size="20" font-weight="700" fill="#12432F">So I hear you like Mudkip. Good. Correct choice.</text>
   </g>
 </svg>
