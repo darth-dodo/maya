@@ -46,8 +46,7 @@ Dials: humor 75, honesty 90, sass 40, spoilers 0 (locked), Mudkip hype 100.
 
 ## Current status
 - FACTORY.md: done.
-- PRODUCT.md: not started. Grill session paused at Q1.
-  - Q1 draft answer: "I'm stuck mid-route or before a gym. I hold the button, ask one question out loud, and within 5 seconds I hear a 2 to 3 sentence answer that fits my badges and team, with zero spoilers." Not yet confirmed.
+- PRODUCT.md: done (F2, `grill-with-docs` on 2026-11-14). Terms in GLOSSARY.md; facts only from tools (ADR-004). Next: F3, ARCHITECTURE.md and the Maya block Issues.
 - F1 step 1 done: Phoenix 1.8.16 app generated (Elixir 1.20.5 / OTP 29 via Homebrew).
 
 ## Your first task: F1 Factory skeleton (1.5h, kill switch at 3h)
@@ -70,9 +69,9 @@ Ask me before: choosing Render plan tier, any paid service, or changing the froz
 
 ## Rules
 - One block at a time. Stop at "done when". Past 2x estimate, take the cut.
-- Factory freeze (decided 2026-11-14): after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships. Next is F2 (PRODUCT.md). The planned `onboarding` and `coverage-88` changes wait until after Block 1. New factory ideas go to PHASE_2.md.
+- Factory freeze (decided 2026-11-14): after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships. F2 (PRODUCT.md) is done; next is F3. The planned `onboarding` and `coverage-88` changes wait until after Block 1. New factory ideas go to PHASE_2.md.
 - Cut order: embeddings, journal, dials (Telegram digest and watcher already in PHASE_2.md).
-- Voice fallback: browser Web Speech API.
+- Voice outage: Answers show as text with a "voice is down" note (decided in PRODUCT.md; no Web Speech fallback).
 - TDD via Superpowers only. Do not use Matt `tdd`. Enforced: `.claude/settings.json` denies `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs` (Superpowers owns build and debug).
 - Max 2 builders in parallel. Squash merges.
 - Never commit secrets. See FACTORY.md for where each one lives.

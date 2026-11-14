@@ -31,3 +31,4 @@ What gets easier, what gets harder, what we will check.
 | 001 | [Agent-run software factory](001-agent-run-software-factory.md) | Accepted |
 | 002 | [Postgres on Supabase](002-postgres-on-supabase.md) | Accepted |
 | 003 | [OpenSpec owns the spec station](003-openspec-for-specs.md) | Accepted |
+| 004 | [Facts only from tools and data](004-facts-only-from-tools.md) | Accepted |

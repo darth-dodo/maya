@@ -37,7 +37,7 @@ Read before building the voice loop.
 - WebSocket TTS gave a faster first byte than REST (`docs/plans/2026-03-17-websocket-tts-design.md`).
 - Check the audio formats the provider streams. Deepgram streamed raw PCM, not mp3, and the client had to add a WAV header (`docs/plans/2026-04-06-fix-websocket-tts.md`). Verify this for Voxtral TTS 3 before writing playback code.
 - Browser voice code raced: iOS AudioContext unlock, `onended` not firing, frames sent before the pipeline was ready, double play. The fix was a small finite state machine plus one AbortController per session (`docs/design/phase21-voice-fsm-refactor.md`). In Maya: build the LiveView JS hook as an explicit state machine from day one.
-- Write the ADR success criteria with a cost per session and "degrade gracefully when the key is missing" (`docs/adr/ADR-010-deepgram-voice-stt-tts.md`). Maya's fallback is the browser Web Speech API.
+- Write the ADR success criteria with a cost per session and "degrade gracefully when the key is missing" (`docs/adr/ADR-010-deepgram-voice-stt-tts.md`). Maya's MVP shows Answers as text on a voice outage (PRODUCT.md); Web Speech is in PHASE_2.md.
 
 ## Skipped
 
