@@ -88,7 +88,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 ## Factory conventions
 - Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
 - Every PR adds its lines to `CHANGELOG.md` under `Unreleased`, ending with the PR number.
-- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes), `herdr` (optional, only inside a Herdr pane).
+- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes), `herdr` (optional, only inside a Herdr pane), `quiz-me` (5 question spaced-repetition quiz on the codebase; log in `~/coding-tutor-tutorials/maya/`).
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).
 - What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.

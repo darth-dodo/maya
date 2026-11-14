@@ -8,6 +8,7 @@ Every PR adds its lines under `Unreleased` (Added, Changed, Fixed, Removed), end
 ## [Unreleased]
 
 ### Added
+- `quiz-me` skill: on-demand 5 question quiz on recent PRs, specs and ADRs, code structure and factory ops, with spaced repetition borrowed from coding-tutor (#14)
 - OpenSpec 2.0 for the spec station: `openspec/` (config with Maya context and rules), six skills in `.agents/skills/` linked from `.claude/skills/`; ADR-003 (#11)
 - Factory runtime without Herdr: Claude Code sessions, worktree builders, reviewer subagent, Remote Control for the phone; Herdr kept as an optional devex layer with its skill (`.claude/skills/herdr/`, Herdr 0.9.5) (#10)
 - Permission deny rules for `mattpocock-skills:tdd` and `mattpocock-skills:diagnosing-bugs`, so Superpowers keeps TDD and debugging (#9)
