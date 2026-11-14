@@ -1,5 +1,15 @@
 # Maya
 
+## Local development
+
+Requires Docker for Postgres (with pgvector).
+
+```sh
+docker compose up -d db
+mix setup
+mix phx.server
+```
+
 To start your Phoenix server:
 
 * Run `mix setup` to install and setup dependencies
