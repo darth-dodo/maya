@@ -6,7 +6,7 @@ defmodule MayaWeb.DesignTokensTest do
   defp css, do: File.read!("assets/css/app.css")
   defp doc_md, do: File.read!("docs/design-system.md")
 
-  @colour_tokens ~w(bg sea surface ink muted action action-ink line hairline accent listen wait success error)
+  @colour_tokens ~w(bg sea sea-deep surface ink muted heading action action-ink line hairline accent listen wait success error)
   @scale_tokens ~w(text-xs text-sm text-base text-lg text-xl text-2xl text-3xl
                    radius-sm radius-md radius-lg radius-pill shadow-1 shadow-2 duration ease
                    font-head font-body)
@@ -101,10 +101,26 @@ defmodule MayaWeb.DesignTokensTest do
         {"accent on surface", c.("accent"), c.("surface")},
         {"success", c.("success"), c.("bg")},
         {"error", c.("error"), c.("bg")},
-        {"action-ink on action", c.("action-ink"), c.("action")}
+        {"action-ink on action", c.("action-ink"), c.("action")},
+        # design-apply: headings, the deepest scene wash, and the Talk button's state labels
+        {"heading", c.("heading"), c.("bg")},
+        {"heading on sea", c.("heading"), c.("sea")},
+        {"muted on sea-deep", c.("muted"), c.("sea-deep")},
+        {"error on sea-deep", c.("error"), c.("sea-deep")},
+        {"ink on sea", c.("ink"), c.("sea")},
+        {"surface on listen (Talk button, recording)", c.("surface"), c.("listen")},
+        {"surface on muted (Talk button, waiting)", c.("surface"), c.("muted")},
+        {"surface on success (Talk button, speaking)", c.("surface"), c.("success")}
       ]
 
-      non_text = [{"listen", c.("listen"), scene}, {"wait", c.("wait"), scene}]
+      non_text = [
+        {"listen", c.("listen"), scene},
+        {"wait", c.("wait"), scene},
+        {"listen ring on the card", c.("listen"), c.("surface")},
+        {"wait ring on the card", c.("wait"), c.("surface")},
+        {"success ring on the card", c.("success"), c.("surface")},
+        {"ink focus ring on bg", c.("ink"), c.("bg")}
+      ]
 
       for {name, fg, bg} <- text,
           do: assert(ratio(fg, bg) >= 4.5, "#{theme} #{name}: #{Float.round(ratio(fg, bg), 2)}")
@@ -115,6 +131,48 @@ defmodule MayaWeb.DesignTokensTest do
 
     assert ratio(day()["--maya-action"], day()["--maya-bg"]) >= 4.5
   end
+
+  test "the Start fresh confirm button text reaches 4.5:1 in both themes (was btn-warning, 4.29:1)" do
+    for {name, t} <- [{"light", day()}, {"dark", night()}] do
+      content = daisy_theme(name)["--color-error-content"] |> token_value(t)
+      bg = daisy_theme(name)["--color-error"] |> token_value(t)
+      assert ratio(content, bg) >= 4.5, "#{name} btn-error: #{Float.round(ratio(content, bg), 2)}"
+    end
+  end
+
+  test "Gen 3 type chips keep white text at 4.5:1" do
+    types = for {"--maya-type-" <> _ = k, v} <- day(), do: {k, v}
+
+    assert length(types) == 17
+
+    for {token, value} <- types,
+        do:
+          assert(
+            ratio("#ffffff", value) >= 4.5,
+            "#{token}: #{Float.round(ratio("#ffffff", value), 2)}"
+          )
+  end
+
+  test "brand SVGs use only palette values" do
+    palette =
+      ~r/#[0-9a-fA-F]{6}\b/
+      |> Regex.scan(layer())
+      |> List.flatten()
+      |> MapSet.new(&String.downcase/1)
+
+    for path <- ~w(priv/static/images/maya-icon.svg priv/static/images/logo.svg
+                   docs/assets/hero.svg docs/assets/footer.svg) do
+      svg = File.read!(path)
+
+      refute svg =~ ~r/\b(?:rgba?|hsla?|oklch)\(|#[0-9a-fA-F]{3}\b/, "#{path}: non hex6 colour"
+
+      for hex <- ~r/#[0-9a-fA-F]{6}\b/ |> Regex.scan(svg) |> List.flatten(),
+          do: assert(String.downcase(hex) in palette, "#{path}: #{hex} is not a token value")
+    end
+  end
+
+  defp token_value("var(" <> rest, t), do: t[String.trim_trailing(rest, ")")]
+  defp token_value(value, _t), do: value
 
   test "daisyUI primary is the action token and no Phoenix purple is left" do
     for name <- ["light", "dark"] do

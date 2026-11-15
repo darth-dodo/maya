@@ -64,7 +64,7 @@ defmodule MayaWeb.Layouts do
   def site_footer(assigns) do
     ~H"""
     <footer id="site-footer" class="site-footer">
-      <%!-- legacy-colours:start footer-art (design-apply moves these onto tokens) --%>
+      <%!-- Colours come from the art-* classes in app.css (tokens), so the art follows the theme. --%>
       <svg
         class="footer-art"
         viewBox="0 0 1200 160"
@@ -73,39 +73,31 @@ defmodule MayaWeb.Layouts do
       >
         <defs>
           <linearGradient id="footer-bg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#FBF4E4" />
-            <stop offset="1" stop-color="#E4F1EE" />
+            <stop offset="0" class="art-sky-top" />
+            <stop offset="1" class="art-sky-bottom" />
           </linearGradient>
         </defs>
         <rect width="1200" height="160" fill="url(#footer-bg)" />
         <path
+          class="art-wave-back"
           d="M0 128 C 150 118, 300 136, 450 126 S 760 116, 900 128 S 1100 138, 1200 124 L1200 160 L0 160 Z"
-          fill="#B9DAD5"
         />
         <path
+          class="art-wave-front"
           d="M0 144 C 160 136, 320 152, 500 142 S 820 134, 1000 146 S 1140 150, 1200 142 L1200 160 L0 160 Z"
-          fill="#7FB2AD"
-          opacity="0.8"
         />
-        <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
-          <text x="600" y="46" font-size="26" font-weight="700" fill="#12432F">
+        <g text-anchor="middle">
+          <text class="art-title" x="600" y="46" font-size="26" font-weight="700">
             Mudkip would approve.
           </text>
-          <g
-            fill="#FFFFFF"
-            fill-opacity="0.6"
-            stroke="#2F6B5E"
-            stroke-width="2"
-            stroke-dasharray="5 4"
-          >
+          <g class="art-slots" stroke-width="2" stroke-dasharray="5 4">
             <circle :for={n <- 0..7} cx={390 + n * 60} cy="88" r="18" />
           </g>
-          <g font-size="15" font-weight="700" fill="#2F6B5E">
+          <g class="art-numbers" font-size="15" font-weight="700">
             <text :for={n <- 0..7} x={390 + n * 60} y="93">{n + 1}</text>
           </g>
         </g>
       </svg>
-      <%!-- legacy-colours:end --%>
       <nav aria-label="About Maya" class="footer-links">
         <a href="/">Home</a>
         <a href="/factory">How Maya is built</a>
@@ -176,7 +168,7 @@ defmodule MayaWeb.Layouts do
       <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
       >
@@ -184,7 +176,7 @@ defmodule MayaWeb.Layouts do
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
       >
@@ -192,7 +184,7 @@ defmodule MayaWeb.Layouts do
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
       >

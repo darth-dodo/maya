@@ -3,17 +3,17 @@
   <defs>
     <clipPath id="card"><rect width="1200" height="400" rx="24"/></clipPath>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#E7E2F3"/>
-      <stop offset="0.45" stop-color="#F8E8DE"/>
-      <stop offset="0.7" stop-color="#FBF4E4"/>
-      <stop offset="1" stop-color="#E4F1EE"/>
+      <stop offset="0" stop-color="#f6f1e7"/>
+      <stop offset="0.45" stop-color="#f6f1e7"/>
+      <stop offset="0.7" stop-color="#e7f3ee"/>
+      <stop offset="1" stop-color="#cfe7df"/>
     </linearGradient>
     <radialGradient id="sun" cx="0.32" cy="0.62" r="0.4">
-      <stop offset="0" stop-color="#FFF8DC" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#FFF8DC" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="gem" cx="0.4" cy="0.35" r="0.7">
-      <stop offset="0" stop-color="#D4F8E4"/>
+      <stop offset="0" stop-color="#f8f8f8"/>
       <stop offset="0.6" stop-color="#3FC283"/>
       <stop offset="1" stop-color="#0F6B3D"/>
     </radialGradient>
@@ -22,17 +22,17 @@
   <g clip-path="url(#card)">
     <rect width="1200" height="400" fill="url(#sky)"/>
     <rect width="1200" height="400" fill="url(#sun)"/>
-    <path d="M0 262 C 180 250, 360 268, 560 258 S 920 248, 1200 262 L1200 400 L0 400 Z" fill="#D5EAE6"/>
-    <path d="M0 300 C 140 286, 260 312, 420 298 S 700 284, 860 300 S 1080 312, 1200 296 L1200 400 L0 400 Z" fill="#B9DAD5" opacity="0.85"/>
-    <path d="M0 340 C 120 326, 240 352, 380 338 S 640 324, 800 342 S 1060 352, 1200 336 L1200 400 L0 400 Z" fill="#97C3BE" opacity="0.8"/>
-    <path d="M0 372 C 160 362, 300 384, 470 372 S 780 360, 960 376 S 1120 382, 1200 370 L1200 400 L0 400 Z" fill="#7FB2AD" opacity="0.7"/>
+    <path d="M0 262 C 180 250, 360 268, 560 258 S 920 248, 1200 262 L1200 400 L0 400 Z" fill="#e7f3ee"/>
+    <path d="M0 300 C 140 286, 260 312, 420 298 S 700 284, 860 300 S 1080 312, 1200 296 L1200 400 L0 400 Z" fill="#cfe7df" opacity="0.9"/>
+    <path d="M0 340 C 120 326, 240 352, 380 338 S 640 324, 800 342 S 1060 352, 1200 336 L1200 400 L0 400 Z" fill="#3fc283" opacity="0.35"/>
+    <path d="M0 372 C 160 362, 300 384, 470 372 S 780 360, 960 376 S 1120 382, 1200 370 L1200 400 L0 400 Z" fill="#1d9a5b" opacity="0.35"/>
     <g fill="none" stroke="#FFFFFF" stroke-linecap="round" opacity="0.7" stroke-width="2.5">
       <path d="M90 296 C 130 288, 170 292, 200 300"/>
       <path d="M520 334 C 560 326, 600 330, 630 338"/>
       <path d="M1000 300 C 1040 292, 1080 296, 1110 304"/>
     </g>
 
-    <ellipse cx="930" cy="330" rx="96" ry="12" fill="#3E7C74" opacity="0.25"/>
+    <ellipse cx="930" cy="330" rx="96" ry="12" fill="#0f5a3a" opacity="0.25"/>
     <circle cx="930" cy="190" r="120" fill="#F8F8F8"/>
     <g clip-path="url(#ballTop)">
       <path d="M930 130 L793 506 L554 -7 Z" fill="#1D9A5B"/>
@@ -47,9 +47,9 @@
     <ellipse cx="880" cy="120" rx="26" ry="12" fill="#FFFFFF" opacity="0.28" transform="rotate(-30 880 120)"/>
   </g>
   <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
-    <text x="80" y="108" font-size="17" font-weight="700" letter-spacing="2.4" fill="#2F6B5E">SPOILER-FREE POKÉMON EMERALD COMPANION</text>
-    <text x="76" y="202" font-size="104" font-weight="800" letter-spacing="-2" fill="#12432F">Maya</text>
-    <text x="80" y="246" font-size="27" font-weight="500" fill="#2E4A45">Maps, Answers, Yaps, Advice.</text>
-    <text x="80" y="290" font-size="20" font-weight="700" fill="#12432F">So I hear you like Mudkip. Good. Correct choice.</text>
+    <text x="80" y="108" font-size="17" font-weight="700" letter-spacing="2.4" fill="#3f6b5b">SPOILER-FREE POKÉMON EMERALD COMPANION</text>
+    <text x="76" y="202" font-family="Fraunces, Georgia, serif" font-size="104" font-weight="700" letter-spacing="-2" fill="#0f5a3a">Maya</text>
+    <text x="80" y="246" font-size="27" font-weight="500" fill="#13261f">Maps, Answers, Yaps, Advice.</text>
+    <text x="80" y="290" font-size="20" font-weight="700" fill="#0f5a3a">So I hear you like Mudkip. Good. Correct choice.</text>
   </g>
 </svg>

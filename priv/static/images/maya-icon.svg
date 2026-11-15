@@ -1,13 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Maya: an Emerald green ball with a gem button on a soft tide green square">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Maya: an Emerald green ball with a gem button on a soft sand and sea green square">
   <title>Maya</title>
   <defs>
     <linearGradient id="tide" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#E8F4F0"/>
-      <stop offset="0.6" stop-color="#CFE7E0"/>
-      <stop offset="1" stop-color="#A9D6CA"/>
+      <stop offset="0" stop-color="#f6f1e7"/>
+      <stop offset="0.6" stop-color="#e7f3ee"/>
+      <stop offset="1" stop-color="#cfe7df"/>
     </linearGradient>
     <radialGradient id="gem" cx="0.4" cy="0.35" r="0.7">
-      <stop offset="0" stop-color="#D4F8E4"/>
+      <stop offset="0" stop-color="#f8f8f8"/>
       <stop offset="0.6" stop-color="#3FC283"/>
       <stop offset="1" stop-color="#0F6B3D"/>
     </radialGradient>

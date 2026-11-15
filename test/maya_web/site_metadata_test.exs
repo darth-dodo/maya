@@ -22,11 +22,12 @@ defmodule MayaWeb.SiteMetadataTest do
     assert attr(doc, "meta[name='description']", "content") == @description
     assert attr(doc, "meta[name='viewport']", "content") =~ "viewport-fit=cover"
 
-    assert attr(doc, "meta[name='theme-color'][media='(prefers-color-scheme: light)']", "content") =~
-             ~r/^#[0-9a-f]{6}$/i
+    # Day --maya-action and night --maya-bg (design-apply)
+    assert attr(doc, "meta[name='theme-color'][media='(prefers-color-scheme: light)']", "content") ==
+             "#0f5a3a"
 
-    assert attr(doc, "meta[name='theme-color'][media='(prefers-color-scheme: dark)']", "content") =~
-             ~r/^#[0-9a-f]{6}$/i
+    assert attr(doc, "meta[name='theme-color'][media='(prefers-color-scheme: dark)']", "content") ==
+             "#08181a"
   end
 
   test "iOS home screen tags and the manifest link", %{conn: conn} do
@@ -87,8 +88,8 @@ defmodule MayaWeb.SiteMetadataTest do
     assert manifest["short_name"] == "Maya"
     assert manifest["start_url"] == "/talk"
     assert manifest["display"] == "standalone"
-    assert manifest["theme_color"] =~ ~r/^#[0-9a-f]{6}$/i
-    assert manifest["background_color"] =~ ~r/^#[0-9a-f]{6}$/i
+    assert manifest["theme_color"] == "#0f5a3a"
+    assert manifest["background_color"] == "#f6f1e7"
 
     icons = Enum.map(manifest["icons"], &{&1["sizes"], &1["purpose"] || "any"})
     assert {"192x192", "any"} in icons

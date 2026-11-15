@@ -3,18 +3,18 @@
   <defs>
     <clipPath id="card"><rect width="1200" height="160" rx="20"/></clipPath>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FBF4E4"/>
-      <stop offset="1" stop-color="#E4F1EE"/>
+      <stop offset="0" stop-color="#f6f1e7"/>
+      <stop offset="1" stop-color="#e7f3ee"/>
     </linearGradient>
   </defs>
   <g clip-path="url(#card)">
     <rect width="1200" height="160" fill="url(#bg)"/>
-    <path d="M0 128 C 150 118, 300 136, 450 126 S 760 116, 900 128 S 1100 138, 1200 124 L1200 160 L0 160 Z" fill="#B9DAD5"/>
-    <path d="M0 144 C 160 136, 320 152, 500 142 S 820 134, 1000 146 S 1140 150, 1200 142 L1200 160 L0 160 Z" fill="#7FB2AD" opacity="0.8"/>
+    <path d="M0 128 C 150 118, 300 136, 450 126 S 760 116, 900 128 S 1100 138, 1200 124 L1200 160 L0 160 Z" fill="#cfe7df"/>
+    <path d="M0 144 C 160 136, 320 152, 500 142 S 820 134, 1000 146 S 1140 150, 1200 142 L1200 160 L0 160 Z" fill="#3fc283" opacity="0.35"/>
   </g>
   <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
-    <text x="600" y="46" font-size="26" font-weight="700" fill="#12432F">Mudkip would approve.</text>
-    <g fill="#FFFFFF" fill-opacity="0.6" stroke="#2F6B5E" stroke-width="2" stroke-dasharray="5 4">
+    <text x="600" y="46" font-family="Fraunces, Georgia, serif" font-size="26" font-weight="700" fill="#0f5a3a">Mudkip would approve.</text>
+    <g fill="#FFFFFF" fill-opacity="0.6" stroke="#3f6b5b" stroke-width="2" stroke-dasharray="5 4">
       <circle cx="390" cy="88" r="18"/>
       <circle cx="450" cy="88" r="18"/>
       <circle cx="510" cy="88" r="18"/>
@@ -24,7 +24,7 @@
       <circle cx="750" cy="88" r="18"/>
       <circle cx="810" cy="88" r="18"/>
     </g>
-    <g font-size="15" font-weight="700" fill="#2F6B5E">
+    <g font-size="15" font-weight="700" fill="#3f6b5b">
       <text x="390" y="93">1</text>
       <text x="450" y="93">2</text>
       <text x="510" y="93">3</text>

@@ -239,12 +239,6 @@ defmodule MayaWeb.TalkLive do
                 {String.capitalize(@card.gym_type)}
               </span>
             </div>
-            <ul id="team" class="card-team" aria-label="Team">
-              <li :for={mon <- @card.team} class="mon">
-                <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
-                {mon.name} Lv {mon.level}
-              </li>
-            </ul>
           </div>
           <div class="card-badges">
             <ul id="badge-case" class="badge-case" aria-label="Badge case">
@@ -258,6 +252,13 @@ defmodule MayaWeb.TalkLive do
             </ul>
             <span id="badge-count" class="badge-count">{@card.earned} of 8 badges</span>
           </div>
+          <%!-- Full card width, so a full Team wraps in rows and the sticky card stays short (Issue 117) --%>
+          <ul id="team" class="card-team" aria-label="Team">
+            <li :for={mon <- @card.team} class="mon">
+              <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
+              {mon.name} Lv {mon.level}
+            </li>
+          </ul>
         </section>
 
         <p id="talk-status" class="talk-status" role="status" aria-live="polite">
@@ -328,7 +329,7 @@ defmodule MayaWeb.TalkLive do
             <p>
               Start over with a new Conversation and no badges? This one stays saved, but leaves this screen.
             </p>
-            <button id="start-fresh-yes" type="submit" class="btn btn-warning btn-sm">
+            <button id="start-fresh-yes" type="submit" class="btn btn-error btn-sm">
               Yes, start fresh
             </button>
             <button

@@ -2,7 +2,7 @@
 
 > Living reference for how Maya looks: Calm Emerald by day, Emerald night after dark. The tokens live in `assets/css/app.css` between `/* tokens:start */` and `/* tokens:end */`; this doc mirrors them. Spec: `openspec/specs/design-system/spec.md`. Approved direction: columns A and B of the reference mocks (https://claude.ai/artifact/4P2vNZtmeBLJEAqWDBLEgn), serif headings.
 
-Living reference artifact: the claude.ai Design System artifact is pending; the main session creates it from this doc and links it here.
+Living reference artifact: [Maya Calm Emerald](https://claude.ai/artifact/PbvRy5EvLwDKb7VY6obsKg), built from this doc and the token layer. Keep its token tables in sync when a value here changes.
 
 ---
 
@@ -31,9 +31,11 @@ Day values sit on `:root`. Night values apply on `:root[data-theme="dark"]` (the
 |---|---|---|---|
 | `--maya-bg` | page background | `#f6f1e7` sand | `#08181a` night sea |
 | `--maya-sea` | scene wash, Maya bubble base | `#e7f3ee` | `#0c2620` |
+| `--maya-sea-deep` | the deepest wash at the bottom of the Talk scene, hero and art | `#cfe7df` | `#08181a` |
 | `--maya-surface` | cards | `#ffffff` | `#102d24` |
 | `--maya-ink` | body text | `#13261f` | `#e8f3ed` |
 | `--maya-muted` | secondary text, captions | `#3f6b5b` | `#a6c3b6` |
+| `--maya-heading` | hero title and section headings (deep emerald by day, ink at night) | `#0f5a3a` | `#e8f3ed` |
 | `--maya-action` | the one action colour: buttons, links, day headings | `#0f5a3a` deep emerald | `#157a48` |
 | `--maya-action-ink` | text on action | `#ffffff` | `#ffffff` |
 | `--maya-line` | decorative dividers | `rgb(15 58 40 / 0.12)` | `rgb(255 255 255 / 0.08)` |
@@ -56,6 +58,22 @@ Maya's mark keeps its colours in both themes.
 | `--maya-ball-green-light` | `#3fc283` |
 | `--maya-ball-white` | `#f8f8f8` |
 | `--maya-ball-black` | `#1a1a1a` |
+
+### 2.3a Pokémon types
+
+The Gen 3 type chips and dots on the trainer card, the same in both themes, darkened so white chip text (`--maya-action-ink`) stays at least 4.5:1 (lowest: ice, 4.71). The test checks every one.
+
+| Token | Value | Token | Value |
+|---|---|---|---|
+| `--maya-type-normal` | `#6d6d4e` | `--maya-type-flying` | `#5e55b5` |
+| `--maya-type-fire` | `#b4420f` | `--maya-type-psychic` | `#c2185b` |
+| `--maya-type-water` | `#2f6fc0` | `--maya-type-bug` | `#66771a` |
+| `--maya-type-grass` | `#3f7d23` | `--maya-type-rock` | `#7d6a2a` |
+| `--maya-type-electric` | `#8a6a00` | `--maya-type-ghost` | `#574079` |
+| `--maya-type-ice` | `#2f7f7f` | `--maya-type-dragon` | `#5531c9` |
+| `--maya-type-fighting` | `#a3261f` | `--maya-type-dark` | `#4d3e33` |
+| `--maya-type-poison` | `#823d82` | `--maya-type-steel` | `#5c5c78` |
+| `--maya-type-ground` | `#85662b` | | |
 
 ### 2.4 daisyUI mapping
 
@@ -89,10 +107,22 @@ WCAG 2.x relative luminance. Text needs 4.5:1, a non-text cue that is the only s
 | action on bg (day headings) | text | 7.33 | not used for text |
 | listen on scene (ring) | non-text | 3.74 | 5.34 |
 | wait on scene (ring) | non-text | 3.30 | 4.66 |
+| heading on bg | text | 7.33 | 15.98 |
+| heading on sea (hero) | text | 7.25 | 14.06 |
+| ink on sea (Maya bubble) | text | 13.93 | 14.06 |
+| muted on sea-deep | text | 4.66 | 9.61 |
+| error on sea-deep ("voice is down") | text | 5.03 | 10.64 |
+| surface on listen (Talk button, recording) | text | 4.87 | 5.34 |
+| surface on muted (Talk button, waiting) | text | 6.06 | 7.80 |
+| surface on success (Talk button, speaking) | text | 5.34 | 6.51 |
+| listen ring on the card (surface) | non-text | 4.87 | 5.34 |
+| wait ring on the card (surface) | non-text | 4.29 | 4.66 |
+| success ring on the card (surface) | non-text | 5.34 | 6.51 |
+| "Yes, start fresh" (`btn-error`): content on error | text | 6.54 | 10.64 |
 
 `--maya-line` is decorative (dividers next to text that already has contrast) and is exempt from 3:1. A border that is the only cue for a control uses `--maya-action` or `--maya-muted`.
 
-Known gap: daisyUI `btn-warning` text (the "Yes, start fresh" button) is white on `--maya-wait`, 4.29:1 by day (it was lower on the old orange). design-apply restyles that button.
+The Talk button's state labels use `--maya-surface` as their text colour: white by day, the night card green at night, which keeps every state at 4.5:1 on its state colour. The "Yes, start fresh" button is `btn-error` (it was `btn-warning`, 4.29:1 by day).
 
 ---
 
@@ -158,7 +188,9 @@ Every transition uses `--maya-duration` and `--maya-ease`. Looping state animati
 
 ## 6. The colour gate
 
-`test/maya_web/colour_gate_test.exs` reads `assets/css/app.css` and every `.ex` and `.heex` under `lib/maya_web`, and fails on `#` hex, `rgb()`, `rgba()`, `hsl()` or `oklch()` outside the token layer, naming the file and line. Exceptions: the two `theme-color` metas in `root.html.heex` (browsers need a literal), and today's per-page blocks wrapped in `legacy-colours:start <name>` / `legacy-colours:end`, each with an exact count (talk-screen, home, footer-art). The counts may only go down; design-apply moves those blocks onto tokens and empties the list. `priv/static` files (SVG, manifest) are outside the gate.
+`test/maya_web/colour_gate_test.exs` reads `assets/css/app.css` and every `.ex` and `.heex` under `lib/maya_web`, and fails on `#` hex, `rgb()`, `rgba()`, `hsl()` or `oklch()` outside the token layer, naming the file and line. The one exception: the two `theme-color` metas in `root.html.heex` (browsers need a literal). The legacy allow list is empty since design-apply, and the test fails if a `legacy-colours` block comes back. Note that `#` followed by three hex digits counts as a literal, so write "Issue 117", not the bare number, in CSS and template comments.
+
+The inline footer art in `layouts.ex` takes its colours from `art-*` classes in `app.css`, so it follows the theme. The brand files outside the gate (`priv/static/images/maya-icon.svg`, `logo.svg`, `docs/assets/hero.svg`, `footer.svg`) are images, so they keep literal colours, but `design_tokens_test.exs` fails on any colour in them that is not a `--maya-*` token value. The PNG icons and `og-image.png` are rendered from those SVGs. The manifest colours are `#0f5a3a` (theme) and `#f6f1e7` (background).
 
 ---
 
