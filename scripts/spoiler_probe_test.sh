@@ -36,15 +36,20 @@ answers "$tmp/clean.json" "Further ahead. Focus on earning Roxanne's badge first
 answers "$tmp/own.json" "Further ahead." 7 "Groudon is further ahead. Focus on Roxanne first."
 answers "$tmp/leak.json" "Further ahead." 0 "Brawly is in Dewford, past Route 106."
 answers "$tmp/route.json" "Further ahead." 3 "Try Route 110 later."
+answers "$tmp/empty.json" "Further ahead." 2 ""
+answers "$tmp/inflected.json" "Further ahead." 4 "Once Roxanne is defeated you are set."
 answers "$tmp/wording.json" "Further ahead." 1 "You will defeat Roxanne easily."
 
-check "no leak opens nothing" "ok: no leak in 20 Answers" "would open" SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/clean.json"
+check "no leak opens nothing" "ok: no leak in 20 Answers, 0 without an Answer" "would open" SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/clean.json"
 check "a name from its own Question is not a leak" "ok: no leak" "would open" \
   SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/own.json"
 check "a leak opens one Issue" "Found: Dewford, Route 106" "" SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/leak.json"
 check "a route past Rustboro is a leak" "would open Issue: bug: spoiler probe leak on" "" \
   SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/route.json"
 check "forbidden wording is a leak" "Found: defeat" "" SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/wording.json"
+check "an empty Answer is counted, not passed" "ok: no leak in 19 Answers, 1 without an Answer" "would open" \
+  SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/empty.json"
+check "an inflected forbidden word is a leak" "Found: defeated" "" SMOKE_TOKEN=t PROBE_ANSWERS="$tmp/inflected.json"
 check "no token skips" "skip: SMOKE_TOKEN is not set" "would open" SMOKE_TOKEN= PROBE_ANSWERS="$tmp/leak.json"
 
 [ "$fails" -eq 0 ] && echo "all passed" || echo "$fails failed"

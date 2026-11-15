@@ -18,7 +18,9 @@ if [ -z "${SMOKE_TOKEN:-}" ]; then
 fi
 
 count="$(jq '.probes | length' "$PROBES" 2>/dev/null)" || { echo "skip: cannot read $PROBES"; exit 0; }
+[ "${count:-0}" -gt 0 ] 2>/dev/null || { echo "skip: no probes in $PROBES"; exit 0; }
 leaks=""
+silent=0
 
 for i in $(seq 0 $((count - 1))); do
   question="$(jq -r ".probes[$i].question" "$PROBES")"
@@ -28,6 +30,13 @@ for i in $(seq 0 $((count - 1))); do
     body="$(jq -n --arg q "$question" '{question: $q}')"
     answer="$(curl -s --max-time 30 -H "x-smoke-token: $SMOKE_TOKEN" -H 'content-type: application/json' \
       --data "$body" "$SITE/health/ask" | jq -r '.answer // empty' 2>/dev/null)"
+  fi
+
+  # No Answer (timeout, 5xx, bad token) is not a pass: count it so the summary says so.
+  if [ -z "$answer" ]; then
+    echo "no answer: $question"
+    silent=$((silent + 1))
+    continue
   fi
 
   found=""
@@ -50,7 +59,7 @@ for i in $(seq 0 $((count - 1))); do
 done
 
 if [ -z "$leaks" ]; then
-  echo "ok: no leak in $count Answers"
+  echo "ok: no leak in $((count - silent)) Answers, $silent without an Answer"
   exit 0
 fi
 
@@ -70,7 +79,9 @@ fi
 open="$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number --jq length 2>/dev/null || echo unknown)"
 if [ "$open" = "unknown" ]; then
   echo "could not check for an open Issue, skipping to avoid a duplicate"
-elif [ "${open:-0}" -gt 0 ]; then
+elif ! [[ "$open" =~ ^[0-9]+$ ]]; then
+  echo "unexpected Issue count '$open', skipping to avoid a duplicate"
+elif [ "$open" -gt 0 ]; then
   echo "Issue already open for this run's date, not opening another"
 else
   gh issue create --repo "$REPO" --label bug --title "$title" --body "$body" || echo "could not open the Issue"

@@ -19,12 +19,12 @@ defmodule Maya.SpoilerGateTest do
   # Each probe: the model calls the probe's tool, then says the past-horizon line.
   defp stub(probe) do
     me = self()
-    {:ok, replies} = Agent.start_link(fn -> [call(probe), text()] end)
+    {:ok, replies} = Elixir.Agent.start_link(fn -> [call(probe), text()] end)
 
     Req.Test.stub(Maya.OpenRouter, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       send(me, {:request, Jason.decode!(body)})
-      Req.Test.json(conn, Agent.get_and_update(replies, fn [r | rest] -> {r, rest} end))
+      Req.Test.json(conn, Elixir.Agent.get_and_update(replies, fn [r | rest] -> {r, rest} end))
     end)
   end
 
@@ -47,12 +47,10 @@ defmodule Maya.SpoilerGateTest do
   defp text,
     do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => "Further ahead."}}]}
 
-  # Word boundaries, so "Route 11" would never match "Route 110".
-  defp leaks(text) do
-    for name <- @probes["forbidden"],
-        Regex.match?(~r/\b#{Regex.escape(name)}\b/i, text),
-        do: name
-  end
+  # Word boundaries, so "Route 11" would never match "Route 110"; any letter case.
+  defp word?(text, word), do: Regex.match?(~r/\b#{Regex.escape(word)}\b/i, text)
+
+  defp leaks(text), do: for(name <- @probes["forbidden"], word?(text, name), do: name)
 
   test "the probe set has 20 Questions and checks gift and legendary Pokémon" do
     assert length(@probes["probes"]) == 20
@@ -67,7 +65,7 @@ defmodule Maya.SpoilerGateTest do
   # Honesty (#118): a reply may state an Event or a refusal only when log_event ran this turn.
   defp unbacked_claim?(reply, tools_called) do
     "log_event" not in tools_called and
-      Enum.any?(@probes["claim_words"], &Regex.match?(~r/\b#{Regex.escape(&1)}\b/i, reply))
+      Enum.any?(@probes["claim_words"], &word?(reply, &1))
   end
 
   test "the honesty check flags a claimed Event or refusal with no tool call" do
@@ -78,6 +76,7 @@ defmodule Maya.SpoilerGateTest do
       refute unbacked_claim?(reply, ["log_event"])
     end
 
+    assert unbacked_claim?("Done, I added Ralts to your team.", [])
     refute unbacked_claim?("Ralts lives on Route 102.", [])
   end
 

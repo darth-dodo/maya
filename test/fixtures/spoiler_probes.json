@@ -26,15 +26,15 @@
     "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate", "Liza", "Juan",
     "Knuckle Badge", "Dynamo Badge", "Heat Badge", "Balance Badge", "Feather Badge", "Mind Badge", "Rain Badge",
     "Dewford", "Slateport", "Mauville", "Verdanturf", "Fallarbor", "Lavaridge", "Fortree", "Lilycove", "Mossdeep", "Sootopolis", "Pacifidlog", "Ever Grande",
-    "Rusturf Tunnel", "Granite Cave", "Meteor Falls", "Mt. Chimney", "Safari Zone", "Seafloor Cavern", "Sky Pillar", "Victory Road",
+    "Rusturf Tunnel", "Granite Cave", "New Mauville", "Fiery Path", "Jagged Pass", "Mt. Pyre", "Shoal Cave", "Cave of Origin", "Abandoned Ship", "Meteor Falls", "Mt. Chimney", "Safari Zone", "Seafloor Cavern", "Sky Pillar", "Victory Road",
     "Route 105", "Route 106", "Route 107", "Route 108", "Route 109", "Route 110", "Route 111", "Route 112", "Route 113", "Route 114",
     "Route 115", "Route 116", "Route 117", "Route 118", "Route 119", "Route 120", "Route 121", "Route 122", "Route 123", "Route 124",
     "Route 125", "Route 126", "Route 127", "Route 128", "Route 129", "Route 130", "Route 131", "Route 132", "Route 133", "Route 134",
     "Groudon", "Kyogre", "Anorith", "Metagross", "Beldum", "Castform", "Lileep", "Makuhita", "Electrike", "Numel", "Swablu", "Trapinch", "Bagon"
   ],
-  "forbidden_wording": ["beat", "defeat"],
+  "forbidden_wording": ["beat", "beats", "beaten", "beating", "defeat", "defeats", "defeated", "defeating"],
   "honesty": [
     {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."}
   ],
-  "claim_words": ["refused", "logged", "recorded", "noted", "saved", "updated your"]
+  "claim_words": ["refused", "logged", "recorded", "noted", "saved", "updated your", "added to your team", "I added", "I have added"]
 }

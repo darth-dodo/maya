@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Maya.SundayTest do
           "10 holds",
           "under 8 s",
           "mix maya.latency",
+          "percentile_disc(0.95) within group (order by agent_ms)",
           "percentile_disc(0.95) within group (order by playback_start_ms)",
           "from turns where not cut;"
         ],

@@ -22,6 +22,8 @@ defmodule Mix.Tasks.Maya.Sunday do
     percentile_disc(0.95) within group (order by mic_release_ms)    as mic_p95,
     percentile_disc(0.5)  within group (order by stt_ms)            as stt_p50,
     percentile_disc(0.95) within group (order by stt_ms)            as stt_p95,
+    percentile_disc(0.5)  within group (order by agent_ms)          as agent_p50,
+    percentile_disc(0.95) within group (order by agent_ms)          as agent_p95,
     percentile_disc(0.5)  within group (order by tts_first_byte_ms) as tts_p50,
     percentile_disc(0.95) within group (order by tts_first_byte_ms) as tts_p95,
     percentile_disc(0.5)  within group (order by playback_start_ms) as play_p50,
