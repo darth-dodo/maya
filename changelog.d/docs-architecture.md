@@ -1,1 +1,0 @@
-Added: ARCHITECTURE.md from the F3 design session (why Elixir, Phoenix and functional programming, voice loop, processes, agent tools, data, build order), ADR-005 (voice transport over the LiveView socket) and ADR-006 (Progress and the Conversation live in Postgres)

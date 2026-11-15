@@ -1,1 +1,0 @@
-Added: Rotating Poké facts on the home page: 12 spoiler-free facts from before the first gym, each checked against pret/pokeemerald or PokeAPI, rotated with CSS only (no JavaScript), static under reduced motion and fully readable by screen readers
