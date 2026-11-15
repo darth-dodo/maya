@@ -1,5 +1,5 @@
 {
-  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
   "probes": [
     {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
     {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
@@ -21,6 +21,12 @@
     {"question": "Where do I catch a Swablu?", "tool": "find_pokemon", "args": {"name": "Swablu"}},
     {"question": "Where can I catch Trapinch?", "tool": "find_pokemon", "args": {"name": "Trapinch"}},
     {"question": "Where do I find a Bagon?", "tool": "find_pokemon", "args": {"name": "Bagon"}}
+  ],
+  "move_probes": [
+    {"question": "What will Mudkip learn next?", "tool": "move_learnset", "args": {"species": "Mudkip"}, "expect": "fact",
+     "forbidden": ["Foresight", "Mud Sport", "mud-sport", "Take Down", "take-down", "Whirlpool", "Protect", "Hydro Pump", "hydro-pump", "Endeavor"]},
+    {"question": "What moves does Groudon learn?", "tool": "move_learnset", "args": {"species": "Groudon"}, "expect": "past_horizon", "forbidden": []},
+    {"question": "What does Marshtomp learn?", "tool": "move_learnset", "args": {"species": "Marshtomp"}, "expect": "past_horizon", "forbidden": []}
   ],
   "forbidden": [
     "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate", "Liza", "Juan",

@@ -91,7 +91,7 @@ defmodule MayaWeb.FactoryPageTest do
     test "experiment rows match docs/factory/experiments.md" do
       html = factory()
       rows = experiment_rows()
-      assert Enum.map(rows, &hd/1) == ~w(E1 E2 E3)
+      assert Enum.map(rows, &hd/1) == ~w(E1 E2 E3 E4)
       assert count(html, "#experiments tbody tr") == length(rows)
 
       for [id, _change, metric, baseline, target, status, _prs] <- rows do

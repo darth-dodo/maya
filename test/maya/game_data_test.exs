@@ -4,7 +4,7 @@ defmodule Maya.GameDataTest do
   alias Maya.GameData
   alias Maya.Horizon
 
-  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations progress)
+  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets progress)
 
   setup do
     :ok = GameData.import!()
@@ -40,6 +40,22 @@ defmodule Maya.GameDataTest do
     assert GameData.multiplier("ghost", "steel") == 0.5
     assert GameData.multiplier("water", "rock") == 2.0
     assert GameData.multiplier("normal", "water") == 1.0
+  end
+
+  test "Mudkip's Emerald level-up moves come in level order" do
+    moves = GameData.learnset("mudkip")
+    assert Enum.all?(moves, &(&1.method == "level-up"))
+
+    assert Enum.take(Enum.map(moves, &{&1.move, &1.level}), 5) == [
+             {"tackle", 1},
+             {"growl", 1},
+             {"mud-slap", 6},
+             {"water-gun", 10},
+             {"bide", 15}
+           ]
+
+    assert {"endeavor", 46} = moves |> List.last() |> then(&{&1.move, &1.level})
+    assert GameData.learnset("agumon") == []
   end
 
   test "locations are Littleroot Town to Dewford Town; anything else fails closed" do

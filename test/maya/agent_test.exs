@@ -64,6 +64,7 @@ defmodule Maya.AgentTest do
       assert Enum.map(body["tools"], & &1["function"]["name"]) == [
                "gym_counter",
                "find_pokemon",
+               "move_learnset",
                "log_event"
              ]
 

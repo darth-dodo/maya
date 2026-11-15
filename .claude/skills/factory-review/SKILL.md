@@ -21,6 +21,7 @@ Invoke `mattpocock-skills:code-review` against `origin/main` (merge base). Its t
 | No secrets, `.env` untouched, new env vars in `render.yaml`, `runtime.exs` and FACTORY.md secrets table | Yes |
 | Frozen stack respected, or an ADR added | Yes |
 | Voice loop touched: latency numbers, or the stated reason they are missing | Yes |
+| Press path or Talk layout touched (`assets/js/talk_hook.js`, `lib/maya_web/live/talk_live.ex`, `assets/css/app.css`): the PR body has a `Phone check:` line from a real phone (device, browser, what was pressed and held, result), run on this branch before merge (experiment E4) | Yes |
 | Changelog fragment in `changelog.d/` (no edit to `CHANGELOG.md`), Conventional Commit title | No |
 | No em or en dashes, name written as "Maya" | No |
 

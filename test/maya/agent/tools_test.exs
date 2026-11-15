@@ -15,7 +15,7 @@ defmodule Maya.Agent.ToolsTest do
             Tools.definitions(),
           do: n
 
-    assert Enum.sort(names) == ["find_pokemon", "gym_counter", "log_event"]
+    assert Enum.sort(names) == ["find_pokemon", "gym_counter", "log_event", "move_learnset"]
   end
 
   test "gym_counter for Roxanne from the imported data and the seed Team", %{progress: progress} do
@@ -42,6 +42,40 @@ defmodule Maya.Agent.ToolsTest do
   test "find_pokemon past the horizon and unknown", %{progress: progress} do
     assert Tools.call("find_pokemon", %{"name" => "Zubat"}, progress) == {:error, :past_horizon}
     assert Tools.call("find_pokemon", %{"name" => "Agumon"}, progress) == {:error, :not_found}
+  end
+
+  test "move_learnset for Mudkip stops at Roxanne's ace, level 15", %{progress: progress} do
+    assert {:ok, %{name: "mudkip", level_horizon: 15, moves: moves}} =
+             Tools.call("move_learnset", %{"species" => "Mudkip"}, progress)
+
+    assert Enum.map(moves, &{&1.move, &1.level}) == [
+             {"tackle", 1},
+             {"growl", 1},
+             {"mud-slap", 6},
+             {"water-gun", 10},
+             {"bide", 15}
+           ]
+  end
+
+  test "move_learnset with every badge lists Endeavor", %{progress: progress} do
+    progress = %{progress | badges: Enum.to_list(1..8)}
+
+    assert {:ok, %{level_horizon: nil, moves: moves}} =
+             Tools.call("move_learnset", %{"species" => "mudkip"}, progress)
+
+    assert "endeavor" in Enum.map(moves, & &1.move)
+  end
+
+  test "move_learnset past the horizon, unknown and without species", %{progress: progress} do
+    for name <- ["Groudon", "Marshtomp"] do
+      assert Tools.call("move_learnset", %{"species" => name}, progress) ==
+               {:error, :past_horizon}
+    end
+
+    assert Tools.call("move_learnset", %{"species" => "Agumon"}, progress) ==
+             {:error, :not_found}
+
+    assert Tools.call("move_learnset", %{}, progress) == {:error, :bad_arguments}
   end
 
   test "wrong arguments and unknown tools are errors, not crashes", %{progress: progress} do

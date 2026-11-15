@@ -43,8 +43,8 @@ The page SHALL have a table `#experiments` with one row per experiment in `docs/
 
 #### Scenario: Rows match the experiments log
 - **WHEN** a visitor requests `/factory`
-- **THEN** `#experiments` has one row per id in `docs/factory/experiments.md` (E1, E2, E3 today)
-- **AND** each row's baseline, target and status words equal that file's row (E1: 60%, 100%, kept; E2: 80%, 100%, kept; E3: 1 per 5 PRs, 0, running)
+- **THEN** `#experiments` has one row per id in `docs/factory/experiments.md` (E1 to E4 today)
+- **AND** each row's baseline, target and status words equal that file's row (E1: 60%, 100%, kept; E2: 80%, 100%, kept; E3: 1 per 5 PRs, 0, inconclusive; E4: 7 per 27 PRs (4 from the phone), 0 from the phone, running)
 
 ### Requirement: Review reward, honestly
 The page SHALL have a section `#review-reward` explaining that review findings are scored after merge by what the code did, never by the reviewer, and showing the backfill numbers recorded in `docs/factory/experiments.md`: how many findings led to a tested fix out of all findings, and how many escaped defects no finding flagged. It SHALL call the precision low.

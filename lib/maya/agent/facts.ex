@@ -88,26 +88,54 @@ defmodule Maya.Agent.Facts do
   def find_pokemon(nil, _encounters, _locations, _progress), do: {:error, :not_found}
 
   def find_pokemon(species, encounters, locations, progress) do
-    by_map = Map.new(locations, &{&1.map, &1})
+    places = places(encounters, locations, progress)
 
-    places =
-      for e <- encounters, Horizon.allowed?(by_map[e.map], progress) do
-        %{
-          location: by_map[e.map].name,
-          method: e.method,
-          rate: e.rate,
-          min_level: e.min_level,
-          max_level: e.max_level
-        }
-      end
-
-    on_team? = Enum.any?(progress.team, &(&1["species"] == species.name))
-
-    if places == [] and not on_team? do
-      {:error, :past_horizon}
-    else
+    if meetable?(species.name, places, progress) do
       {:ok,
        %{name: species.name, types: species.types, evolutions: species.evolutions, places: places}}
+    else
+      {:error, :past_horizon}
+    end
+  end
+
+  @doc "A species' wild places inside the horizon, from its encounters and the locations."
+  def places(encounters, locations, progress) do
+    by_map = Map.new(locations, &{&1.map, &1})
+
+    for e <- encounters, Horizon.allowed?(by_map[e.map], progress) do
+      %{
+        location: by_map[e.map].name,
+        method: e.method,
+        rate: e.rate,
+        min_level: e.min_level,
+        max_level: e.max_level
+      }
+    end
+  end
+
+  # The one species rule for every tool: a wild place inside the horizon, or on the Team.
+  defp meetable?(name, places, progress),
+    do: places != [] or Enum.any?(progress.team, &(&1["species"] == name))
+
+  @doc """
+  A species' level-up moves at or below the level horizon (`Horizon.level_cap/2`), in level
+  order. The species must be meetable inside the horizon, as for `find_pokemon/4`; `places`
+  comes from `places/3`. No move above the level horizon is returned.
+  """
+  def move_learnset(nil, _learnset, _places, _progress, _ace_level), do: {:error, :not_found}
+
+  def move_learnset(species, learnset, places, progress, ace_level) do
+    if meetable?(species.name, places, progress) do
+      cap = Horizon.level_cap(progress, ace_level)
+
+      {:ok,
+       %{
+         name: species.name,
+         level_horizon: cap,
+         moves: for(m <- learnset, is_nil(cap) or m.level <= cap, do: m)
+       }}
+    else
+      {:error, :past_horizon}
     end
   end
 
