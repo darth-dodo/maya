@@ -31,6 +31,9 @@ defmodule MayaWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
+  # The default bottom padding keeps content clear of the Talk screen's pinned Talk button.
+  attr :main_class, :string, default: "px-4 pt-2 pb-36 sm:px-6 lg:px-8"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -44,14 +47,69 @@ defmodule MayaWeb.Layouts do
       </div>
     </header>
 
-    <%!-- The bottom padding keeps content clear of the Talk screen's pinned Talk button --%>
-    <main class="px-4 pt-2 pb-36 sm:px-6 lg:px-8">
+    <main class={@main_class}>
       <div class="mx-auto max-w-2xl space-y-4">
         {render_slot(@inner_block)}
       </div>
     </main>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  The site footer for public pages: the wave and badges art from `docs/assets/footer.svg`,
+  inline so it needs no image file (decorative, hidden from screen readers), and links to the factory page, the repo and its README.
+  """
+  def site_footer(assigns) do
+    ~H"""
+    <footer id="site-footer" class="site-footer">
+      <svg
+        class="footer-art"
+        viewBox="0 0 1200 160"
+        aria-hidden="true"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <linearGradient id="footer-bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FBF4E4" />
+            <stop offset="1" stop-color="#E4F1EE" />
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="160" fill="url(#footer-bg)" />
+        <path
+          d="M0 128 C 150 118, 300 136, 450 126 S 760 116, 900 128 S 1100 138, 1200 124 L1200 160 L0 160 Z"
+          fill="#B9DAD5"
+        />
+        <path
+          d="M0 144 C 160 136, 320 152, 500 142 S 820 134, 1000 146 S 1140 150, 1200 142 L1200 160 L0 160 Z"
+          fill="#7FB2AD"
+          opacity="0.8"
+        />
+        <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
+          <text x="600" y="46" font-size="26" font-weight="700" fill="#12432F">
+            Mudkip would approve.
+          </text>
+          <g
+            fill="#FFFFFF"
+            fill-opacity="0.6"
+            stroke="#2F6B5E"
+            stroke-width="2"
+            stroke-dasharray="5 4"
+          >
+            <circle :for={n <- 0..7} cx={390 + n * 60} cy="88" r="18" />
+          </g>
+          <g font-size="15" font-weight="700" fill="#2F6B5E">
+            <text :for={n <- 0..7} x={390 + n * 60} y="93">{n + 1}</text>
+          </g>
+        </g>
+      </svg>
+      <nav aria-label="About Maya" class="footer-links">
+        <a href="/factory">How Maya is built</a>
+        <a href="https://github.com/darth-dodo/maya">GitHub repo</a>
+        <a href="https://github.com/darth-dodo/maya#readme">README</a>
+      </nav>
+    </footer>
     """
   end
 

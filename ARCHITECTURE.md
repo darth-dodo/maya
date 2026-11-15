@@ -168,7 +168,7 @@ From the F3 session, all Abhishek's answers:
 4. Guide search by location in SQL; no embeddings before Sunday.
 5. Agent model chosen by measurement in Block 3.
 6. Answers stream as PCM, played with Web Audio (ADR-005).
-7. `/` becomes the Talk screen.
+7. `/` becomes the Talk screen. Superseded by the `homepage` change (#91): `/` is the public homepage and the Talk screen is at `/talk` (login deferred, see #49).
 8. Horizon map is a hand table that fails closed.
 9. Past the horizon: "Further ahead" plus a hint, no place named.
 10. The journal is the Events log only.

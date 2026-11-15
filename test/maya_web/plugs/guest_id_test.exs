@@ -19,13 +19,13 @@ defmodule MayaWeb.Plugs.GuestIdTest do
   end
 
   test "the browser pipeline sets the guest once and the next request keeps it", %{conn: conn} do
-    conn = get(conn, ~p"/")
+    conn = get(conn, ~p"/talk")
     guest = get_session(conn, :guest_id)
     assert is_binary(guest)
     # Signed, and kept for a year so a closed phone browser keeps the guest.
     assert %{"_maya_key" => %{max_age: 31_536_000}} = conn.resp_cookies
 
-    conn = get(recycle(conn), ~p"/")
+    conn = get(recycle(conn), ~p"/talk")
     assert get_session(conn, :guest_id) == guest
   end
 end

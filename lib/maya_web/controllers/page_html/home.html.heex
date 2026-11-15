@@ -1,0 +1,97 @@
+<Layouts.app flash={@flash} main_class="px-4 pt-2 pb-8 sm:px-6 lg:px-8">
+  <div class="home">
+    <section id="home-hero" class="home-hero" aria-labelledby="home-heading">
+      <div id="pokeball" class="pokeball pokeball-emerald" aria-hidden="true">
+        <div class="pokeball-button"></div>
+      </div>
+      <h1 id="home-heading" class="home-heading">Maya</h1>
+      <p id="home-tagline" class="home-tagline">Maps, Answers, Yaps, Advice.</p>
+      <p id="home-catchphrase" class="home-catchphrase">
+        So I hear you like Mudkip. Good. Correct choice.
+      </p>
+      <p class="home-lead">
+        A talking, spoiler-free Pokémon Emerald companion for your phone. Hold the button, ask out loud, and hear a short answer based on your badges and Team.
+      </p>
+      <a id="talk-link" href="/talk" class="home-cta">Talk to Maya</a>
+      <p class="home-note">Maya uses your microphone only while you hold the button.</p>
+    </section>
+
+    <section id="demo" class="home-section" aria-labelledby="demo-heading">
+      <h2 id="demo-heading">See Maya</h2>
+      <%= if @demo_transcript do %>
+        <video
+          id="demo-video"
+          class="demo-video"
+          muted
+          playsinline
+          controls
+          preload="metadata"
+          poster="/videos/maya-demo-poster.jpg"
+        >
+          <source src="/videos/maya-demo.mp4" type="video/mp4" />
+          <track kind="captions" src="/videos/maya-demo.vtt" srclang="en" label="English" default />
+        </video>
+        <details class="demo-transcript-box">
+          <summary>Transcript</summary>
+          <p id="demo-transcript">{@demo_transcript}</p>
+        </details>
+      <% else %>
+        <p>
+          Real screenshots of the Talk screen. A short clip with sound and captions follows once it is recorded on the phone.
+        </p>
+        <div class="demo-shots">
+          <figure :for={shot <- screenshots()}>
+            <img src={shot.src} alt={shot.alt} width="390" height="780" loading="lazy" />
+          </figure>
+        </div>
+      <% end %>
+    </section>
+
+    <section id="voice-loop" class="home-section" aria-labelledby="voice-loop-heading">
+      <h2 id="voice-loop-heading">The voice loop</h2>
+      <ol class="loop">
+        <li>
+          <span class="loop-step">Hold</span>
+          <span class="loop-text">Press and hold the Talk button and ask out loud.</span>
+        </li>
+        <li>
+          <span class="loop-step">Transcribe</span>
+          <span class="loop-text">Mistral Voxtral turns your Question into text.</span>
+        </li>
+        <li>
+          <span class="loop-step">Agent with tools</span>
+          <span class="loop-text">
+            Maya looks up facts in her own game data, never past your Next gym.
+          </span>
+        </li>
+        <li>
+          <span class="loop-step">Speak</span>
+          <span class="loop-text">She answers out loud in two or three sentences.</span>
+        </li>
+      </ol>
+      <p id="latency-pending" class="home-note">
+        Latency per stage: pending the phone check. Measured numbers go here once they are recorded on a real phone.
+      </p>
+    </section>
+
+    <section id="spoiler-promise" class="home-section" aria-labelledby="spoiler-promise-heading">
+      <h2 id="spoiler-promise-heading">The spoiler promise</h2>
+      <ul class="promises">
+        <li id="promise-facts">
+          <strong>Facts only from Maya's own data.</strong>
+          Wild encounters, trainer parties and Pokémon come from Emerald's game data (the pokeemerald decompilation and PokeAPI), never from her memory.
+        </li>
+        <li id="promise-horizon">
+          <strong>Nothing past your Next gym.</strong>
+          Maya knows your badges and keeps everything beyond the Spoiler horizon to herself.
+        </li>
+        <li id="promise-ci-gate">
+          <strong>A CI spoiler gate is planned.</strong>
+          A check on every change that fails when an Answer names something past the Spoiler horizon.
+        </li>
+      </ul>
+    </section>
+
+    <Layouts.site_footer />
+  </div>
+</Layouts.app>

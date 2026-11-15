@@ -9,11 +9,11 @@ defmodule MayaWeb.FreshControllerTest do
     {:ok, _} = Turn.insert(%Turn{guest_id: "guest-a", question: "Where is Ralts", answer: "102"})
     conn = conn |> init_test_session(guest_id: "guest-a") |> post(~p"/fresh")
 
-    assert redirected_to(conn) == ~p"/"
+    assert redirected_to(conn) == ~p"/talk"
     fresh = get_session(conn, :guest_id)
     assert fresh =~ ~r/\A[A-Za-z0-9_-]{22}\z/
 
-    conn = get(recycle(conn), ~p"/")
+    conn = get(recycle(conn), ~p"/talk")
     assert get_session(conn, :guest_id) == fresh
     assert html_response(conn, 200)
     assert Turn.recent(fresh) == []

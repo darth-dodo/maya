@@ -78,7 +78,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the trainer card shows the seed Progress", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#talk-screen #trainer-card #pokeball.pokeball-emerald")
     assert has_element?(view, "#trainer-card #location", "Littleroot Town")
@@ -91,7 +91,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "earned badges move the Next gym and fill their slots", %{conn: conn, guest: guest} do
     earn(guest, [1, 2])
-    {:ok, view, html} = live(conn, ~p"/")
+    {:ok, view, html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#next-gym strong", "Next gym: Wattson")
     assert has_element?(view, "#next-gym .type-chip.type-electric", "Electric")
@@ -104,7 +104,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "with all 8 badges the card says so and shows no type chip", %{conn: conn, guest: guest} do
     earn(guest, Enum.to_list(1..8))
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#next-gym", "All 8 badges earned")
     refute has_element?(view, "#next-gym .type-chip")
@@ -112,7 +112,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the screen root and status follow the Talk button's moments", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#talk-screen[data-state='idle']")
 
@@ -137,7 +137,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "an unknown moment is ignored", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
     view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "dancing"})
 
@@ -152,7 +152,7 @@ defmodule MayaWeb.TalkLiveTest do
     end
 
     test "is logged at info with how and how long, nothing else", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/talk")
 
       log =
         capture_log([level: :info], fn ->
@@ -171,7 +171,7 @@ defmodule MayaWeb.TalkLiveTest do
     end
 
     test "says when the hold ended before the mic was live", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/talk")
 
       log =
         capture_log([level: :info], fn ->
@@ -184,7 +184,7 @@ defmodule MayaWeb.TalkLiveTest do
     end
 
     test "with an unknown ending or a bad length is ignored", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/")
+      {:ok, view, _html} = live(conn, ~p"/talk")
 
       log =
         capture_log([level: :info], fn ->
@@ -204,7 +204,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the Talk button's own state is never set from the server's moment", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
 
     assert has_element?(view, "#talk-screen[data-state='recording']")
@@ -217,7 +217,7 @@ defmodule MayaWeb.TalkLiveTest do
     for n <- 1..5,
         do: {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Q#{n}", answer: "A#{n}"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     html = render(view)
 
     assert has_element?(view, "#turns #conversation")
@@ -235,7 +235,7 @@ defmodule MayaWeb.TalkLiveTest do
         answer: "I did not catch that."
       })
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(
              view,
@@ -247,7 +247,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the Talk button has a hidden mic, a hint and a label per moment", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#talk-button svg[aria-hidden='true']")
     assert has_element?(view, "#talk-button #talk-hint")
@@ -264,7 +264,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the Talk button starts idle and is bound to the Talk hook", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert has_element?(view, "#talk-button[data-state='idle'][phx-hook='TalkHook']")
     assert has_element?(view, "#talk-button[data-sample-rate='24000']")
@@ -278,7 +278,7 @@ defmodule MayaWeb.TalkLiveTest do
     {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Mine", answer: "Yours"})
     {:ok, _} = Turn.insert(%Turn{guest_id: "someone-else", question: "Theirs", answer: "No"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     assert view |> element("#conversation .turn .question") |> render() =~ "Mine"
     refute has_element?(view, "#conversation .turn .question", "Theirs")
@@ -286,12 +286,12 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "a session with no guest reloads the page so the pipeline gives it one" do
     # A fresh conn: the setup conn's test session already holds a guest.
-    assert {:error, {:redirect, %{to: "/"}}} =
+    assert {:error, {:redirect, %{to: "/talk"}}} =
              live_isolated(build_conn(), MayaWeb.TalkLive, session: %{})
   end
 
   test "Start fresh asks first, then offers a form that posts to /fresh", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     refute has_element?(view, "#start-fresh-confirm")
 
     view |> element("#start-fresh-button") |> render_click()
@@ -305,7 +305,7 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   test "the upload accepts one clip of at most 1 MB", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     assert has_element?(view, "#question-form input[type=file]:not([multiple])")
 
     big =
@@ -318,7 +318,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "one upload is transcribed, answered, spoken and shown", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     ask(view)
 
@@ -338,7 +338,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "playback timings are stored, junk values are dropped", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     ask(view)
     assert_push_event(view, "audio_done", %{})
     _ = render(view)
@@ -360,7 +360,7 @@ defmodule MayaWeb.TalkLiveTest do
       conn
     end)
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
     ask(view)
     assert_receive :speaking
 
@@ -373,7 +373,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "TTS down shows the Answer with a voice is down note", %{conn: conn} do
     stub(text("Where is Ralts"), &Plug.Conn.send_resp(&1, 503, "down"))
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     ask(view)
 
@@ -385,7 +385,7 @@ defmodule MayaWeb.TalkLiveTest do
 
   test "STT down shows the voice is down note on its own", %{conn: conn} do
     stub(&Plug.Conn.send_resp(&1, 500, "down"), &speak/1)
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/talk")
 
     ask(view)
 
