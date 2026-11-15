@@ -70,7 +70,7 @@ sequenceDiagram
   H->>H: Web Audio plays  [mark: playback_start, reported back]
 ```
 
-- **Talk button:** a JS hook built as an explicit state machine (`idle, recording, uploading, waiting, speaking`), per the voice lessons in `docs/factory-learnings.md`. One hold makes exactly one **Question**.
+- **Talk button:** a JS hook built as an explicit state machine (`idle, recording, uploading, waiting, speaking`), per the voice lessons in `docs/factory-learnings.md`. One hold makes exactly one **Question**. On each state change it pushes `talk_state`; TalkLive mirrors it on the screen root (`#talk-screen[data-state]`), which drives the **Trainer card** shrink, the ring on Maya's ball, the sound wave and the aria-live status. The push is fire and forget: playback never waits for it (#66).
 - **Upload:** `allow_upload(:question, auto_upload: true, chunk_size: 256_000, max_file_size: 1_000_000, max_entries: 1)`; the hook calls `this.upload`. One chunk for a normal Question. [LiveView uploads](https://hexdocs.pm/phoenix_live_view/uploads.html), [JS interop](https://hexdocs.pm/phoenix_live_view/js-interop.html).
 - **Recording format:** MediaRecorder gives MP4/AAC on iOS and WebM/Opus on Chrome; Mistral does not document which containers transcription accepts ([audio formats](https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats)). Block 2 starts with a curl spike on one real clip of each. If either fails, the hook records 16 kHz mono WAV with Web Audio instead. No server transcoding.
 - **STT:** `voxtral-mini-transcribe-3`, multipart `file` ([transcribe files](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files)). The clip is dropped after the call; only the transcript is kept.

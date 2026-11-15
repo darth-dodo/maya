@@ -2,6 +2,7 @@ defmodule MayaWeb.TalkLiveTest do
   # Not async: the screen's Conversation runs outside the test process (shared sandbox and stubs).
   use MayaWeb.ConnCase, async: false
 
+  import Ecto.Query
   import Phoenix.LiveViewTest
 
   alias Maya.Voice.Turn
@@ -50,6 +51,144 @@ defmodule MayaWeb.TalkLiveTest do
       %{name: "question.wav", content: "RIFFclip", type: "audio/wav"}
     ])
     |> render_upload("question.wav")
+  end
+
+  defp earn(guest, badges) do
+    _ = Maya.GameData.progress(guest)
+
+    query =
+      from p in "progress",
+        where: p.guest_id == ^guest,
+        update: [set: [badges: type(^badges, {:array, :integer})]]
+
+    {1, _} = Maya.Repo.update_all(query, [])
+  end
+
+  defp count(html, selector),
+    do: html |> LazyHTML.from_fragment() |> LazyHTML.query(selector) |> Enum.count()
+
+  defp texts(html, selector) do
+    html
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query(selector)
+    |> Enum.map(&(&1 |> LazyHTML.text() |> String.trim()))
+  end
+
+  test "the trainer card shows the seed Progress", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#talk-screen #trainer-card #pokeball.pokeball-emerald")
+    assert has_element?(view, "#trainer-card #location", "Littleroot Town")
+    assert has_element?(view, "#next-gym strong", "Next gym: Roxanne")
+    assert has_element?(view, "#next-gym .type-chip.type-rock", "Rock")
+    assert has_element?(view, "#team .mon", "Mudkip Lv 5")
+    assert view |> element("#team") |> render() |> count(".type-dot.type-water") == 1
+    assert has_element?(view, "#badge-count", "0 of 8 badges")
+  end
+
+  test "earned badges move the Next gym and fill their slots", %{conn: conn, guest: guest} do
+    earn(guest, [1, 2])
+    {:ok, view, html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#next-gym strong", "Next gym: Wattson")
+    assert has_element?(view, "#next-gym .type-chip.type-electric", "Electric")
+    assert has_element?(view, "#badge-count", "2 of 8 badges")
+    assert html |> count("#badge-case .badge-slot[data-earned='true']") == 2
+
+    for later <- ~w(Flannery Norman Winona Tate Liza Juan),
+        do: refute(has_element?(view, "#talk-screen", later), "#{later} on the page")
+  end
+
+  test "with all 8 badges the card says so and shows no type chip", %{conn: conn, guest: guest} do
+    earn(guest, Enum.to_list(1..8))
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#next-gym", "All 8 badges earned")
+    refute has_element?(view, "#next-gym .type-chip")
+    assert has_element?(view, "#badge-count", "8 of 8 badges")
+  end
+
+  test "the screen root and status follow the Talk button's moments", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#talk-screen[data-state='idle']")
+
+    assert has_element?(
+             view,
+             "#talk-status[role='status'][aria-live='polite']",
+             "Ready when you are"
+           )
+
+    for {state, status} <- [
+          {"recording", "Listening to you…"},
+          {"uploading", "Thinking…"},
+          {"waiting", "Thinking…"},
+          {"speaking", "Maya is speaking"},
+          {"idle", "Ready when you are"}
+        ] do
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => state})
+      assert has_element?(view, "#talk-screen[data-state='#{state}']")
+      assert has_element?(view, "#talk-status", status)
+      assert has_element?(view, "#talk-status .wave[aria-hidden='true']") == (state == "speaking")
+    end
+  end
+
+  test "an unknown moment is ignored", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
+    view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "dancing"})
+
+    assert has_element?(view, "#talk-screen[data-state='recording']")
+  end
+
+  test "the chat shows only the last 3 exchanges, the latest as now", %{conn: conn, guest: guest} do
+    for n <- 1..5,
+        do: {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Q#{n}", answer: "A#{n}"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    html = render(view)
+
+    assert has_element?(view, "#turns #conversation")
+    assert count(html, "#conversation .turn") == 3
+    assert texts(html, "#conversation .turn .question") == ~w(Q3 Q4 Q5)
+    assert count(html, "#conversation .turn.now") == 1
+    assert has_element?(view, "#conversation .turn.now .answer", "A5")
+  end
+
+  test "a nothing heard Question reads as a friendly line", %{conn: conn, guest: guest} do
+    {:ok, _} =
+      Turn.insert(%Turn{
+        guest_id: guest,
+        question: "(nothing heard)",
+        answer: "I did not catch that."
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(
+             view,
+             "#conversation .turn .question.nothing-heard",
+             "Maya did not hear anything that time"
+           )
+
+    refute has_element?(view, "#conversation", "(nothing heard)")
+  end
+
+  test "the Talk button has a hidden mic, a hint and a label per moment", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#talk-button svg[aria-hidden='true']")
+    assert has_element?(view, "#talk-button #talk-hint")
+
+    for {show, label} <- [
+          {"idle", "Hold to talk"},
+          {"recording", "Release to send"},
+          {"uploading waiting", "One sec…"},
+          {"speaking", "Hold to cut in"}
+        ],
+        do: assert(has_element?(view, "#talk-button .talk-label [data-show='#{show}']", label))
+
+    assert has_element?(view, "#start-fresh-button")
   end
 
   test "the Talk button starts idle and is bound to the Talk hook", %{conn: conn} do
@@ -118,7 +257,8 @@ defmodule MayaWeb.TalkLiveTest do
 
     assert view |> element("#conversation .turn .question") |> render() =~ "Where is Ralts"
     assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
-    refute has_element?(view, "#badge-case")
+    assert has_element?(view, "#trainer-card #badge-case")
+    refute has_element?(view, "#poke-facts")
     # A call returns only after the Conversation stored the turn.
     _ = Maya.Conversation.turns(guest)
     assert [%Turn{question: "Where is Ralts"}] = Turn.recent(guest)
