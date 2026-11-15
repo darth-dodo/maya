@@ -2,7 +2,7 @@
 
 ## Context
 
-`/` is `live "/", TalkLive` in the `:browser` pipeline (router.ex). #49 (friends login, `Plug.BasicAuth`) and #85 (site metadata, manifest, site-wide noindex) are open; #84 (sticky HUD) is merged. The CSP is strict: `default-src 'self'`, so self-hosted video, poster and `.vtt` need no CSP change. ARCHITECTURE.md decision 7 says "`/` becomes the Talk screen"; this change supersedes it. See proposal.md for why.
+`/` is `live "/", TalkLive` in the `:browser` pipeline (router.ex). #85 (site metadata, manifest, site-wide noindex) and #84 (sticky HUD) are merged. Login deferred, see #49: Abhishek decided on 2026-11-15 that Guests use Maya without a login for now, so #49 is parked. The CSP is strict: `default-src 'self'`, so self-hosted video, poster and `.vtt` need no CSP change. ARCHITECTURE.md decision 7 says "`/` becomes the Talk screen"; this change supersedes it. See proposal.md for why.
 
 ## Goals / Non-Goals
 
@@ -13,7 +13,7 @@
 ## Decisions
 
 1. **Plain controller page for `/`, not a LiveView.** A `PageController` with a HEEx template: no socket, no Conversation, nothing to supervise. Alternative (a LiveView) would open a socket per visitor for no gain.
-2. **Two pipelines.** `/` (and later `/factory`) in `:browser`; `/talk` and `/fresh` in `:browser` plus the #49 login plug. Built on whatever plug #49 lands; if #49 protects every browser page, narrow it to `/talk` and `/fresh` as #49's latest comment (2026-11-15) says.
+2. **One pipeline for now.** `/`, `/talk` and `/fresh` all sit in `:browser`. Login deferred, see #49: when it lands, it wraps `/talk` and `/fresh` only, and `/` stays public.
 3. **Robots per page.** The root layout reads an assign (for example `:robots`) and renders `noindex, nofollow` unless the page sets it indexable; `/` sets it. `robots.txt` lists `Disallow: /talk` and `Disallow: /fresh` only. This replaces #85's site-wide noindex for `/` only.
 4. **Manifest.** Change #85's `start_url` from `/` to `/talk`. If #85 lands a `site-metadata` capability that owns the manifest and robots requirements, move "Home screen app opens the Talk screen" and the robots requirements into a delta of it with `openspec-update-change` before building.
 5. **Demo slot switches on the clip file.** The template checks once (module attribute with `@external_resource` on `priv/static/videos/maya-demo.mp4`) whether the clip exists. No clip: screenshots. Clip: `<video muted playsinline controls preload="metadata" poster=...>` with a `<track kind="captions">`. Native controls give tap to unmute without JS. Alternative (always ship a video element) would show an empty player.
@@ -25,14 +25,14 @@
 
 ## Risks / Trade-offs
 
-- [#49 or #85 change shape before this builds] → Build only after both merge; reconcile requirement names with `openspec-update-change` first.
+- [#85 changed shape before this built] → Its `site-metadata` requirements are reconciled in a delta of this change (decision 4).
 - [Old bookmarks and the home screen icon point at `/`] → `/` stays useful (homepage with `#talk-link`); re-adding the home screen app picks up `/talk`.
 - [Screenshots go stale as the Talk screen changes] → They are replaced by the clip; acceptable for a portfolio page.
-- [Basic auth prompt on a home screen app] → iOS shows the login sheet once per session; same as #49 today.
+- [The Talk screen is public and spends API credit per Question] → Accepted by Abhishek for now (login deferred, see #49); `/talk` is `noindex` and disallowed in `robots.txt`, so search engines do not send traffic there.
 
 ## Migration Plan
 
-One PR: routes, templates, tests moved from `/` to `/talk`, robots, manifest, ARCHITECTURE.md decision 7 note. Rollback is a revert of the PR. After deploy: `/` 200 without login, `/talk` 401 without login.
+One PR: routes, templates, tests moved from `/` to `/talk`, robots, manifest, ARCHITECTURE.md decision 7 note. Rollback is a revert of the PR. After deploy: `/` and `/talk` both answer 200.
 
 ## Open Questions
 

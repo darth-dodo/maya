@@ -2,7 +2,7 @@
   "name": "Maya",
   "short_name": "Maya",
   "description": "Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion.",
-  "start_url": "/",
+  "start_url": "/talk",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

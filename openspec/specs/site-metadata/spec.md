@@ -14,11 +14,11 @@ Every browser page SHALL carry the title "Maya", the description "Maps, Answers,
 - **THEN** the page has the description meta, two `theme-color` metas with `prefers-color-scheme` light and dark media, and a viewport containing `viewport-fit=cover`
 
 ### Requirement: Home screen app
-Maya SHALL serve a web app manifest at `/manifest.webmanifest` and link it from every page, so a phone can install Maya as a full screen app that opens at the Talk screen.
+Maya SHALL serve a web app manifest at `/manifest.webmanifest` and link it from every page, so a phone can install Maya as a full screen app that opens at the Talk screen `/talk`.
 
 #### Scenario: Manifest served
 - **WHEN** a client requests `/manifest.webmanifest`
-- **THEN** the response is JSON with name "Maya", short_name "Maya", start_url "/", display "standalone", a theme and background colour, and icons of 192 and 512 px plus a maskable 512 px icon
+- **THEN** the response is JSON with name "Maya", short_name "Maya", start_url "/talk", display "standalone", a theme and background colour, and icons of 192 and 512 px plus a maskable 512 px icon
 
 #### Scenario: iOS home screen tags
 - **WHEN** a visitor requests `/`
@@ -30,14 +30,3 @@ Every page SHALL carry Open Graph and Twitter card tags whose image and URL are 
 #### Scenario: Preview tags
 - **WHEN** a visitor requests `/`
 - **THEN** the page has `og:title`, `og:description`, `og:url` and `og:image` (a 1200 x 630 PNG), and `twitter:card` "summary_large_image", with URLs starting with the configured site url
-
-### Requirement: Hidden from search until login
-Until Maya has a login, every page SHALL ask search engines not to index or follow it, and `robots.txt` SHALL disallow all paths.
-
-#### Scenario: Robots meta
-- **WHEN** a visitor requests `/`
-- **THEN** the page has `<meta name="robots" content="noindex, nofollow">`
-
-#### Scenario: robots.txt
-- **WHEN** a client requests `/robots.txt`
-- **THEN** the response contains `User-agent: *` and `Disallow: /`

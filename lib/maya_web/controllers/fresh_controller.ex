@@ -10,6 +10,6 @@ defmodule MayaWeb.FreshController do
   def create(conn, _params) do
     conn
     |> put_session(:guest_id, GuestId.new_id())
-    |> redirect(to: ~p"/")
+    |> redirect(to: ~p"/talk")
   end
 end

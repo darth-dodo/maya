@@ -9,8 +9,8 @@
       name="description"
       content="Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
     />
-    <%!-- Hidden from search until the login lands (#49): then drop this and robots.txt's Disallow. --%>
-    <meta name="robots" content="noindex, nofollow" />
+    <%!-- Robots per page: only pages that set :indexable (the home page) may be indexed. --%>
+    <meta :if={!assigns[:indexable]} name="robots" content="noindex, nofollow" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d9a5b" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f6b3d" />
     <%!-- Root files keep plain paths: phx.digest names them manifest-<hash>.webmanifest,

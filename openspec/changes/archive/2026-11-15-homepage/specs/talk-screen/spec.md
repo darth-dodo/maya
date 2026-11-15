@@ -7,35 +7,26 @@
 
 ## ADDED Requirements
 
-### Requirement: Talk screen behind the friends login
-`/talk` and `/fresh` SHALL require the one shared friends login from #49. Without it, or with wrong credentials, they SHALL answer 401 with a `www-authenticate` header and start no Conversation. The home page `/`, `/factory`, `/health` and static assets SHALL stay public.
+### Requirement: Talk screen open to Guests
+`/talk` SHALL be open to every Guest without a login (the friends login is deferred, see #49). `POST /fresh` stays as it is and returns to the Talk screen. The home page `/`, `/health` and static assets SHALL stay public.
 
-#### Scenario: No login
-- **WHEN** a visitor requests `/talk` without credentials, or with wrong ones
-- **THEN** the response is 401 with a `www-authenticate` header
-- **AND** the body has no `#talk-screen`
-
-#### Scenario: Friend signed in
-- **WHEN** a visitor requests `/talk` with the right credentials
+#### Scenario: Guest opens the Talk screen
+- **WHEN** a visitor requests `/talk`
 - **THEN** the response is 200 and the page has `#talk-screen`
 
-#### Scenario: Start fresh needs the login
-- **WHEN** a visitor posts to `/fresh` without credentials
-- **THEN** the response is 401 and the Guest keeps their Conversation
-
 #### Scenario: Start fresh returns to the Talk screen
-- **WHEN** a signed in friend posts to `/fresh`
+- **WHEN** a Guest posts to `/fresh`
 - **THEN** the response redirects to `/talk`
 
 #### Scenario: Public routes stay public
-- **WHEN** a visitor requests `/`, `/health` or `/images/backdrops/tide.jpg` without credentials
+- **WHEN** a visitor requests `/`, `/health` or `/images/backdrops/tide.jpg`
 - **THEN** each response is 200
 
 ### Requirement: Talk heading
 The Talk screen SHALL have exactly one top-level heading, "Talk to Maya", with id `talk-heading`, visually hidden so it does not repeat the header, and a header link "Maya" to `/`.
 
 #### Scenario: Heading on the Talk screen
-- **WHEN** a signed in friend opens `/talk`
+- **WHEN** a Guest opens `/talk`
 - **THEN** the page has one `h1`, `#talk-heading`, reading "Talk to Maya"
 - **AND** the header link to `/` reads "Maya"
 
@@ -43,15 +34,8 @@ The Talk screen SHALL have exactly one top-level heading, "Talk to Maya", with i
 The Talk screen SHALL carry `<meta name="robots" content="noindex, nofollow">`, and `/robots.txt` SHALL disallow `/talk` and `/fresh`.
 
 #### Scenario: noindex on the Talk screen
-- **WHEN** a signed in friend opens `/talk`
+- **WHEN** a Guest opens `/talk`
 - **THEN** the page has `meta[name="robots"]` with content "noindex, nofollow"
-
-### Requirement: Home screen app opens the Talk screen
-The web app manifest SHALL set `start_url` to `/talk`, so Maya opened from the phone's home screen lands on the Talk screen (after the login prompt).
-
-#### Scenario: Manifest start page
-- **WHEN** a visitor requests `/manifest.webmanifest`
-- **THEN** the JSON field `start_url` is "/talk"
 
 ### Requirement: Rotating Poké facts on the Talk screen
 While the Conversation is empty, the Talk screen SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokémon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
