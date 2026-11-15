@@ -5,6 +5,7 @@ defmodule Maya.AgentTest do
   alias Maya.Voice.Turn
 
   @roxanne "How do I earn Roxanne's badge?"
+  @guest "agent-test"
 
   setup do
     :ok = Maya.GameData.import!()
@@ -52,7 +53,7 @@ defmodule Maya.AgentTest do
 
     script([calls([{"call_1", "gym_counter", ~s({"leader":"Roxanne"})}]), text(answer)])
 
-    assert Agent.answer(@roxanne, []) == {:ok, answer}
+    assert Agent.answer(@roxanne, [], guest_id: @guest) == {:ok, answer}
 
     assert_received {:request, "/v1/chat/completions", first}
     assert_received {:request, "/v1/chat/completions", second}
@@ -89,7 +90,7 @@ defmodule Maya.AgentTest do
       text("Ralts is on Route 102. Further ahead, no spoilers.")
     ])
 
-    assert {:ok, _} = Agent.answer("Where is Ralts and what about Brawly?", [])
+    assert {:ok, _} = Agent.answer("Where is Ralts and what about Brawly?", [], guest_id: @guest)
     assert_received {:request, _, _}
     assert_received {:request, _, second}
 
@@ -106,7 +107,7 @@ defmodule Maya.AgentTest do
   test "malformed arguments are a tool error the model sees, not a crash" do
     script([calls([{"bad", "gym_counter", "{leader: Roxanne"}]), text("Not sure.")])
 
-    assert Agent.answer(@roxanne, []) == {:ok, "Not sure."}
+    assert Agent.answer(@roxanne, [], guest_id: @guest) == {:ok, "Not sure."}
     assert_received {:request, _, _}
     assert_received {:request, _, second}
     assert [%{"tool_call_id" => "bad", "content" => content}] = tool_messages(second)
@@ -115,13 +116,13 @@ defmodule Maya.AgentTest do
 
   test "arguments that are JSON but not an object are malformed too" do
     script([calls([{"bad", "gym_counter", ~s(["Roxanne"])}]), text("Not sure.")])
-    assert {:ok, "Not sure."} = Agent.answer(@roxanne, [])
+    assert {:ok, "Not sure."} = Agent.answer(@roxanne, [], guest_id: @guest)
   end
 
   test "the loop stops after 4 requests" do
     script([calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])])
 
-    assert Agent.answer(@roxanne, []) == {:error, :round_cap}
+    assert Agent.answer(@roxanne, [], guest_id: @guest) == {:error, :round_cap}
 
     for _ <- 1..4, do: assert_received({:request, _, _})
     refute_received {:request, _, _}
@@ -129,19 +130,19 @@ defmodule Maya.AgentTest do
 
   test "an OpenRouter error is an agent error" do
     Req.Test.stub(Maya.OpenRouter, &Plug.Conn.send_resp(&1, 502, "bad gateway"))
-    assert Agent.answer(@roxanne, []) == {:error, {:http, 502}}
+    assert Agent.answer(@roxanne, [], guest_id: @guest) == {:error, {:http, 502}}
   end
 
   test "a reply with neither text nor tool calls is an agent error" do
     script([%{"error" => %{"message" => "provider down"}}])
-    assert Agent.answer(@roxanne, []) == {:error, :bad_reply}
+    assert Agent.answer(@roxanne, [], guest_id: @guest) == {:error, :bad_reply}
   end
 
   test "the last 5 turns go between the system prompt and the Question" do
     script([text("Brawly is past the Next gym. Further ahead, no spoilers.")])
     turns = for n <- 1..7, do: %Turn{question: "q#{n}", answer: "a#{n}"}
 
-    assert {:ok, _} = Agent.answer("What about Brawly?", turns)
+    assert {:ok, _} = Agent.answer("What about Brawly?", turns, guest_id: @guest)
     assert_received {:request, _, %{"messages" => [%{"role" => "system"} | rest]}}
 
     expected =
@@ -159,15 +160,28 @@ defmodule Maya.AgentTest do
 
   test "the model can be chosen per call" do
     script([text("Hi.")])
-    assert {:ok, "Hi."} = Agent.answer("Hi", [], model: "openai/gpt-5.4-mini")
+    assert {:ok, "Hi."} = Agent.answer("Hi", [], model: "openai/gpt-5.4-mini", guest_id: @guest)
     assert_received {:request, _, %{"model" => "openai/gpt-5.4-mini"}}
   end
 
   # Production #57: no progress row crashed in Horizon.next_gym(nil) via Prompt.system/1.
-  test "no Progress row is an error, not a crash, and OpenRouter is never called" do
-    Repo.delete_all("progress")
+  test "without a guest there is no Progress: an error, not a crash, and no OpenRouter call" do
     Req.Test.stub(Maya.OpenRouter, fn _conn -> flunk("OpenRouter was called") end)
 
-    assert Agent.answer("Hello", []) == {:error, :no_progress}
+    assert Agent.answer("Hello", [], []) == {:error, :no_progress}
+  end
+
+  test "each guest's Answer uses their own Progress: a new guest is seeded" do
+    Maya.GameData.progress("one-badge")
+    Repo.query!("UPDATE progress SET badges = '{1}' WHERE guest_id = 'one-badge'")
+    script([text("Hi.")])
+
+    assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: "one-badge")
+    assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: "brand-new")
+
+    assert_received {:request, _, %{"messages" => [%{"content" => one_badge} | _]}}
+    assert_received {:request, _, %{"messages" => [%{"content" => brand_new} | _]}}
+    assert one_badge =~ "Next gym: Brawly"
+    assert brand_new =~ "Next gym: Roxanne"
   end
 end

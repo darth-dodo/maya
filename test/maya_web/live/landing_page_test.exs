@@ -129,8 +129,10 @@ defmodule MayaWeb.LandingPageTest do
   end
 
   test "badge case and Poke facts hide once the Conversation has a turn", %{conn: conn} do
-    {:ok, _} = Turn.insert(%Turn{question: "Where is Ralts", answer: "Route 102"})
-    html = home(conn)
+    {:ok, _} =
+      Turn.insert(%Turn{guest_id: "landing", question: "Where is Ralts", answer: "Route 102"})
+
+    html = conn |> Plug.Test.init_test_session(guest_id: "landing") |> home()
 
     assert count(html, "#badge-case") == 0
     assert count(html, "#poke-facts") == 0

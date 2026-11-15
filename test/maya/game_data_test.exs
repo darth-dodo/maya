@@ -58,33 +58,46 @@ defmodule Maya.GameDataTest do
                "Rustboro City"
              ])
 
-    progress = GameData.progress()
+    progress = GameData.progress("guest-a")
     assert Horizon.allowed?(GameData.location("Rustboro City"), progress)
     assert GameData.location("Route 110") == nil
     refute Horizon.allowed?(GameData.location("Route 110"), progress)
     refute Horizon.allowed?(GameData.location("Route 110"), %{badges: [1]})
   end
 
-  test "Progress is seeded from priv/progress.json" do
+  test "the import seeds no Progress; a new guest's first read seeds it from priv/progress.json" do
+    assert Repo.aggregate("progress", :count) == 0
+
     assert %{
              badges: [],
              team: [%{"species" => "mudkip", "level" => 5}],
              location: "Littleroot Town",
              humor: 75
-           } = GameData.progress()
+           } = GameData.progress("guest-a")
 
-    assert %{badge: 1, leader: "Roxanne"} = Horizon.next_gym(GameData.progress())
+    assert %{badge: 1, leader: "Roxanne"} = Horizon.next_gym(GameData.progress("guest-a"))
+    assert Repo.aggregate("progress", :count) == 1
+  end
+
+  test "each guest has their own Progress" do
+    GameData.progress("guest-a")
+    Repo.query!("UPDATE progress SET badges = '{1}' WHERE guest_id = 'guest-a'")
+
+    assert %{badges: [1]} = GameData.progress("guest-a")
+    assert %{badges: []} = GameData.progress("guest-b")
+    assert Repo.aggregate("progress", :count) == 2
   end
 
   test "a second import keeps Progress and gives the same rows" do
+    GameData.progress("guest-a")
     counts = row_counts()
     Repo.query!("UPDATE progress SET badges = '{1}'")
 
     :ok = GameData.import!()
 
     assert row_counts() == counts
-    assert %{badges: [1]} = GameData.progress()
-    assert %{badge: 2, leader: "Brawly"} = Horizon.next_gym(GameData.progress())
+    assert %{badges: [1]} = GameData.progress("guest-a")
+    assert %{badge: 2, leader: "Brawly"} = Horizon.next_gym(GameData.progress("guest-a"))
   end
 
   defp row_counts, do: Map.new(@tables, &{&1, Repo.aggregate(&1, :count)})

@@ -20,6 +20,7 @@ defmodule Maya.AgentTimeoutTest do
       Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
     end)
 
-    assert Maya.Agent.answer("How do I earn Roxanne's badge?", []) == {:error, :timeout}
+    assert Maya.Agent.answer("How do I earn Roxanne's badge?", [], guest_id: "timeout") ==
+             {:error, :timeout}
   end
 end

@@ -6,7 +6,7 @@ defmodule Maya.Agent.ToolsTest do
 
   setup do
     :ok = GameData.import!()
-    %{progress: GameData.progress()}
+    %{progress: GameData.progress("tools-test")}
   end
 
   test "every tool has an OpenAI-style function definition" do
