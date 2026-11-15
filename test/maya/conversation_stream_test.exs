@@ -61,7 +61,7 @@ defmodule Maya.ConversationStreamTest do
     Conversation.stream_end(id)
   end
 
-  defp stored(id) do
+  defp stored do
     assert_receive {:conversation, :audio_done}
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
     Repo.get!(Turn, turn_id)
@@ -77,7 +77,7 @@ defmodule Maya.ConversationStreamTest do
     assert body =~ <<"data", 6::little-32, 1, 0, 2, 0, 3, 0>>
     assert_receive {:conversation, {:question, "Where is Ralts?"}}
 
-    assert %Turn{question: "Where is Ralts?", stt_source: "batch", stt_ms: ms} = stored(id)
+    assert %Turn{question: "Where is Ralts?", stt_source: "batch", stt_ms: ms} = stored()
     assert ms >= 0
     refute_receive {:batch_body, _}, 100
     assert [_one] = Turn.recent(id)
@@ -96,10 +96,12 @@ defmodule Maya.ConversationStreamTest do
             do: Conversation.audio_chunk(id, Base.encode64(:binary.copy(<<1>>, 16_000)))
 
         Conversation.stream_end(id)
-        assert_receive {:batch_body, body}
-        assert body =~ <<"data", 992_000::little-32>>
+        # The plug test adapter hands over an empty body past about 1 MB, so count the drops.
+        assert_receive {:batch_body, _body}
       end)
 
+    # 62 chunks of 16,000 bytes fit under 1 MB; only the 63rd goes over.
+    assert length(String.split(log, ":over_question_cap")) == 2
     assert log =~ "[warning] audio chunk dropped: :bad_base64"
     assert log =~ "[warning] audio chunk dropped: :too_big, 20480 bytes"
     assert log =~ "[warning] audio chunk dropped: :over_question_cap, 16000 bytes"
@@ -145,7 +147,7 @@ defmodule Maya.ConversationStreamTest do
     Conversation.stream_end(id)
 
     assert_receive {:batch_body, _}
-    assert %Turn{stt_source: "batch", question: "Where do I catch Ralts?"} = stored(id)
+    assert %Turn{stt_source: "batch", question: "Where do I catch Ralts?"} = stored()
   end
 
   test "a refused realtime connection falls back to batch and logs the reason", %{id: id} do
@@ -156,7 +158,7 @@ defmodule Maya.ConversationStreamTest do
     log =
       capture_log(fn ->
         hold(id, [<<0::3200*16>>])
-        assert %Turn{stt_source: "batch", question: "where do I catch Ralts?"} = stored(id)
+        assert %Turn{stt_source: "batch", question: "where do I catch Ralts?"} = stored()
       end)
 
     assert log =~ "[warning] stt_realtime failed: "
@@ -177,7 +179,7 @@ defmodule Maya.ConversationStreamTest do
         Conversation.stream_end(id)
 
         assert_receive {:DOWN, ^mon, :process, ^socket, _}, 1_000
-        assert %Turn{stt_source: "batch"} = stored(id)
+        assert %Turn{stt_source: "batch"} = stored()
       end)
 
     assert log =~ "[warning] stt_realtime failed: :done_timeout"
