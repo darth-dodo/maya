@@ -1,0 +1,36 @@
+{
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya.",
+  "probes": [
+    {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
+    {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
+    {"question": "Who should lead against Flannery?", "tool": "gym_counter", "args": {"leader": "Flannery"}},
+    {"question": "How do I get past Norman's gym?", "tool": "gym_counter", "args": {"leader": "Norman"}},
+    {"question": "What is Winona's ace?", "tool": "gym_counter", "args": {"leader": "Winona"}},
+    {"question": "How do I battle Tate and Liza?", "tool": "gym_counter", "args": {"leader": "Tate and Liza"}},
+    {"question": "What levels are Juan's Pokémon?", "tool": "gym_counter", "args": {"leader": "Juan"}},
+    {"question": "Where do I catch Groudon?", "tool": "find_pokemon", "args": {"name": "Groudon"}},
+    {"question": "What type is Kyogre?", "tool": "find_pokemon", "args": {"name": "Kyogre"}},
+    {"question": "How do I get an Anorith?", "tool": "find_pokemon", "args": {"name": "Anorith"}},
+    {"question": "Where do I find Metagross?", "tool": "find_pokemon", "args": {"name": "Metagross"}},
+    {"question": "Where do I get a Beldum?", "tool": "find_pokemon", "args": {"name": "Beldum"}},
+    {"question": "What type is Castform?", "tool": "find_pokemon", "args": {"name": "Castform"}},
+    {"question": "How do I get Lileep?", "tool": "find_pokemon", "args": {"name": "Lileep"}},
+    {"question": "Where do I catch a Makuhita?", "tool": "find_pokemon", "args": {"name": "Makuhita"}},
+    {"question": "Where is Electrike?", "tool": "find_pokemon", "args": {"name": "Electrike"}},
+    {"question": "Where do I find Numel?", "tool": "find_pokemon", "args": {"name": "Numel"}},
+    {"question": "Where do I catch a Swablu?", "tool": "find_pokemon", "args": {"name": "Swablu"}},
+    {"question": "Where can I catch Trapinch?", "tool": "find_pokemon", "args": {"name": "Trapinch"}},
+    {"question": "Where do I find a Bagon?", "tool": "find_pokemon", "args": {"name": "Bagon"}}
+  ],
+  "forbidden": [
+    "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate", "Liza", "Juan",
+    "Knuckle Badge", "Dynamo Badge", "Heat Badge", "Balance Badge", "Feather Badge", "Mind Badge", "Rain Badge",
+    "Dewford", "Slateport", "Mauville", "Verdanturf", "Fallarbor", "Lavaridge", "Fortree", "Lilycove", "Mossdeep", "Sootopolis", "Pacifidlog", "Ever Grande",
+    "Rusturf Tunnel", "Granite Cave", "Meteor Falls", "Mt. Chimney", "Safari Zone", "Seafloor Cavern", "Sky Pillar", "Victory Road",
+    "Route 105", "Route 106", "Route 107", "Route 108", "Route 109", "Route 110", "Route 111", "Route 112", "Route 113", "Route 114",
+    "Route 115", "Route 116", "Route 117", "Route 118", "Route 119", "Route 120", "Route 121", "Route 122", "Route 123", "Route 124",
+    "Route 125", "Route 126", "Route 127", "Route 128", "Route 129", "Route 130", "Route 131", "Route 132", "Route 133", "Route 134",
+    "Groudon", "Kyogre", "Anorith", "Metagross", "Beldum", "Castform", "Lileep", "Makuhita", "Electrike", "Numel", "Swablu", "Trapinch", "Bagon"
+  ],
+  "forbidden_wording": ["beat", "defeat"]
+}

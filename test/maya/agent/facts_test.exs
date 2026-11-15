@@ -127,9 +127,18 @@ defmodule Maya.Agent.FactsTest do
                {:error, :past_horizon}
     end
 
-    test "a Pokémon with no wild places at all is a Fact with no places" do
+    test "a Team member with no wild places at all is a Fact with no places" do
       mudkip = %{name: "mudkip", types: ["water"], evolutions: []}
       assert {:ok, %{places: []}} = Facts.find_pokemon(mudkip, [], @locations, @progress)
+    end
+
+    test "a gift or legendary Pokémon off the Team is past the horizon, not its types" do
+      for species <- [
+            %{name: "groudon", types: ["ground"], evolutions: []},
+            %{name: "beldum", types: ["steel", "psychic"], evolutions: [%{"into" => "metang"}]}
+          ] do
+        assert Facts.find_pokemon(species, [], @locations, @progress) == {:error, :past_horizon}
+      end
     end
 
     test "an unknown Pokémon is not found" do
