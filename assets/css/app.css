@@ -141,8 +141,14 @@
   padding: 0.875rem 1rem;
   border-radius: 1rem;
   border: 2px solid var(--ball-black);
-  background: rgb(255 255 255 / 0.88);
+  background: rgb(255 255 255 / 0.96);
   transition: padding 0.25s ease, gap 0.25s ease;
+  /* Sticky HUD (#78): stays under the phone's status bar while the chat scrolls beneath it.
+     Its size only changes after release (uploading, waiting), never under the finger (#76). */
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  z-index: 5;
+  box-shadow: 0 10px 18px -14px rgb(0 0 0 / 0.45);
 }
 
 .card-ball { position: relative; }
