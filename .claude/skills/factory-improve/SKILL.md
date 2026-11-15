@@ -41,6 +41,7 @@ Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to
 
 ## 3. One experiment PR
 
+- Prefer a row in the `## Candidates` list of `experiments.md` (added by `factory:ask`) whose metric is the worst metric; use its change and hypothesis, and remove its row in the same PR.
 - One change only (a skill, `.claude/settings.json` allowlist or CI edit), with a hypothesis: "Allowing `git push` for feature branches cuts `permission_prompts` from 6 to 2."
 - Branch `chore/factory-experiment-e<n>`, title `chore(factory): experiment E<n> <change>`.
 - Append a row to `docs/factory/experiments.md`: `| E<n> | <change> | <metric> | <baseline median> | <target> | running | #<pr> |`.

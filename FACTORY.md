@@ -24,7 +24,7 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ## Lines
 | # | Line | Where | Skill / action | Output | Done when |
 |---|---|---|---|---|---|
-| 1 | Intake | Session `planner` | Matt `grill-with-docs` | PRODUCT.md, GLOSSARY.md | Committed |
+| 1 | Intake | Session `planner` | `factory:ask` routes, Matt `grill-with-docs` interviews | PRODUCT.md, GLOSSARY.md | Committed |
 | 2 | Plan | Session `planner` | `openspec-propose`, `project-manager` | ARCHITECTURE.md, `openspec/changes/<id>/`, one GitHub Issue per change | Every Issue links its change and has a "done when" |
 | 3 | Build | Session `builder-<issue>` | Superpowers plan, TDD, subagents | Branch with code and tests | Tests pass locally |
 | 4 | Verify | Session `builder-<issue>` | Superpowers verify, finish branch | PR | PR opened, linked to Issue |
@@ -39,9 +39,9 @@ Voice is the experience. Any Issue touching the voice loop must include a latenc
 ### The pipeline
 ```mermaid
 flowchart TD
-    idea([Idea from Abhishek]) --> intake
+    idea([Idea from Abhishek]) -->|factory:ask| intake
     subgraph agents [Agents: Claude Code sessions, Herdr optional]
-        intake["1 Intake<br/>planner: grill-with-docs<br/>writes PRODUCT.md"]
+        intake["1 Intake<br/>factory:ask routes; grill-with-docs<br/>writes PRODUCT.md"]
         plan["2 Plan<br/>planner: openspec-propose, project-manager<br/>writes OpenSpec changes and Issues"]
         build["3 Build<br/>builder: next-task, Superpowers plan and TDD"]
         verify["4 Verify<br/>builder: definition of done, opens PR"]
@@ -112,6 +112,7 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 
 | Command | Station | Runs |
 |---|---|---|
+| `factory:ask <request>` | 1 Intake | Routes one request to Bug, Feature, Later, Experiment, Question, Gated or Ambiguous; creates at most one thing (a `bug` Issue, a PHASE_2.md line or a Candidates row), records the date and Abhishek's words, hands off to `factory:plan`, `project-manager`, `settled-architecture` or `factory:improve` |
 | `factory:plan <block>` | 2 Plan | `settled-architecture`, `openspec-propose`, `openspec validate --strict`, spec PR, `project-manager` Issue, link both |
 | `factory:build #N` | 3 Build, 4 Verify | `next-task`, worktree check, `superpowers:writing-plans`, `superpowers:test-driven-development`, `factory:test`, `openspec-archive-change`, PR, `factory:review` |
 | `factory:test` | Verify | Every CI gate locally with real exit codes, spec scenario coverage, deploy smoke test, latency numbers |
@@ -123,7 +124,7 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 | `factory:improve` | Flywheel | Every 5 retros: medians, worst metric, ONE experiment PR, keep or revert the last one, folds lessons into `docs/factory/LESSONS.md` |
 | `factory:recap` | Any time | Under 15 lines: merged PRs, open Issues and blockers, main CI, metric trend, new lessons, gym reminder; writes nothing |
 
-Single-skill stations need no wrapper: intake (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
+Single-skill stations need no wrapper: intake interviews (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
 
 ## Flywheel
 
