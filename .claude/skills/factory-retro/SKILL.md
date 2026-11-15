@@ -23,7 +23,7 @@ Rerunning for the same Issue replaces its row and file; never add a second row.
 
 ## 2. Metrics row
 
-Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls,escaped_defects`
+Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls,escaped_defects,review_findings,findings_acted,review_precision,review_misses`
 
 | Column | Rule |
 |---|---|
@@ -39,10 +39,26 @@ Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_gree
 | `permission_prompts` | Best effort: tool calls in the transcript window that waited on a human approval. Blank if the transcript does not show them |
 | `denied_calls` | Best effort: `is_error` tool results in the window saying denied, refused or "too complex to verify". Blank if no transcript |
 | `escaped_defects` | Production bugs found after merge that trace to this PR (a `bug` Issue, a fix PR, a phone or log finding). 0 when the evidence shows no production bug; blank while the PR's own production check (phone test, deploy check) is still open. When a later bug traces to an older PR, update that PR's row |
+| `review_findings` | Rows in the `factory:review` comment's Findings table (step 3). Blank if the PR has no review comment |
+| `findings_acted` | Findings classed `acted_tested` or `acted_untested` (step 3) |
+| `review_precision` | `acted_tested` / `review_findings`, 2 decimals. Higher is better. Blank when `review_findings` is 0 or blank |
+| `review_misses` | Escaped defects of this PR that no finding flagged (step 3). Lower is better. 0 when `escaped_defects` is 0; blank while `escaped_defects` is blank |
 
 Blank means unknown, never 0. Never guess a number.
 
-## 3. Retro file
+## 3. Score the review
+
+The reward for a review is decided here, after merge, from what the code did, never by the reviewer. Read the `factory:review` comment(s); a comment from before the new format: number its findings F1, F2, ... in list order. For each finding id:
+
+| Class | Rule |
+|---|---|
+| `acted_tested` | A commit after the review ran (or one the comment names as the fix) changed that `file:line`, and a test was added or changed for it that fails without the change. When the finding is a missing test, the added test is the change. Check fail-before by reverting the fix locally when cheap; otherwise say "fail-before not rerun" |
+| `acted_untested` | That `file:line` changed for the finding, with no test (docs, workflows, CSS, JS with no runner) |
+| `dismissed` | Not changed in this PR: kept, deferred, or an observation |
+
+For each escaped defect of the PR, name the finding id that flagged its cause (`flagged`) or `none` (`missed`, counted in `review_misses`). When a later bug updates an older PR's `escaped_defects`, update its `review_misses` too.
+
+## 4. Retro file
 
 ```markdown
 # Retro #<issue> (PR #<pr>)
@@ -53,6 +69,9 @@ Blank means unknown, never 0. Never guess a number.
 - ...
 ## Went wrong
 - ...
+## Review findings
+- F1 acted_tested (<test file>), F2 dismissed, ...
+- Escaped defect <Issue or PR>: flagged by F<n> | missed
 ## Lesson
 Do X when Y, because Z. (#<pr>)
 ## Candidate experiment
@@ -61,6 +80,6 @@ One change, the metric it should move, and from what to what.
 
 Ground every line in the gathered evidence (PR body, review comment, CI, transcript). One lesson only.
 
-## 4. Report
+## 5. Report
 
 Print the row and the lesson. If `metrics.csv` now has 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, say that `factory:improve` is due.

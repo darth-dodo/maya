@@ -129,6 +129,7 @@ Single-skill stations need no wrapper: intake (`grill-with-docs`), ship (`render
 Every merged PR makes the factory a little better, measured, one change at a time.
 - `factory:retro <pr>` (run by `factory:build` step 11): one metrics row per Issue in `~/maya-factory/metrics.csv` and a retro file `~/maya-factory/retros/<issue>.md` with one lesson. Raw data stays outside the repo, like the `quiz-me` log.
 - `factory:improve` (every 5 retros): compares medians of the last 5 vs the 5 before, opens ONE experiment PR for the worst metric and logs it in `docs/factory/experiments.md`; after the next 5 it keeps or reverts it. It also folds lessons into `docs/factory/LESSONS.md`, which `factory:build` reads at step 4.
+- Review reward (scored by `factory:retro`, never by the reviewer, who shares the builder's model family): each `factory:review` finding F1, F2, ... is good when a later commit changed its `file:line` with a test that fails without the change, weaker when changed untested, noise when dismissed; an escaped defect no finding flagged is a miss. `review_precision` and `review_misses` measure it after merge, because only the code and production show which findings mattered.
 - `factory:recap`: the on-demand digest that replaces the 21:00 Telegram digest (PHASE_2.md).
 - The repo only changes through `factory:improve` PRs; local data lost with the machine is acceptable.
 

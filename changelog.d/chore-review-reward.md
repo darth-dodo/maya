@@ -1,0 +1,2 @@
+Added: `factory:review` lists every finding with an id (F1, F2, ...), severity and `file:line` in a parseable Findings table
+Added: `factory:retro` scores each finding after merge (`acted_tested`, `acted_untested`, `dismissed`) and links escaped defects to a finding or a miss, with new columns `review_findings`, `findings_acted`, `review_precision` and `review_misses`; `factory:improve` scores the last two
