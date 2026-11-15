@@ -164,7 +164,12 @@ defmodule MayaWeb.DesignTokensTest do
                    docs/assets/hero.svg docs/assets/footer.svg) do
       svg = File.read!(path)
 
-      refute svg =~ ~r/\b(?:rgba?|hsla?|oklch)\(|#[0-9a-fA-F]{3}\b/, "#{path}: non hex6 colour"
+      # Only 6 digit hex: no colour functions, 3 or 8 digit hex, or named colours like "white".
+      refute svg =~ ~r/\b(?:rgba?|hsla?|oklch)\(|#[0-9a-fA-F]{3}\b|#[0-9a-fA-F]{8}\b/,
+             "#{path}: non hex6 colour"
+
+      refute svg =~ ~r/(?:fill|stroke|stop-color)="(?!none|url|#)[a-z]+"/i,
+             "#{path}: named colour"
 
       for hex <- ~r/#[0-9a-fA-F]{6}\b/ |> Regex.scan(svg) |> List.flatten(),
           do: assert(String.downcase(hex) in palette, "#{path}: #{hex} is not a token value")

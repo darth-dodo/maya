@@ -36,7 +36,7 @@ Day values sit on `:root`. Night values apply on `:root[data-theme="dark"]` (the
 | `--maya-ink` | body text | `#13261f` | `#e8f3ed` |
 | `--maya-muted` | secondary text, captions | `#3f6b5b` | `#a6c3b6` |
 | `--maya-heading` | hero title and section headings (deep emerald by day, ink at night) | `#0f5a3a` | `#e8f3ed` |
-| `--maya-action` | the one action colour: buttons, links, day headings | `#0f5a3a` deep emerald | `#157a48` |
+| `--maya-action` | the one action colour: buttons and links (headings use `--maya-heading`) | `#0f5a3a` deep emerald | `#157a48` |
 | `--maya-action-ink` | text on action | `#ffffff` | `#ffffff` |
 | `--maya-line` | decorative dividers | `rgb(15 58 40 / 0.12)` | `rgb(255 255 255 / 0.08)` |
 | `--maya-hairline` | the gold hairline, night only | `transparent` | `#b58a2a` |
@@ -104,7 +104,6 @@ WCAG 2.x relative luminance. Text needs 4.5:1, a non-text cue that is the only s
 | success on bg | text | 4.74 | 8.01 |
 | error on bg | text | 5.81 | 10.64 |
 | action-ink on action | text | 8.26 | 5.37 |
-| action on bg (day headings) | text | 7.33 | not used for text |
 | listen on scene (ring) | non-text | 3.74 | 5.34 |
 | wait on scene (ring) | non-text | 3.30 | 4.66 |
 | heading on bg | text | 7.33 | 15.98 |

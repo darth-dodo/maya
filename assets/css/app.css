@@ -447,7 +447,7 @@
 }
 .turn .you { justify-self: end; background: var(--maya-surface); border-bottom-right-radius: 0.25rem; }
 /* Live words while held (ADR-009): lighter until the final transcript replaces them. */
-.turn .you.live { opacity: 0.7; }
+.turn .you.live { color: var(--maya-muted); }
 .turn .maya { justify-self: start; background: var(--maya-sea); border-bottom-left-radius: 0.25rem; }
 .turn.now { color: var(--maya-ink); font-size: var(--maya-text-base); }
 .turn.now .maya {
