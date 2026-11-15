@@ -3,7 +3,10 @@ defmodule MayaWeb.TalkLiveTest do
   use MayaWeb.ConnCase, async: false
 
   import Ecto.Query
+  import ExUnit.CaptureLog
   import Phoenix.LiveViewTest
+
+  require Logger
 
   alias Maya.Voice.Turn
 
@@ -139,6 +142,75 @@ defmodule MayaWeb.TalkLiveTest do
     view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "dancing"})
 
     assert has_element?(view, "#talk-screen[data-state='recording']")
+  end
+
+  describe "hold end report" do
+    setup do
+      level = Logger.level()
+      Logger.configure(level: :info)
+      on_exit(fn -> Logger.configure(level: level) end)
+    end
+
+    test "is logged at info with how and how long, nothing else", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log =
+        capture_log([level: :info], fn ->
+          view
+          |> element("#talk-button")
+          |> render_hook("hold_ended", %{
+            "ended_by" => "pointercancel",
+            "hold_ms" => 840,
+            "lost_capture" => true,
+            "mic_open_ms" => 120
+          })
+        end)
+
+      assert log =~
+               "hold ended by pointercancel after 840 ms, lost capture: true, mic open: 120 ms"
+    end
+
+    test "says when the hold ended before the mic was live", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log =
+        capture_log([level: :info], fn ->
+          view
+          |> element("#talk-button")
+          |> render_hook("hold_ended", %{"ended_by" => "pointerup", "hold_ms" => 60})
+        end)
+
+      assert log =~ "hold ended by pointerup after 60 ms, lost capture: false, mic open: none"
+    end
+
+    test "with an unknown ending or a bad length is ignored", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log =
+        capture_log([level: :info], fn ->
+          for params <- [
+                %{"ended_by" => "<script>", "hold_ms" => 10},
+                %{"ended_by" => "pointerup", "hold_ms" => -1},
+                %{"ended_by" => "pointerup", "hold_ms" => "5000"},
+                %{}
+              ] do
+            view |> element("#talk-button") |> render_hook("hold_ended", params)
+          end
+        end)
+
+      refute log =~ "hold ended"
+      assert has_element?(view, "#talk-screen[data-state='idle']")
+    end
+  end
+
+  test "the Talk button's own state is never set from the server's moment", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
+
+    assert has_element?(view, "#talk-screen[data-state='recording']")
+    # Ignored elements still merge server data attributes (LiveView DOM patching), so the
+    # button only ever carries the static mount value and the hook restores its own.
+    assert has_element?(view, "#talk-button[data-state='idle'][phx-update='ignore']")
   end
 
   test "the chat shows only the last 3 exchanges, the latest as now", %{conn: conn, guest: guest} do

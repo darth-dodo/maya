@@ -12,6 +12,8 @@ defmodule MayaWeb.TalkLive do
   alias Maya.Horizon
   alias Maya.Voice.Turn
 
+  require Logger
+
   # Before the first gym only; each fact's source: openspec/changes/archive/*-home-poke-facts/design.md
   # The CSS rotation in app.css times 12 items: update both together.
   @poke_facts [
@@ -33,6 +35,9 @@ defmodule MayaWeb.TalkLive do
 
   # The TalkHook's states, mirrored on the screen root so CSS draws each moment.
   @talk_states ~w(idle recording uploading waiting speaking)
+
+  # How a hold can end (#76); lostpointercapture is only a flag, it never ends a hold.
+  @hold_ends ~w(pointerup pointercancel)
 
   def poke_facts, do: @poke_facts
 
@@ -148,6 +153,25 @@ defmodule MayaWeb.TalkLive do
     do: {:noreply, assign(socket, talk_state: state)}
 
   def handle_event("talk_state", _params, socket), do: {:noreply, socket}
+
+  # Evidence for #76 and #79: how each hold ended, how long it was and press to live mic
+  # time, never audio or text. The mic time is "none" when the hold ended before it was live.
+  def handle_event("hold_ended", %{"ended_by" => by, "hold_ms" => ms} = params, socket)
+      when by in @hold_ends and is_integer(ms) and ms >= 0 do
+    mic =
+      case params["mic_open_ms"] do
+        open when is_integer(open) and open >= 0 -> "#{open} ms"
+        _ -> "none"
+      end
+
+    Logger.info(
+      "hold ended by #{by} after #{ms} ms, lost capture: #{params["lost_capture"] == true}, mic open: #{mic}"
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("hold_ended", _params, socket), do: {:noreply, socket}
 
   # Start fresh asks first; the confirm form posts to /fresh, which rotates the guest.
   def handle_event("ask_fresh", _params, socket),
