@@ -1,6 +1,6 @@
 # 005: Voice transport over the LiveView socket
 
-- Status: Accepted
+- Status: Accepted (the "In" bullet superseded by [009](009-realtime-transcription.md): Questions now stream in as chunks, not an upload)
 - Date: 2026-11-14
 
 ## Context

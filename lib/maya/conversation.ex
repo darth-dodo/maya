@@ -2,10 +2,14 @@ defmodule Maya.Conversation do
   @moduledoc """
   One guest's Conversation (ARCHITECTURE.md 2, ADR-008), found by `guest_id`. It owns the
   turn in flight: STT, then the agent (with the last 5 turns), then a streamed TTS Answer.
+  A held Question streams in as audio chunks (`stream_start/1`, `audio_chunk/2`,
+  `stream_end/1`); with realtime on, a relay to Voxtral realtime shows partial text while
+  held, and batch STT on the buffered audio gives the final text or takes over when realtime
+  fails (ADR-009).
   After 30 idle minutes it stops normally; the next start reloads its turns from Postgres.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
-  `{:audio, pcm}`, `:audio_done` and `:voice_down`.
+  `{:partial, text}`, `{:question, text}`, `{:audio, pcm}`, `:audio_done` and `:voice_down`.
   """
   # Transient: a crash restarts it, an idle stop does not.
   use GenServer, restart: :transient
@@ -13,12 +17,15 @@ defmodule Maya.Conversation do
   require Logger
 
   alias Maya.{Agent, GameData}
-  alias Maya.Voice.{STT, TTS, Turn, Vocabulary}
+  alias Maya.Voice.{Mistral, Realtime, STT, TTS, Turn, Vocabulary, Wav}
 
   @nothing_heard "(nothing heard)"
   @not_heard "I did not catch that."
   @lost "Lost my train of thought, ask again?"
   @idle :timer.minutes(30)
+  # A 250 ms chunk is 8,000 bytes; the whole Question keeps the old 1 MB upload cap.
+  @max_chunk 16_384
+  @max_question 1_000_000
 
   ## Client
 
@@ -48,6 +55,18 @@ defmodule Maya.Conversation do
     {:ok, pid} = start_or_find(id)
     GenServer.cast(pid, {:question, audio, filename})
   end
+
+  @doc "A hold began: cuts the turn in flight and opens the realtime session when it is on."
+  def stream_start(id) do
+    {:ok, pid} = start_or_find(id)
+    GenServer.cast(pid, :stream_start)
+  end
+
+  @doc "One base64 chunk of 16 kHz mono 16-bit PCM from the hold."
+  def audio_chunk(id, b64), do: GenServer.cast(via(id), {:chunk, b64})
+
+  @doc "The hold ended: the final transcript comes next. A second end is ignored."
+  def stream_end(id), do: GenServer.cast(via(id), :stream_end)
 
   def barge_in(id), do: GenServer.cast(via(id), :barge_in)
 
@@ -86,9 +105,77 @@ defmodule Maya.Conversation do
 
     noreply(%{
       state
-      | current: %{ref: ref, task: task, stage: :stt, turn: %Turn{guest_id: state.id}}
+      | current: %{
+          ref: ref,
+          task: task,
+          stage: :stt,
+          turn: %Turn{guest_id: state.id, stt_source: "batch"}
+        }
     })
   end
+
+  def handle_cast(:stream_start, state) do
+    state = cut(state)
+    ref = make_ref()
+    progress = GameData.progress(state.id)
+    terms = Vocabulary.bias_terms(progress)
+    relay = if Mistral.voice(:stt_realtime), do: Realtime.start(self(), ref, terms)
+
+    noreply(%{
+      state
+      | current: %{
+          ref: ref,
+          stage: :listening,
+          relay: relay,
+          audio: [],
+          bytes: 0,
+          partial: "",
+          task: nil,
+          progress: progress,
+          terms: terms,
+          turn: %Turn{guest_id: state.id}
+        }
+    })
+  end
+
+  def handle_cast({:chunk, b64}, %{current: %{stage: :listening} = c} = state) do
+    case chunk(b64, c.bytes) do
+      {:ok, pcm} ->
+        with {pid, _mon} <- c.relay, do: send(pid, {:audio, b64})
+
+        noreply(%{
+          state
+          | current: %{c | audio: [c.audio | pcm], bytes: c.bytes + byte_size(pcm)}
+        })
+
+      {:error, reason, size} ->
+        # Only the reason and size: never audio.
+        Logger.warning("audio chunk dropped: #{inspect(reason)}#{size && ", #{size} bytes"}")
+        noreply(state)
+    end
+  end
+
+  def handle_cast(:stream_end, %{current: %{stage: :listening} = c} = state) do
+    c = Map.put(c, :stt_from, System.monotonic_time())
+
+    cond do
+      c.bytes == 0 ->
+        noreply(speak(%{state | current: close_relay(c)}, @nothing_heard, @not_heard))
+
+      c.relay && Mistral.voice(:stt_final) == :realtime ->
+        {pid, _mon} = c.relay
+        send(pid, :end)
+        Process.send_after(self(), {:done_timeout, c.ref}, Mistral.voice(:stt_realtime_done_ms))
+        noreply(%{state | current: %{c | stage: :realtime_final}})
+
+      true ->
+        noreply(batch(state, c))
+    end
+  end
+
+  # Chunks and ends outside a hold: late, or a second end for the same hold.
+  def handle_cast({:chunk, _b64}, state), do: noreply(state)
+  def handle_cast(:stream_end, state), do: noreply(state)
 
   def handle_cast(:barge_in, state), do: noreply(cut(state))
 
@@ -140,6 +227,44 @@ defmodule Maya.Conversation do
     noreply(%{state | current: c})
   end
 
+  def handle_info({:partial, ref, text}, %{current: %{ref: ref, stage: stage} = c} = state)
+      when stage in [:listening, :realtime_final] do
+    c = %{c | partial: c.partial <> text}
+    broadcast(state, {:partial, c.partial})
+    noreply(%{state | current: c})
+  end
+
+  def handle_info(
+        {:realtime_done, ref, text},
+        %{current: %{ref: ref, stage: :realtime_final} = c} = state
+      ) do
+    c = %{c | relay: nil, turn: %{c.turn | stt_source: "realtime"}}
+
+    noreply(
+      finished(:stt, {:ok, Vocabulary.correct(text, c.terms), c.progress}, %{state | current: c})
+    )
+  end
+
+  def handle_info(
+        {:realtime_failed, ref, reason},
+        %{current: %{ref: ref, stage: stage} = c} = state
+      )
+      when stage in [:listening, :realtime_final],
+      do: noreply(realtime_failed(state, c, reason))
+
+  def handle_info(
+        {:done_timeout, ref},
+        %{current: %{ref: ref, stage: :realtime_final} = c} = state
+      ),
+      do: noreply(realtime_failed(state, close_relay(c), :done_timeout))
+
+  def handle_info(
+        {:DOWN, mon, :process, _pid, reason},
+        %{current: %{relay: {_relay, mon}} = c} = state
+      )
+      when reason != :normal,
+      do: noreply(realtime_failed(state, %{c | relay: nil}, {:exit, crash_kind(reason)}))
+
   def handle_info({:stage_ms, ref, stage, ms}, %{current: %{ref: ref, turn: turn} = c} = state) do
     noreply(%{state | current: %{c | turn: Map.put(turn, stage, ms)}})
   end
@@ -158,16 +283,86 @@ defmodule Maya.Conversation do
   # The turn's one Progress read: it biases STT toward the Team and horizon and goes on to the agent.
   defp transcribe(id, audio, filename) do
     progress = GameData.progress(id)
-    terms = Vocabulary.bias_terms(progress)
+    transcribe(audio, filename, Vocabulary.bias_terms(progress), progress)
+  end
 
+  defp transcribe(audio, filename, terms, progress) do
     with {:ok, text} <- STT.transcribe(audio, filename, terms),
          do: {:ok, Vocabulary.correct(text, terms), progress}
   end
 
+  defp chunk(b64, bytes) do
+    case Base.decode64(b64) do
+      {:ok, pcm} when byte_size(pcm) > @max_chunk ->
+        {:error, :too_big, byte_size(pcm)}
+
+      {:ok, pcm} when bytes + byte_size(pcm) > @max_question ->
+        {:error, :over_question_cap, byte_size(pcm)}
+
+      {:ok, pcm} ->
+        {:ok, pcm}
+
+      :error ->
+        {:error, :bad_base64, nil}
+    end
+  end
+
+  # Batch STT on the hold's buffered audio: the final source, or the fallback.
+  defp batch(state, c) do
+    c = close_relay(c)
+    wav = Wav.wrap(IO.iodata_to_binary(c.audio), 16_000)
+    {terms, progress, me, ref} = {c.terms, c.progress, self(), c.ref}
+
+    task =
+      run(fn ->
+        :telemetry.span([:maya, :voice, :stt], %{conversation: me, ref: ref}, fn ->
+          {transcribe(wav, "question.wav", terms, progress), %{conversation: me, ref: ref}}
+        end)
+      end)
+
+    turn = %{c.turn | stt_source: "batch"}
+    %{state | current: %{c | stage: :stt, task: task, audio: [], turn: turn}}
+  end
+
+  # The reason only, as for every stage. While held, batch waits for the end of the hold.
+  defp realtime_failed(state, c, reason) do
+    warn(:stt_realtime, reason)
+    c = %{c | relay: nil}
+
+    case c.stage do
+      :realtime_final -> batch(state, c)
+      _listening -> %{state | current: c}
+    end
+  end
+
+  defp close_relay(%{relay: {pid, mon}} = c) do
+    Process.demonitor(mon, [:flush])
+    Task.Supervisor.terminate_child(Maya.TaskSupervisor, pid)
+    %{c | relay: nil}
+  end
+
+  defp close_relay(c), do: c
+
+  # A crashed relay's exit carries its state (queued audio) in the stacktrace: log the kind only.
+  defp crash_kind({%{__exception__: true, __struct__: kind}, _stack}), do: kind
+  defp crash_kind(reason) when is_atom(reason), do: reason
+  defp crash_kind(_reason), do: :crashed
+
+  # A streamed Question: release to final transcript (spec, Realtime latency). It replaces the
+  # batch Task's own span, which misses any wait for realtime before the fallback.
+  defp stt_ms(%{stt_from: from, turn: turn} = c) do
+    ms = System.convert_time_unit(System.monotonic_time() - from, :native, :millisecond)
+    %{c | turn: %{turn | stt_ms: ms}}
+  end
+
+  defp stt_ms(c), do: c
+
   defp finished(:stt, {:ok, "", _progress}, state),
-    do: speak(state, @nothing_heard, @not_heard)
+    do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
 
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
+    c = stt_ms(c)
+    broadcast(state, {:question, question})
     me = self()
     ref = c.ref
     turns = state.turns
@@ -235,12 +430,16 @@ defmodule Maya.Conversation do
   defp cut(%{current: nil} = state), do: state
 
   defp cut(%{current: c} = state) do
-    Process.demonitor(c.task.ref, [:flush])
-    Task.Supervisor.terminate_child(Maya.TaskSupervisor, c.task.pid)
+    c = close_relay(c)
+
+    with %Task{} = task <- c.task do
+      Process.demonitor(task.ref, [:flush])
+      Task.Supervisor.terminate_child(Maya.TaskSupervisor, task.pid)
+    end
 
     case c.stage do
       :tts -> store(state, %{c.turn | cut: true})
-      _stt_or_agent -> %{state | current: nil}
+      _hold_stt_or_agent -> %{state | current: nil}
     end
   end
 

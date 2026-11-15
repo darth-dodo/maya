@@ -1,9 +1,12 @@
 // TalkHook: the Talk button as an explicit state machine (ARCHITECTURE.md 1, voice lessons in
 // docs/factory-learnings.md). idle -> recording -> uploading -> waiting -> speaking -> idle.
-// Records 16 kHz mono 16-bit WAV with Web Audio (ADR-005 fallback, no container support needed)
-// and plays the server's pushed PCM (32-bit float little-endian, at data-sample-rate) as it arrives.
+// Streams the hold as 16 kHz mono 16-bit PCM chunks over the LiveView socket while it is held
+// (ADR-009: stream_start, audio_chunk, stream_end) and plays the server's pushed PCM (32-bit
+// float little-endian, at data-sample-rate) as it arrives.
 
 const STT_RATE = 16000
+// 200 ms per chunk: the spec allows 100 to 250 ms (1600 to 4000 samples); only the last is shorter.
+const CHUNK_SAMPLES = 3200
 // Warm mic (#94): audio kept from just before a press, and how long the mic stays open once
 // the button is back to idle (#79: the phone's mic indicator goes off soon after the last turn).
 const PRE_ROLL_MS = 300
@@ -24,28 +27,29 @@ export function downsample(input, fromRate, toRate) {
   return out
 }
 
-// 44 byte RIFF header plus 16-bit little-endian mono PCM.
-export function encodeWav(samples, rate) {
-  const view = new DataView(new ArrayBuffer(44 + samples.length * 2))
-  const text = (at, s) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)))
-  text(0, "RIFF")
-  view.setUint32(4, 36 + samples.length * 2, true)
-  text(8, "WAVE")
-  text(12, "fmt ")
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true) // integer PCM
-  view.setUint16(22, 1, true) // mono
-  view.setUint32(24, rate, true)
-  view.setUint32(28, rate * 2, true)
-  view.setUint16(32, 2, true)
-  view.setUint16(34, 16, true)
-  text(36, "data")
-  view.setUint32(40, samples.length * 2, true)
+// Float samples as base64 16-bit little-endian PCM (pcm_s16le, what Voxtral realtime reads).
+export function int16Base64(samples) {
+  const view = new DataView(new ArrayBuffer(samples.length * 2))
   samples.forEach((s, i) => {
     const c = Math.max(-1, Math.min(1, s))
-    view.setInt16(44 + i * 2, c < 0 ? c * 0x8000 : c * 0x7fff, true)
+    view.setInt16(i * 2, c < 0 ? c * 0x8000 : c * 0x7fff, true)
   })
-  return new Blob([view], {type: "audio/wav"})
+  let bin = ""
+  const bytes = new Uint8Array(view.buffer)
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin)
+}
+
+// Appends 16 kHz samples to the pending ones and cuts whole chunks of `size`:
+// [chunks to send, samples kept for the next block].
+export function takeChunks(pending, samples, size) {
+  const all = new Float32Array(pending.length + samples.length)
+  all.set(pending)
+  all.set(samples, pending.length)
+  const chunks = []
+  let at = 0
+  for (; at + size <= all.length; at += size) chunks.push(all.subarray(at, at + size))
+  return [chunks, all.subarray(at)]
 }
 
 // Voxtral streams pcm as float32 LE: 4 bytes per sample, sample count = completion_tokens.
@@ -114,19 +118,12 @@ export function closeMic(mic) {
   mic.node.disconnect()
 }
 
-function concat(chunks) {
-  const out = new Float32Array(chunks.reduce((n, c) => n + c.length, 0))
-  let at = 0
-  for (const c of chunks) { out.set(c, at); at += c.length }
-  return out
-}
-
 export const TalkHook = {
   mounted() {
     this.sampleRate = Number(this.el.dataset.sampleRate)
     this.postRollMs = Number(this.el.dataset.postRollMs) || 0
     this.sources = []
-    this.samples = []
+    this.pending = new Float32Array(0)
     this.preRoll = []
     this.state = "idle" // the server renders idle on the button and the screen root
 
@@ -216,14 +213,11 @@ export const TalkHook = {
     this.pressedAt = performance.now()
     this.micLiveAt = null
     this.lostCapture = false
-    this.samples = []
     if (this.mic) {
-      // Warm press: the pre-roll heads the clip and the button listens at once.
+      // Warm press: the pre-roll heads the stream and the button listens at once.
       this.warm = true
-      this.samples = this.preRoll
-      this.preRoll = []
       this.micLiveAt = this.pressedAt
-      this.recording = true
+      this.beginStream()
       return this.set("recording")
     }
     this.warm = false
@@ -239,8 +233,25 @@ export const TalkHook = {
     this.mic = mic
     this.preRoll = []
     this.micLiveAt = performance.now()
-    this.recording = true // samples count from the live stream, and only then the button listens
+    this.beginStream() // samples count from the live stream, and only then the button listens
     this.set("recording")
+  },
+
+  // One hold is one stream: start, then the pre-roll (empty on a cold press), then live blocks.
+  beginStream() {
+    this.pushEvent("stream_start", {})
+    this.pending = new Float32Array(0)
+    this.recording = true
+    const preRoll = this.preRoll
+    this.preRoll = []
+    preRoll.forEach(block => this.stream(block))
+  },
+
+  // Downsamples one mic block and sends every whole 200 ms chunk.
+  stream(block) {
+    const [chunks, rest] = takeChunks(this.pending, downsample(block, this.ctx.sampleRate, STT_RATE), CHUNK_SAMPLES)
+    this.pending = rest
+    chunks.forEach(c => this.pushEvent("audio_chunk", {audio: int16Base64(c)}))
   },
 
   // Opened on a cold press; stays open for the turn and closes MIC_IDLE_MS after idle (#79, #94).
@@ -252,7 +263,7 @@ export const TalkHook = {
     const preRollMax = Math.round(this.ctx.sampleRate * PRE_ROLL_MS / 1000)
     node.onaudioprocess = e => {
       const block = new Float32Array(e.inputBuffer.getChannelData(0))
-      if (this.recording) this.samples.push(block)
+      if (this.recording) this.stream(block)
       else this.preRoll = pushPreRoll(this.preRoll, block, preRollMax)
     }
     source.connect(node)
@@ -262,7 +273,7 @@ export const TalkHook = {
 
   // Idempotent: the first pointerup or pointercancel ends the hold, any later one returns. A
   // release before the mic is live sends nothing. The button shows sent at once while the mic
-  // keeps recording for the post-roll, so a clipped last word is kept; then the clip uploads.
+  // keeps streaming for the post-roll, so a clipped last word is kept; then the stream ends.
   release(endedBy) {
     if (!this.pressed) return
     const releasedAt = performance.now()
@@ -279,17 +290,18 @@ export const TalkHook = {
     this.nextTime = 0
     this.leftover = null
     this.set("uploading")
-    this.tailTimer = setTimeout(() => this.send(), tail)
+    this.tailTimer = setTimeout(() => this.endStream(), tail)
   },
 
-  send() {
+  // The last, shorter chunk, then the end; the server answers "heard".
+  endStream() {
     this.recording = false
-    const samples = this.samples
-    this.samples = []
-    if (this.state !== "uploading") return // voice went down during the tail: the turn is over
-    if (samples.length === 0) return this.set("idle")
-    const wav = encodeWav(downsample(concat(samples), this.ctx.sampleRate, STT_RATE), STT_RATE)
-    this.upload("question", [new File([wav], "question.wav", {type: "audio/wav"})])
+    const rest = this.pending
+    this.pending = new Float32Array(0)
+    // Voice went down during the tail: the turn is over, so cancel the hold instead of asking.
+    if (this.state !== "uploading") return this.pushEvent("barge_in", {})
+    if (rest.length > 0) this.pushEvent("audio_chunk", {audio: int16Base64(rest)})
+    this.pushEvent("stream_end", {})
   },
 
   play(b64) {

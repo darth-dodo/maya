@@ -301,6 +301,8 @@
 .turn .you,
 .turn .maya { max-width: 86%; padding: 0.5rem 0.75rem; border-radius: 0.875rem; }
 .turn .you { justify-self: end; background: var(--you); border-bottom-right-radius: 0.25rem; }
+/* Live words while held (ADR-009): lighter until the final transcript replaces them. */
+.turn .you.live { opacity: 0.7; }
 .turn .maya { justify-self: start; background: var(--maya); border-bottom-left-radius: 0.25rem; }
 .turn.now { color: var(--scene-ink); font-size: 1rem; }
 .turn.now .maya {

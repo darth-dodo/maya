@@ -17,6 +17,8 @@ defmodule Maya.Voice.Turn do
     field :agent_ms, :integer
     field :tts_first_byte_ms, :integer
     field :playback_start_ms, :integer
+    # "realtime" or "batch": which STT gave the final transcript (ADR-009).
+    field :stt_source, :string
     # In memory only: the screen shows "voice is down" for this turn.
     field :voice_down, :boolean, virtual: true, default: false
 

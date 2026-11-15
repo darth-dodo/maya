@@ -6,9 +6,9 @@ Last updated: 14 Nov 2026. Designed with Abhishek in a grilling session (F3). Te
 
 ```mermaid
 flowchart LR
-  Phone["Phone browser<br/>TalkHook (JS)"] <-- "LiveView socket<br/>upload in, PCM out" --> LV["TalkLive<br/>(screen only)"]
+  Phone["Phone browser<br/>TalkHook (JS)"] <-- "LiveView socket<br/>PCM chunks in, PCM out" --> LV["TalkLive<br/>(screen only)"]
   LV <--> Conv["Conversation<br/>GenServer"]
-  Conv --> STT["Mistral Voxtral STT"]
+  Conv --> STT["Mistral Voxtral STT<br/>(realtime WebSocket + batch)"]
   Conv --> Agent["Agent loop"]
   Agent <--> OR["OpenRouter<br/>(tool calling)"]
   Agent --> Tools["Tools"]
@@ -24,9 +24,9 @@ Voice is the experience (CLAUDE.md product principle), so the stack is chosen fo
 
 New to Elixir or Phoenix? Start with [docs/elixir-phoenix-in-5-minutes.md](docs/elixir-phoenix-in-5-minutes.md).
 
-- **One process per Conversation.** A turn is a small concurrent workflow: upload, STT, agent rounds, a TTS stream, and a barge-in that can arrive at any moment. A GenServer with monitored Tasks models that directly; cancelling a turn is killing its Tasks ([GenServer](https://hexdocs.pm/elixir/GenServer.html), [Task.Supervisor](https://hexdocs.pm/elixir/Task.Supervisor.html)).
+- **One process per Conversation.** A turn is a small concurrent workflow: a streamed hold, STT, agent rounds, a TTS stream, and a barge-in that can arrive at any moment. A GenServer with monitored Tasks models that directly; cancelling a turn is killing its Tasks ([GenServer](https://hexdocs.pm/elixir/GenServer.html), [Task.Supervisor](https://hexdocs.pm/elixir/Task.Supervisor.html)).
 - **Crash recovery without dropping the player.** A failed STT or agent call crashes one Task, not the screen. Supervisors restart the Conversation, which reloads its turns from Postgres (ADR-006), while the LiveView stays connected ([Supervisor](https://hexdocs.pm/elixir/Supervisor.html)).
-- **One socket for everything.** LiveView already holds a WebSocket to the phone. Audio goes in as a LiveView upload and PCM comes back as pushed events on the same connection (ADR-005): no separate API server, no SPA, no CSP changes, and keys never reach the browser ([Phoenix.LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html)).
+- **One socket for everything.** LiveView already holds a WebSocket to the phone. Audio goes in as streamed PCM chunks (ADR-009) and PCM comes back as pushed events on the same connection (ADR-005): no separate API server, no SPA, no CSP changes, and keys never reach the browser ([Phoenix.LiveView](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.html)).
 - **Streaming is cheap.** Relaying `speech.audio.delta` chunks as they arrive is a receive loop in the Conversation process; the BEAM scheduler keeps many such loops responsive on a 0.5 CPU, 512 MB Render instance.
 - **Timing is built in.** `:telemetry.span` gives per-stage latency for the five voice stages with no extra service ([telemetry](https://hexdocs.pm/telemetry/telemetry.html)).
 - **Small surface.** One deployable (a release in one Docker image), one language for server and screen logic, and the JavaScript limited to one hook for the mic and Web Audio.
@@ -56,11 +56,14 @@ sequenceDiagram
   participant S as Voxtral STT
   participant A as Agent + OpenRouter
   participant T as Voxtral TTS
-  H->>H: hold Talk button, record
-  H->>L: release: this.upload(clip)  [mark: mic_release]
-  L->>C: {:question, clip}
-  C->>S: POST /v1/audio/transcriptions  [span: stt]
-  S-->>C: transcript (clip dropped)
+  H->>L: hold: stream_start, then audio_chunk every 200 ms
+  L->>C: stream_start, chunks (buffered)
+  C->>S: realtime WebSocket: session.update, input_audio.append (if MAYA_STT_REALTIME)
+  S-->>C: transcription.text.delta
+  C-->>L: partial text shown live
+  H->>L: release + 150 ms post-roll: stream_end  [mark: mic_release]
+  C->>S: batch POST /v1/audio/transcriptions on the buffer (stt_final batch, or fallback)  [stt: release to final]
+  S-->>C: final transcript (audio dropped)
   C->>A: last 5 turns + Question  [span: agent]
   A-->>C: Answer text (2 to 3 sentences)
   C->>T: POST /v1/audio/speech, stream  [span: tts_first_byte]
@@ -71,9 +74,10 @@ sequenceDiagram
 ```
 
 - **Talk button:** a JS hook built as an explicit state machine (`idle, recording, uploading, waiting, speaking`), per the voice lessons in `docs/factory-learnings.md`. One hold makes exactly one **Question**. On each state change it pushes `talk_state`; TalkLive mirrors it on the screen root (`#talk-screen[data-state]`), which drives the **Trainer card** shrink, the ring on Maya's ball, the sound wave and the aria-live status. The push is fire and forget: playback never waits for it (#66).
-- **Upload:** `allow_upload(:question, auto_upload: true, chunk_size: 256_000, max_file_size: 1_000_000, max_entries: 1)`; the hook calls `this.upload`. One chunk for a normal Question. [LiveView uploads](https://hexdocs.pm/phoenix_live_view/uploads.html), [JS interop](https://hexdocs.pm/phoenix_live_view/js-interop.html).
+- **Streaming (ADR-009):** while held the hook sends `stream_start`, 16 kHz mono `pcm_s16le` chunks of 200 ms as base64 `audio_chunk` events (`pushEvent`, [JS interop](https://hexdocs.pm/phoenix_live_view/js-interop.html)), and `stream_end`. The Conversation drops bad base64, chunks over 16 KB and anything past 1 MB per Question, and buffers the rest. No upload.
+- **Realtime STT (ADR-009):** with `MAYA_STT_REALTIME=true`, `Maya.Voice.Realtime` relays the chunks to `voxtral-mini-transcribe-realtime-3` over a server side `Mint.WebSocket`; deltas show in `#live-question` and never reach the agent. `:stt_final` (`:batch` until the eval) picks the final source; any realtime failure, or no `transcription.done` within 1500 ms, falls back to batch on the buffer. `turns.stt_source` records which one gave the text.
 - **Recording format:** MediaRecorder gives MP4/AAC on iOS and WebM/Opus on Chrome; Mistral does not document which containers transcription accepts ([audio formats](https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats)). Block 2 starts with a curl spike on one real clip of each. If either fails, the hook records 16 kHz mono WAV with Web Audio instead. No server transcoding.
-- **STT:** `voxtral-mini-transcribe-3`, multipart `file`, `language: en` and one `context_bias` field per known name ([transcribe files](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files), [context bias](https://docs.mistral.ai/studio/audio/speech-to-text/bias-context-and-vocabulary)). `Maya.Voice.Vocabulary` builds the names from game data and the Guest's Progress (at most 400) and snaps a near-miss name in the transcript before the agent; bias names are never shown or sent to the model. The clip is dropped after the call; only the transcript is kept.
+- **STT:** `voxtral-mini-transcribe-3`, multipart `file` (the buffered stream with a WAV header), `language: en` and one `context_bias` field per known name ([transcribe files](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files), [context bias](https://docs.mistral.ai/studio/audio/speech-to-text/bias-context-and-vocabulary)). `Maya.Voice.Vocabulary` builds the names from game data and the Guest's Progress (at most 400) and snaps a near-miss name in the transcript before the agent; bias names are never shown or sent to the model. The clip is dropped after the call; only the transcript is kept.
 - **TTS:** Voxtral TTS 3 with `stream: true`, `response_format: pcm`; server-sent events `speech.audio.delta` then `speech.audio.done` ([stream speech](https://docs.mistral.ai/studio/audio/text-to-speech/stream-speech)). The server relays chunks over the socket (STT and TTS are always proxied, never called from the browser). The hook plays them with Web Audio as they arrive. The PCM sample rate is checked in the Block 2 spike before playback code is written.
 - **Barge-in:** a hold while Maya speaks stops the audio graph at once, the hook sends `barge_in`, and the Conversation cancels the TTS stream. The cut **Answer** stays as text.
 - **Answer time:** p50 at most 5 s, p95 at most 8 s, from mic release to playback start.
@@ -174,7 +178,7 @@ From the F3 session, all Abhishek's answers:
 10. The journal is the Events log only.
 11. One Conversation forever, text in Postgres (ADR-006); one per Guest since ADR-008.
 12. Per-stage timings stored per turn.
-13. Questions arrive as a LiveView upload (ADR-005).
+13. Questions arrive as a LiveView upload (ADR-005). Superseded by ADR-009: they stream in as 200 ms PCM chunks while held.
 14. Format spike first, WAV fallback, no transcoding.
 15. Events through one `log_event` tool with undo.
 16. Game data fetched once and committed.
