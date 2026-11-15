@@ -5,14 +5,6 @@
 
 const STT_RATE = 16000
 
-const LABELS = {
-  idle: "Hold to talk",
-  recording: "Listening, release to send",
-  uploading: "Sending",
-  waiting: "Thinking",
-  speaking: "Speaking, hold to cut in",
-}
-
 // Averages input samples into each output sample (fromRate >= toRate).
 export function downsample(input, fromRate, toRate) {
   if (fromRate === toRate) return input
@@ -85,7 +77,7 @@ export const TalkHook = {
     this.sampleRate = Number(this.el.dataset.sampleRate)
     this.sources = []
     this.samples = []
-    this.set("idle")
+    this.state = "idle" // the server renders idle on the button and the screen root
 
     this.el.addEventListener("pointerdown", e => this.press(e))
     this.el.addEventListener("pointerup", () => this.release())
@@ -108,10 +100,16 @@ export const TalkHook = {
     this.ctx?.close()
   },
 
+  // The button's labels follow its own data-state at once (CSS); the screen root (ring, card,
+  // status) follows the server's copy, so a push only when the state changes.
   set(state) {
+    if (state !== this.state) this.pushEvent("talk_state", {state})
     this.state = state
     this.el.dataset.state = state
-    this.el.textContent = LABELS[state]
+  },
+
+  reconnected() {
+    this.pushEvent("talk_state", {state: this.state})
   },
 
   async press(e) {

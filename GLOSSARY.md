@@ -44,6 +44,10 @@ _Avoid_: party (in Maya's speech), roster
 The first gym whose badge the player has not earned yet.
 _Avoid_: current gym, upcoming gym
 
+**Trainer card**:
+The card at the top of the Talk screen showing the Guest's Progress: location, Next gym with its type, Team and badge count. It never shows anything past the Next gym.
+_Avoid_: HUD, header, profile card
+
 **Spoiler horizon**:
 The edge of what Maya may talk about: everything up to and including the Next gym, nothing past it.
 _Avoid_: spoiler limit, safe zone
