@@ -26,4 +26,14 @@ Invoke `mattpocock-skills:code-review` against `origin/main` (merge base). Its t
 
 ## 3. Report
 
-Two lists, blocking then non-blocking, each finding with `file:line` and the smallest fix. Post the same as one PR comment (`gh pr comment <n> --body-file <file>`). Never approve or merge; Abhishek merges.
+Two lists, blocking then non-blocking, each finding with an id, `file:line` and the smallest fix. Ids run F1, F2, ... across both lists and never repeat in one comment. Under the lists, the same findings as one table, so `factory:retro` can parse them:
+
+```markdown
+### Findings
+| id | severity | file:line | finding |
+|---|---|---|---|
+| F1 | Blocking | lib/maya/agent.ex:42 | Timeout bounds each request, not the stage |
+| F2 | Non-blocking | test/maya/agent_test.exs:10 | Raw HTML match, select by DOM id |
+```
+
+Severity is exactly `Blocking` or `Non-blocking`. A file-wide finding uses `file:1`; a finding with no file uses `-`. No findings: the table with no rows. Checklist passes and "not verified" notes are not findings. Post the same as one PR comment (`gh pr comment <n> --body-file <file>`). Never approve or merge; Abhishek merges.
