@@ -1,0 +1,166 @@
+<Layouts.app flash={@flash} main_class="px-4 pt-2 pb-8 sm:px-6 lg:px-8">
+  <%!-- Every number here comes from docs/factory/experiments.md; factory_page_test.exs checks them. --%>
+  <div class="home factory">
+    <section id="factory-hero" class="home-hero" aria-labelledby="factory-heading">
+      <div class="pokeball pokeball-emerald" aria-hidden="true">
+        <div class="pokeball-button"></div>
+      </div>
+      <h1 id="factory-heading" class="home-heading">How Maya is built</h1>
+      <p class="home-lead">
+        Maya is built by an agent-run software factory. Claude Code agents plan, build, test and review every change. Abhishek writes the product, answers the agents when they are stuck, and taps Merge. Everything else is the factory, and the numbers below include the ones that do not flatter it.
+      </p>
+    </section>
+
+    <section id="stations" class="home-section" aria-labelledby="stations-heading">
+      <h2 id="stations-heading">Four stations</h2>
+      <p>
+        Each change moves through four stations. A station is done only when its "done when" is met.
+      </p>
+      <ol class="loop">
+        <li class="station">
+          <span class="loop-step station-name">Plan</span>
+          <span class="loop-text">
+            Turns an idea into an OpenSpec change (proposal, spec scenarios, tasks) and one GitHub Issue. Done when the Issue links its change and has a "done when".
+          </span>
+        </li>
+        <li class="station">
+          <span class="loop-step station-name">Build</span>
+          <span class="loop-text">
+            A builder agent in its own git worktree writes each test first, watches it fail, then writes the code. Done when the tests pass and the spec change is archived in the same branch.
+          </span>
+        </li>
+        <li class="station">
+          <span class="loop-step station-name">Test</span>
+          <span class="loop-text">
+            Runs every CI gate locally, one at a time, and judges each by its real exit code. Done when every gate is green and the pull request is open.
+          </span>
+        </li>
+        <li class="station">
+          <span class="loop-step station-name">Review</span>
+          <span class="loop-text">
+            A reviewer agent posts one comment that splits blocking from non-blocking findings. Done when no blocking finding is left. Then Abhishek merges; agents never do.
+          </span>
+        </li>
+      </ol>
+    </section>
+
+    <section id="gates" class="home-section" aria-labelledby="gates-heading">
+      <h2 id="gates-heading">Gates that ignore prompts</h2>
+      <p>
+        The reviewer shares the builder's model family, so it can share its blind spots. The rules that matter are enforced by machines an agent cannot talk past.
+      </p>
+      <ul class="promises">
+        <li id="gate-ci">
+          <strong>CI must pass before merge.</strong>
+          The required <code>ci-success</code>
+          check covers format, Credo, tests with a coverage floor, a security scan and a Docker boot. Render deploys only after checks pass. Branch protection and a permission deny list keep an agent from merging its own pull request.
+        </li>
+        <li id="gate-probe">
+          <strong>Production answers a real Question every hour.</strong>
+          A scheduled smoke check asks the live app one real Question and opens a bug Issue when that Question fails. It is experiment E3 below.
+        </li>
+        <li id="gate-spoiler">
+          <strong>A CI spoiler gate is planned.</strong>
+          A check on every change that fails when an Answer names something past the Spoiler horizon (Issue #40). Until that CI job exists, the spoiler promise rests on the tools and the tests.
+        </li>
+      </ul>
+    </section>
+
+    <section id="flywheel" class="home-section" aria-labelledby="flywheel-heading">
+      <h2 id="flywheel-heading">The flywheel</h2>
+      <p id="flywheel-intro">
+        After every merge, a retro records one row of metrics and one lesson. Every 5 retros, the factory picks its worst metric and runs one experiment, kept or reverted on that metric. Lessons are folded into
+        <a href="https://github.com/darth-dodo/maya/blob/main/docs/factory/LESSONS.md">
+          the lessons file
+        </a>
+        that every builder reads before it starts.
+      </p>
+
+      <h3 id="experiments-heading" class="text-lg font-bold">Experiments</h3>
+      <div
+        class="experiments-scroll"
+        role="region"
+        aria-labelledby="experiments-heading"
+        tabindex="0"
+      >
+        <table id="experiments" class="table table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Id</th>
+              <th scope="col">Change</th>
+              <th scope="col">Metric</th>
+              <th scope="col">Baseline</th>
+              <th scope="col">Target</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="experiment-e1">
+              <th scope="row" class="exp-id">E1</th>
+              <td>Finish everything before the first push, then wait for CI</td>
+              <td class="exp-metric"><code>first_pass_green</code></td>
+              <td class="exp-baseline">60%</td>
+              <td class="exp-target">100%</td>
+              <td class="exp-status">
+                kept (80% over #42, #44, #46, #47, #48; 100% without #42's Hex outage)
+              </td>
+            </tr>
+            <tr id="experiment-e2">
+              <th scope="row" class="exp-id">E2</th>
+              <td>CI falls back to a Hex mirror when the main one fails</td>
+              <td class="exp-metric"><code>first_pass_green</code></td>
+              <td class="exp-baseline">80%</td>
+              <td class="exp-target">100%</td>
+              <td class="exp-status">
+                kept (100%, 5 of 5 over #53, #54, #55, #59, #60; no Hex download failure)
+              </td>
+            </tr>
+            <tr id="experiment-e3">
+              <th scope="row" class="exp-id">E3</th>
+              <td>The hourly smoke check asks production one real Question</td>
+              <td class="exp-metric"><code>escaped_defects</code></td>
+              <td class="exp-baseline">1 per 5 PRs</td>
+              <td class="exp-target">0</td>
+              <td class="exp-status">running</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <section id="review-reward" class="home-section" aria-labelledby="review-reward-heading">
+        <h3 id="review-reward-heading" class="text-lg font-bold">The review reward, honestly</h3>
+        <p>
+          Review findings are scored after merge by what the code did, never by the reviewer. A finding counts when a later commit changed its line with a test that fails without the change. An escaped defect that no finding flagged is a miss.
+        </p>
+        <ul class="promises">
+          <li><strong>4 of 67 findings led to a tested fix.</strong></li>
+          <li>
+            <strong>Review precision is low.</strong>
+            Median 0.00 over the 10 pull requests with scored findings.
+          </li>
+          <li><strong>2 of 3 escaped defects were missed:</strong> no finding flagged them.</li>
+        </ul>
+        <p>
+          That is why the gates above do not depend on review. Snapshot from 2026-11-15, source:
+          <a href="https://github.com/darth-dodo/maya/blob/main/docs/factory/experiments.md">the experiments log</a>
+        </p>
+      </section>
+    </section>
+
+    <section id="read-more" class="home-section" aria-labelledby="read-more-heading">
+      <h2 id="read-more-heading">Read the source</h2>
+      <ul class="promises">
+        <li>
+          <a href="https://github.com/darth-dodo/maya/blob/main/FACTORY.md">FACTORY.md</a>
+          lists every line, skill and guardrail of the factory.
+        </li>
+        <li>
+          <a href="https://github.com/darth-dodo/maya/blob/main/docs/elixir-phoenix-in-5-minutes.md">Elixir and Phoenix in 5 minutes</a>
+          explains the language and framework Maya runs on through its own code.
+        </li>
+      </ul>
+    </section>
+
+    <Layouts.site_footer />
+  </div>
+</Layouts.app>

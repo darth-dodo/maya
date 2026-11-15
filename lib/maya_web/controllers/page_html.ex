@@ -1,5 +1,5 @@
 defmodule MayaWeb.PageHTML do
-  @moduledoc "Templates for the public home page (`page_html/home.html.heex`)."
+  @moduledoc "Templates for the public pages (`page_html/home.html.heex`, `page_html/factory.html.heex`)."
   use MayaWeb, :html
 
   embed_templates "page_html/*"

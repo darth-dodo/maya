@@ -4,6 +4,7 @@ Last updated: 14 Nov 2026
 ## Purpose
 An agent-run pipeline that builds Maya from PRODUCT.md to a live Render deploy.
 Human jobs: write PRODUCT.md, answer agents, tap Merge. Everything else is the factory.
+Public tour for visitors, with the numbers from `docs/factory/experiments.md`: the `/factory` page on the live app.
 
 ## Product principle
 Voice is the experience. Any Issue touching the voice loop must include a latency check in its "done when".

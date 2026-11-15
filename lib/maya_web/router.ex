@@ -30,12 +30,13 @@ defmodule MayaWeb.Router do
     post "/health/ask", SmokeController, :ask
   end
 
-  # `/` is the public home page: a plain controller page, no socket and no API credit.
+  # `/` and `/factory` are public pages: plain controller pages, no socket and no API credit.
   # The Talk screen is public too while the login is deferred (#49).
   scope "/", MayaWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/factory", PageController, :factory
     live "/talk", TalkLive
     post "/fresh", FreshController, :create
   end
