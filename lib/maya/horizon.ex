@@ -71,6 +71,17 @@ defmodule Maya.Horizon do
   def badges_earned(%{badges: badges}),
     do: badges |> Enum.filter(&(&1 in 1..8)) |> Enum.uniq() |> length()
 
+  @doc """
+  The level horizon: the Next gym ace's level, or the Team's highest level when higher.
+  Nil (no cap) with all 8 badges. The caller reads the ace level, so this stays pure; a nil
+  ace before the last gym counts as 0, so a missing party never removes the cap.
+  """
+  def level_cap(progress, ace_level) do
+    if next_gym(progress) do
+      progress.team |> Enum.map(& &1["level"]) |> Enum.max(fn -> 0 end) |> max(ace_level || 0)
+    end
+  end
+
   @doc "Whether a location (a `locations` row, or nil when unlisted) is inside the horizon."
   def allowed?(%{badges_required: required}, progress) when is_integer(required),
     do: required <= badges_earned(progress)

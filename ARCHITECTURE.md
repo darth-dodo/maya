@@ -120,6 +120,7 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 |---|---|---|---|
 | `gym_counter` | `leader` | The leader's team and levels, the player's **Team** with type matchups, a suggested lead | Only the **Next gym** or earlier gyms; later leaders return `past_horizon` |
 | `find_pokemon` | `name` | Types, evolution level, encounter places with rates | Only places inside the horizon; none left returns `past_horizon` |
+| `move_learnset` | `species` | The species' Emerald level-up moves (move, level, method) up to the level horizon, in level order | The species must have a wild place inside the horizon or be on the **Team** (the `find_pokemon` rule), else `past_horizon`. Moves stop at the level horizon: the **Next gym** ace's level (Nosepass 15 at 0 badges), or the Team's highest level when higher; no cap with all 8 badges |
 | `search_guide` | `location` (optional) | **Walkthrough notes** for the named or current location | SQL filter on `badges_required` |
 | `log_event` | `kind` (`badge_earned`, `caught`, `evolved`, `level_up`, `moved`, `undo`), `details` | The confirm line, or a refused line | Validated against game data: only the **Next gym**'s badge (a later or unknown gym gets one refusal naming only the Next gym), species in game data, levels 1 to 100, Team of at most 6, places inside the horizon. Writes the **Event** and updates **Progress** in one transaction; `undo` restores the Progress from before the last Event |
 | `set_setting` | `name` (`humor` only in the MVP), `value` 0 to 100 | The confirm line | n/a |
@@ -128,7 +129,8 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 
 | Table | From | Notes |
 |---|---|---|
-| `species`, `moves`, `type_matchups` | PokeAPI (Emerald version group) | Types as in Emerald (no Fairy) |
+| `species`, `type_matchups` | PokeAPI (Generation III) | Types as in Emerald (no Fairy) |
+| `learnsets` | PokeAPI `pokemon` moves, `emerald` version group | `species`, `move`, `method`, `level`; level-up only for now (the `method` column is ready for TM and HM moves). No `moves` table with type and power yet. |
 | `encounters` | pokeemerald `src/data/wild_encounters.json` | Land, water and fishing with rates |
 | `trainers`, `trainer_pokemon` | pokeemerald `src/data/trainer_parties.h` | Gym leaders tagged with their badge number |
 | `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro City at 0 and through Dewford Town at 1 (sources in the `events-progress` design). A location not in the table counts as past the horizon (fail closed). |

@@ -49,6 +49,12 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "refused"
   end
 
+  test "moves a Pokémon learns come only from move_learnset" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "Always call move_learnset before you name a move a Pokémon learns."
+    assert prompt =~ "Never name a move move_learnset did not return in this turn."
+  end
+
   test "the prompt shows the Progress after an Event" do
     prompt =
       Prompt.system(%{@progress | badges: [1], team: [%{"species" => "mudkip", "level" => 13}]})

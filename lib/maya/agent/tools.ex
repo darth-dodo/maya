@@ -7,6 +7,7 @@ defmodule Maya.Agent.Tools do
   alias Maya.Agent.Facts
   alias Maya.Events
   alias Maya.GameData
+  alias Maya.Horizon
 
   @definitions [
     %{
@@ -32,6 +33,19 @@ defmodule Maya.Agent.Tools do
           type: "object",
           properties: %{name: %{type: "string", description: "Pokémon name, e.g. Ralts"}},
           required: ["name"]
+        }
+      }
+    },
+    %{
+      type: "function",
+      function: %{
+        name: "move_learnset",
+        description:
+          "The moves a Pokémon learns by level up, up to the level reachable before the Next gym.",
+        parameters: %{
+          type: "object",
+          properties: %{species: %{type: "string", description: "Pokémon name, e.g. Mudkip"}},
+          required: ["species"]
         }
       }
     },
@@ -84,6 +98,17 @@ defmodule Maya.Agent.Tools do
     end
   end
 
+  def call("move_learnset", %{"species" => name}, progress) when is_binary(name) do
+    case GameData.species(Facts.species_name(name)) do
+      nil ->
+        {:error, :not_found}
+
+      s ->
+        places = Facts.places(GameData.encounters(s.name), GameData.locations(), progress)
+        Facts.move_learnset(s, GameData.learnset(s.name), places, progress, ace_level(progress))
+    end
+  end
+
   # Writes, so its result carries the new Progress for the rest of the turn.
   def call("log_event", %{"kind" => kind} = args, progress) when is_binary(kind) do
     details = if is_map(args["details"]), do: args["details"], else: %{}
@@ -94,10 +119,23 @@ defmodule Maya.Agent.Tools do
     end
   end
 
-  def call(name, _args, _progress) when name in ["gym_counter", "find_pokemon", "log_event"],
-    do: {:error, :bad_arguments}
+  def call(name, _args, _progress)
+      when name in ["gym_counter", "find_pokemon", "move_learnset", "log_event"],
+      do: {:error, :bad_arguments}
 
   def call(_name, _args, _progress), do: {:error, :unknown_tool}
+
+  # The Next gym leader's highest level; nil with every badge (no level horizon). A missing
+  # party gives 0, so the cap falls back to the Team's level and never opens up.
+  defp ace_level(progress) do
+    case Horizon.next_gym(progress) do
+      nil -> nil
+      gym -> gym.party |> GameData.trainer() |> party_levels() |> Enum.max(fn -> 0 end)
+    end
+  end
+
+  defp party_levels(%{pokemon: team}), do: Enum.map(team, & &1.level)
+  defp party_levels(nil), do: []
 
   defp types(names) do
     for name <- Enum.uniq(names), s = GameData.species(name), into: %{}, do: {name, s.types}

@@ -120,6 +120,22 @@ defmodule Maya.GameData.Parse do
     |> Enum.map(& &1["type"]["name"])
   end
 
+  @doc """
+  A PokeAPI `pokemon` reply's Emerald level-up moves as rows, in level order (PokeAPI's own
+  order on a tie). Other version groups and methods (machine, egg, tutor) are left out.
+  """
+  def learnset(species, pokemon) do
+    for %{"move" => %{"name" => move}, "version_group_details" => details} <- pokemon["moves"],
+        %{
+          "version_group" => %{"name" => "emerald"},
+          "move_learn_method" => %{"name" => "level-up" = method},
+          "level_learned_at" => level
+        } <- details do
+      %{"species" => species, "move" => move, "method" => method, "level" => level}
+    end
+    |> Enum.sort_by(& &1["level"])
+  end
+
   @doc "A PokeAPI `type` reply's attacking matchups as of Generation III, non-neutral only."
   def gen3_matchups(%{"name" => attacker} = type) when attacker in @gen3_types do
     relations =

@@ -15,6 +15,10 @@ defmodule Maya.HorizonTest do
       assert %{badge: 2, leader: "Brawly"} = Horizon.next_gym(@one_badge)
     end
 
+    test "a missing ace before the last gym keeps the Team's level as the cap" do
+      assert Horizon.level_cap(%{badges: [], team: team(5)}, nil) == 5
+    end
+
     test "with all 8 badges there is none" do
       assert Horizon.next_gym(%{badges: Enum.to_list(1..8)}) == nil
     end
@@ -49,5 +53,25 @@ defmodule Maya.HorizonTest do
 
   test "gyms/0 lists the 8 gyms in badge order" do
     assert Enum.map(Horizon.gyms(), & &1.badge) == Enum.to_list(1..8)
+  end
+
+  describe "level_cap/2" do
+    defp team(level), do: [%{"species" => "mudkip", "level" => level}]
+
+    test "at 0 badges it is the Next gym ace's level" do
+      assert Horizon.level_cap(%{badges: [], team: team(5)}, 15) == 15
+    end
+
+    test "a Team member above the ace raises it" do
+      assert Horizon.level_cap(%{badges: [], team: team(20)}, 15) == 20
+    end
+
+    test "a missing ace before the last gym keeps the Team's level as the cap" do
+      assert Horizon.level_cap(%{badges: [], team: team(5)}, nil) == 5
+    end
+
+    test "with all 8 badges there is none" do
+      assert Horizon.level_cap(%{badges: Enum.to_list(1..8), team: team(50)}, nil) == nil
+    end
   end
 end
