@@ -12,7 +12,7 @@
     <%!-- Robots per page: only pages that set :indexable (the home and factory pages) may be indexed. --%>
     <meta :if={!assigns[:indexable]} name="robots" content="noindex, nofollow" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d9a5b" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f6b3d" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08181a" />
     <%!-- Root files keep plain paths: phx.digest names them manifest-<hash>.webmanifest,
          which Plug.Static's `only:` list (exact first segment) would not serve. --%>
     <link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />
@@ -46,6 +46,14 @@
       content="Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
     />
     <meta name="twitter:image" content={url(~p"/images/og-image.png")} />
+    <%!-- Inter is the body font on every page, so it is the one preload (Fraunces swaps in). --%>
+    <link
+      rel="preload"
+      href={~p"/fonts/inter-latin-wght-normal.woff2"}
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
