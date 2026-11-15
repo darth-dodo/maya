@@ -1,4 +1,4 @@
-# Design: sunday-proof
+# Design: sunday-goal
 
 ## Context
 
@@ -17,13 +17,13 @@ See proposal.md, Why. The agent already applies the horizon in `Maya.Agent.Facts
 - **Gate job runs `mix test --only spoiler_gate` with the Postgres service.** The tool layer reads game data from Postgres, and the service container is local to the job, so the job makes no network call outside itself (the model is stubbed). The main `test` job still runs the tagged test too, so coverage does not move. Alternative: pure fixtures without the database, which would test a copy of the data, not the imported tables.
 - **`find_pokemon` rule: no place inside the horizon and not on the Team is `past_horizon`.** One condition covers both the old case (places only past the horizon) and gifts, legendaries and fossils. Alternative: a hand-kept gift and legendary list, which would drift from the data. A starter the player does not own (Torchic) also becomes `past_horizon`: fail closed, matching the horizon's rule for unknown locations.
 - **Real-model probe is its own workflow and script.** Nightly cron plus `workflow_dispatch`, `continue-on-error` on the step and `exit 0` in the script (LESSONS.md: scheduled checks never on push, checks exit 0). One Issue per run, titled with the run date, lists every leaking Question and Answer. `scripts/spoiler_probe_test.sh` feeds canned Answers through a `PROBE_ANSWERS` file and `DRY_RUN=1`, like `smoke_check_test.sh`.
-- **Phone checklist as a doc, not a Mix task.** `docs/sunday-proof.md` holds the steps and the latency SQL; `mix maya.latency` already prints the numbers. A task would only print static text.
+- **Phone checklist as `mix maya.sunday`.** One command prints the steps and the latency SQL next to the code, so Abhishek does not hunt for a doc on Sunday; `mix maya.latency` already prints the numbers. Alternative: a doc under `docs/`, which drifts from the SQL the task tests.
 
 ## Risks / Trade-offs
 
 - [The nightly probe spends OpenRouter credit, 20 Questions a night] → Abhishek decided it on 2026-11-15; dispatch is manual otherwise.
-- [A real Answer can paraphrase a Spoiler without a forbidden name] → The gate proves the tool layer never hands the model one; the nightly probe catches the named ones.
-- [Proving the gate red breaks E1's push once] → The first push carries the gate before the fix, so CI shows it red; the fix is the second push. Documented in the PR as the exception LESSONS.md asks for.
+- [A real Answer can paraphrase a Spoiler without a forbidden name] → The gate shows the tool layer never hands the model one; the nightly probe catches the named ones.
+- [Showing the gate fails breaks E1's push once] → The first push carries the gate before the fix, so CI shows it red; the fix is the second push. Documented in the PR as the exception LESSONS.md asks for.
 
 ## Migration Plan
 

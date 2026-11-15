@@ -1,4 +1,4 @@
-# Tasks: sunday-proof
+# Tasks: sunday-goal
 
 ## 1. Probe set and the spoiler gate
 
@@ -19,10 +19,10 @@
 
 ## 4. Phone checklist and docs
 
-- [ ] 4.1 Add `docs/sunday-proof.md`: the two Questions, 10 holds, Answer time under 8 s, the latency SQL from #40 and `mix maya.latency`. Verify: the doc has each item.
+- [ ] 4.1 Add `mix maya.sunday`: prints the phone checklist (the two Questions, 10 holds, Answer time under 8 s, `mix maya.latency`) and the latency SQL from #40. Verify: a Mix task test asserts each item in the output.
 - [ ] 4.2 Changelog fragment, CLAUDE.md status line. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
 
 ## Workflow follow-up
 
-- Archive with `openspec-archive-change sunday-proof` in the build PR.
+- Archive with `openspec-archive-change sunday-goal` in the build PR.
 - Abhishek runs the phone checklist and pastes the latency numbers on #40.
