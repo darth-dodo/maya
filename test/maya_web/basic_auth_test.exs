@@ -1,10 +1,10 @@
 defmodule MayaWeb.BasicAuthTest do
   use MayaWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-
   # The Talk screen and Start fresh spend API credit, so they need the one login.
   # Health checks and static files stay open for Render and the browser.
+  # The signed-in LiveView connect is covered by TalkLiveTest: its live(conn, ~p"/")
+  # calls go through the router with ConnCase's login (it needs the shared sandbox).
 
   defp signed_out(conn), do: delete_req_header(conn, "authorization")
 
@@ -35,9 +35,8 @@ defmodule MayaWeb.BasicAuthTest do
     assert conn.status == 401
   end
 
-  test "Talk screen with the configured login renders and its LiveView connects", %{conn: conn} do
-    assert conn |> get(~p"/") |> html_response(200)
-    assert {:ok, _view, _html} = live(conn, ~p"/")
+  test "Talk screen with the configured login renders", %{conn: conn} do
+    assert conn |> get(~p"/") |> html_response(200) =~ "talk-screen"
   end
 
   test "health checks and static files stay open without credentials", %{conn: conn} do
