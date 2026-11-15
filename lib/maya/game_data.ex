@@ -8,6 +8,7 @@ defmodule Maya.GameData do
   import Ecto.Query
 
   alias Maya.Repo
+  alias Maya.Voice.Vocabulary
 
   # Children before parents, so deletes never trip the trainer_pokemon foreign key.
   @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations)
@@ -46,6 +47,8 @@ defmodule Maya.GameData do
         insert!("locations", data.("locations"), ~w(name map badges_required))
       end)
 
+    # Bias names are cached from these tables.
+    Vocabulary.refresh()
     :ok
   end
 
@@ -122,6 +125,9 @@ defmodule Maya.GameData do
     Repo.all(from m in "type_matchups", select: {{m.attacker, m.defender}, m.multiplier})
     |> Map.new()
   end
+
+  @doc "Every species name (PokeAPI form, `ralts`)."
+  def species_names, do: Repo.all(from s in "species", select: s.name)
 
   @doc "All hand-written locations."
   def locations, do: Repo.all(locations_query())

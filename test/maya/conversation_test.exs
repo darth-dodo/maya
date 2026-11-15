@@ -77,6 +77,40 @@ defmodule Maya.ConversationTest do
     assert %Turn{mic_release_ms: 180, playback_start_ms: 2400} = Repo.get!(Turn, turn_id)
   end
 
+  test "STT is biased toward known names and the agent gets the corrected Question",
+       %{id: id} do
+    me = self()
+
+    stub(
+      fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        send(me, {:stt_body, body})
+        Req.Test.json(conn, %{"text" => "where do I catch rawls?"})
+      end,
+      &speak/1
+    )
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(me, {:agent_body, body})
+      Req.Test.json(conn, reply("On Route 102."))
+    end)
+
+    Conversation.question(id, "RIFF", "question.wav")
+
+    assert_receive {:stt_body, stt_body}
+    assert stt_body =~ ~r/name="context_bias"\r\n(?:[^\r\n]+\r\n)*\r\nMudkip\r\n/
+    assert stt_body =~ ~r/name="context_bias"\r\n(?:[^\r\n]+\r\n)*\r\nSootopolis City\r\n/
+
+    assert_receive {:agent_body, agent_body}
+    assert agent_body =~ "where do I catch Ralts?"
+    # Bias terms steer recognition only: a past-horizon name never reaches the model from them.
+    refute agent_body =~ "Sootopolis"
+
+    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+    assert %Turn{question: "where do I catch Ralts?"} = Repo.get!(Turn, turn_id)
+  end
+
   test "playback timings that arrive before the stream ends are stored with the turn", %{id: id} do
     me = self()
 
