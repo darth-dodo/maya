@@ -5,7 +5,7 @@ defmodule MayaWeb.SiteMetadataTest do
 
   @description "Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
 
-  defp head(conn, path \\ ~p"/"),
+  defp page_head(conn, path \\ ~p"/"),
     do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
 
   defp attr(doc, selector, name) do
@@ -16,7 +16,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "page metadata: title, description, theme colours and viewport", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
 
     assert doc |> LazyHTML.query("title") |> LazyHTML.text() |> String.trim() == "Maya"
     assert attr(doc, "meta[name='description']", "content") == @description
@@ -30,7 +30,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "iOS home screen tags and the manifest link", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
 
     assert attr(doc, "link[rel='apple-touch-icon']", "href") == "/images/apple-touch-icon.png"
     assert attr(doc, "link[rel='apple-touch-icon']", "sizes") == "180x180"
@@ -45,7 +45,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "link preview tags use absolute URLs from the configured host", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
     base = MayaWeb.Endpoint.url()
 
     assert attr(doc, "meta[property='og:title']", "content") == "Maya"
@@ -61,13 +61,16 @@ defmodule MayaWeb.SiteMetadataTest do
 
   test "no noindex on the home page", %{conn: conn} do
     robots =
-      conn |> head() |> LazyHTML.query("meta[name='robots']") |> LazyHTML.attribute("content")
+      conn
+      |> page_head()
+      |> LazyHTML.query("meta[name='robots']")
+      |> LazyHTML.attribute("content")
 
     refute Enum.any?(robots, &(&1 =~ "noindex"))
   end
 
   test "noindex on the Talk screen", %{conn: conn} do
-    assert conn |> head(~p"/talk") |> attr("meta[name='robots']", "content") ==
+    assert conn |> page_head(~p"/talk") |> attr("meta[name='robots']", "content") ==
              "noindex, nofollow"
   end
 
