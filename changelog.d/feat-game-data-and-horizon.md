@@ -1,2 +1,0 @@
-Added: `mix maya.fetch_data` writes pokeemerald (pinned commit) and PokeAPI Generation III data to committed `priv/data/`, and `mix maya.import` (or `Maya.Release.import_data/0`) loads species, type matchups, encounters, trainers, locations and the Progress seed into Postgres with no network
-Added: Spoiler horizon as pure functions (`Maya.Horizon.next_gym/1`, `badges_earned/1`, `allowed?/2`), failing closed for any location not in the hand-written Littleroot Town to Rustboro City table
