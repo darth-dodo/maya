@@ -2,14 +2,13 @@ defmodule MayaWeb.TalkLive do
   @moduledoc """
   The Talk screen at `/` (ARCHITECTURE.md 1). It only draws: the Question arrives as a
   LiveView upload from the TalkHook, the Conversation does the work, and Answer audio
-  goes back to the hook as pushed PCM events (ADR-005).
+  goes back to the hook as pushed PCM events (ADR-005). It talks to the Conversation of the
+  guest in the session (ADR-008).
   """
   use MayaWeb, :live_view
 
   alias Maya.Conversation
   alias Maya.Voice.Turn
-
-  @conversation "main"
 
   # Before the first gym only; each fact's source: openspec/changes/archive/*-home-poke-facts/design.md
   # The CSS rotation in app.css times 12 items: update both together.
@@ -33,21 +32,24 @@ defmodule MayaWeb.TalkLive do
   def poke_facts, do: @poke_facts
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, %{"guest_id" => guest_id}, socket) do
     turns =
       if connected?(socket) do
-        {:ok, _} = Conversation.ensure_started(@conversation)
-        Conversation.subscribe(@conversation)
-        Conversation.turns(@conversation)
+        {:ok, _} = Conversation.start_or_find(guest_id)
+        Conversation.subscribe(guest_id)
+        Conversation.turns(guest_id)
       else
-        Turn.recent()
+        Turn.recent(guest_id)
       end
 
     {:ok,
      socket
      |> assign(
+       guest_id: guest_id,
        turns: turns,
        voice_down: false,
+       confirm_fresh: false,
+       fresh_form: to_form(%{}),
        sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate]
      )
      |> allow_upload(:question,
@@ -60,9 +62,19 @@ defmodule MayaWeb.TalkLive do
      )}
   end
 
+  # A tab opened before guests reconnects with a session that has none: reload the page,
+  # so the browser pipeline gives it a guest.
+  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/")}
+
   defp handle_progress(:question, %{done?: true} = entry, socket) do
     audio = consume_uploaded_entry(socket, entry, fn %{path: path} -> {:ok, File.read!(path)} end)
-    Conversation.question(@conversation, audio, "question" <> Path.extname(entry.client_name))
+
+    Conversation.question(
+      socket.assigns.guest_id,
+      audio,
+      "question" <> Path.extname(entry.client_name)
+    )
+
     {:noreply, socket |> assign(voice_down: false) |> push_event("heard", %{})}
   end
 
@@ -72,7 +84,7 @@ defmodule MayaWeb.TalkLive do
   def handle_event("validate", _params, socket), do: {:noreply, socket}
 
   def handle_event("barge_in", _params, socket) do
-    Conversation.barge_in(@conversation)
+    Conversation.barge_in(socket.assigns.guest_id)
     {:noreply, socket}
   end
 
@@ -85,9 +97,16 @@ defmodule MayaWeb.TalkLive do
           into: %{},
           do: {field, ms}
 
-    Conversation.playback_started(@conversation, timings)
+    Conversation.playback_started(socket.assigns.guest_id, timings)
     {:noreply, socket}
   end
+
+  # Start fresh asks first; the confirm form posts to /fresh, which rotates the guest.
+  def handle_event("ask_fresh", _params, socket),
+    do: {:noreply, assign(socket, confirm_fresh: true)}
+
+  def handle_event("keep_talking", _params, socket),
+    do: {:noreply, assign(socket, confirm_fresh: false)}
 
   @impl true
   def handle_info({:conversation, {:turns, turns}}, socket),
@@ -150,6 +169,39 @@ defmodule MayaWeb.TalkLive do
       >
         Hold to talk
       </button>
+
+      <section id="start-fresh" class="mt-6 text-center text-sm">
+        <button
+          :if={not @confirm_fresh}
+          id="start-fresh-button"
+          type="button"
+          class="btn btn-ghost btn-sm"
+          phx-click="ask_fresh"
+        >
+          Start fresh
+        </button>
+        <.form
+          :if={@confirm_fresh}
+          for={@fresh_form}
+          id="start-fresh-confirm"
+          action={~p"/fresh"}
+          method="post"
+          class="space-y-2"
+        >
+          <p>
+            Start over with a new Conversation and no badges? This one stays saved, but leaves this screen.
+          </p>
+          <button id="start-fresh-yes" type="submit" class="btn btn-warning btn-sm">Yes, start fresh</button>
+          <button
+            id="keep-talking"
+            type="button"
+            class="btn btn-ghost btn-sm"
+            phx-click="keep_talking"
+          >
+            Keep talking
+          </button>
+        </.form>
+      </section>
 
       <div :if={@turns == []}>
         <section class="mt-8">

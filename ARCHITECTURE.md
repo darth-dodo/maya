@@ -97,12 +97,13 @@ flowchart TD
   App --> DS["DynamicSupervisor (Maya.ConversationSupervisor)"]
   App --> TS["Task.Supervisor (Maya.TaskSupervisor)"]
   App --> EP["MayaWeb.Endpoint"]
-  DS --> C1["Maya.Conversation (one, for the one player)"]
+  DS --> C1["Maya.Conversation (one per Guest)"]
 ```
 
-- **Conversation:** a GenServer started on demand under the DynamicSupervisor and found through the Registry. It owns the turn in flight: STT, agent and TTS run as supervised Tasks it monitors, so a barge-in or a crash cancels them cleanly.
+- **Guest:** `MayaWeb.Plugs.GuestId` puts a random `guest_id` in the signed session cookie; TalkLive reads it in `mount/3` (ADR-008). "Start fresh" posts to `/fresh`, which puts a new one.
+- **Conversation:** a GenServer per Guest, started on demand under the DynamicSupervisor and found through the Registry by `{:conversation, guest_id}`. After 30 idle minutes it stops normally (transient, so only crashes restart it) and the next visit reloads its turns from Postgres. It owns the turn in flight: STT, agent and TTS run as supervised Tasks it monitors, so a barge-in or a crash cancels them cleanly.
 - **TalkLive** only draws the screen and subscribes to the Conversation. A dropped socket or a phone that sleeps reconnects to the same Conversation; work in flight is not lost.
-- There is one **Conversation**, kept forever. Every Question and Answer (text only) is a row in Postgres. The agent gets the last 5 turns; the screen shows recent turns.
+- Each Guest has one **Conversation**, kept in Postgres. Every Question and Answer (text only) is a row with its `guest_id`. The agent gets the last 5 turns and the Guest's Progress; the screen shows recent turns.
 
 ## 3. Agent
 
@@ -128,10 +129,11 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 | `trainers`, `trainer_pokemon` | pokeemerald `src/data/trainer_parties.h` | Gym leaders tagged with their badge number |
 | `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro for Sunday. A location not in the table counts as past the horizon (fail closed). |
 | `walkthrough_notes` | Written by Claude from the game data | Location, `badges_required`, text. SQL search in the MVP; pgvector embeddings later, first in the cut order. |
-| `progress`, `events` | Seed `priv/progress.json` once, then `log_event` | Badges, Team, location, Humor dial. Survives deploys (ADR-006). |
-| `turns` | The Conversation | Question text, Answer text, cut flag, per-stage milliseconds |
+| `progress`, `events` | Seed `priv/progress.json` on a Guest's first read, then `log_event` | One row per `guest_id` (unique). Badges, Team, location, Humor dial. Survives deploys (ADR-006, ADR-008). |
+| `turns` | The Conversation | `guest_id` (indexed), Question text, Answer text, cut flag, per-stage milliseconds |
 
-- **Import:** `mix maya.fetch_data` pulls pokeemerald files from a pinned commit and the PokeAPI species Maya needs into `priv/data/`, which is committed. `mix maya.import` loads Postgres only from `priv/data/`, so deploys and tests never hit the network.
+- **Import:** `mix maya.fetch_data` pulls pokeemerald files from a pinned commit and the PokeAPI species Maya needs into `priv/data/`, which is committed. `mix maya.import` loads Postgres only from `priv/data/`, so deploys and tests never hit the network. It seeds no Progress. Rows from before guests belong to the Guest `legacy`.
+- **Guests:** every turns and Progress query filters by `guest_id`, in app code, not row-level security (ADR-008).
 - **Spoiler horizon:** the Next gym is the first badge not in Progress. Allowed locations are those whose `badges_required` is at most the badges earned.
 - **Latency:** each stage runs in `:telemetry.span([:maya, :voice, stage], ...)`; a handler writes the milliseconds onto the turn row. `mix maya.latency` prints p50 and p95 per stage, the numbers every voice-loop PR shows before and after.
 
@@ -170,7 +172,7 @@ From the F3 session, all Abhishek's answers:
 8. Horizon map is a hand table that fails closed.
 9. Past the horizon: "Further ahead" plus a hint, no place named.
 10. The journal is the Events log only.
-11. One Conversation forever, text in Postgres (ADR-006).
+11. One Conversation forever, text in Postgres (ADR-006); one per Guest since ADR-008.
 12. Per-stage timings stored per turn.
 13. Questions arrive as a LiveView upload (ADR-005).
 14. Format spike first, WAV fallback, no transcoding.

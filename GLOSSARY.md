@@ -26,6 +26,10 @@ _Avoid_: mic button, push-to-talk button
 The full history of Questions and Answers shown on Maya's screen as a scrolling chat.
 _Avoid_: chat log, transcript, thread
 
+**Guest**:
+One browser's signed session; owns one Conversation and one Progress.
+_Avoid_: user, account, session id (in Maya's speech)
+
 ### The player's game
 
 **Progress**:

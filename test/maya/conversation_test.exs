@@ -19,7 +19,7 @@ defmodule Maya.ConversationTest do
     end)
 
     id = "test-#{System.unique_integer([:positive])}"
-    {:ok, _pid} = Conversation.ensure_started(id)
+    {:ok, _pid} = Conversation.start_or_find(id)
     on_exit(fn -> Conversation.stop(id) end)
     Conversation.subscribe(id)
     %{id: id}
@@ -63,7 +63,7 @@ defmodule Maya.ConversationTest do
     assert_receive {:conversation, :audio_done}
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
 
-    [turn] = Turn.recent()
+    [turn] = Turn.recent(id)
     assert turn.question == "How do I earn Roxanne's badge?"
     assert turn.answer == answer
     refute turn.cut
@@ -196,7 +196,7 @@ defmodule Maya.ConversationTest do
     assert log =~ "[warning] tts failed: {:http, 503}"
     refute log =~ "Ralts"
     assert [%Turn{answer: "Where is Ralts", voice_down: true}] = Conversation.turns(id)
-    assert [%Turn{answer: "Where is Ralts"}] = Turn.recent()
+    assert [%Turn{answer: "Where is Ralts"}] = Turn.recent(id)
   end
 
   test "STT down: voice down and no turn", %{id: id} do
@@ -210,12 +210,12 @@ defmodule Maya.ConversationTest do
 
     assert log =~ "[warning] stt failed: {:http, 500}"
     assert Conversation.turns(id) == []
-    assert Turn.recent() == []
+    assert Turn.recent(id) == []
   end
 
   test "a crashed Conversation restarts under the same name and reloads its turns", %{id: id} do
-    {:ok, _} = Turn.insert(%Turn{question: "Where is Ralts", answer: "Route 102"})
-    {:ok, pid} = Conversation.ensure_started(id)
+    {:ok, _} = Turn.insert(%Turn{guest_id: id, question: "Where is Ralts", answer: "Route 102"})
+    {:ok, pid} = Conversation.start_or_find(id)
     ref = Process.monitor(pid)
 
     Process.exit(pid, :kill)
@@ -225,9 +225,51 @@ defmodule Maya.ConversationTest do
     assert [%Turn{question: "Where is Ralts"}] = Conversation.turns(id)
   end
 
+  test "two guests get two Conversations and never see each other's turns", %{id: id} do
+    other = "other-#{System.unique_integer([:positive])}"
+    {:ok, other_pid} = Conversation.start_or_find(other)
+    on_exit(fn -> Conversation.stop(other) end)
+    {:ok, pid} = Conversation.start_or_find(id)
+    assert pid != other_pid
+
+    stub(text("Where is Ralts"), &speak/1)
+    Conversation.question(id, "RIFF", "question.wav")
+    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+
+    assert [%Turn{guest_id: ^id}] = Turn.recent(id)
+    assert Conversation.turns(other) == []
+    assert Turn.recent(other) == []
+  end
+
+  test "after the idle time the Conversation stops for good, and a Question starts it again" do
+    idle_id = "idle-#{System.unique_integer([:positive])}"
+    Application.put_env(:maya, :conversation_idle_ms, 50)
+    on_exit(fn -> Application.delete_env(:maya, :conversation_idle_ms) end)
+
+    {:ok, _} =
+      Turn.insert(%Turn{guest_id: idle_id, question: "Where is Ralts", answer: "Route 102"})
+
+    {:ok, pid} = Conversation.start_or_find(idle_id)
+    on_exit(fn -> Conversation.stop(idle_id) end)
+    ref = Process.monitor(pid)
+
+    assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 1_000
+    # Not restarted: the supervisor has no child left (transient, normal exit).
+    assert DynamicSupervisor.which_children(Maya.ConversationSupervisor)
+           |> Enum.all?(fn {_, child, _, _} -> child != pid end)
+
+    Application.delete_env(:maya, :conversation_idle_ms)
+    Conversation.subscribe(idle_id)
+    stub(text("Hi"), &speak/1)
+    Conversation.question(idle_id, "RIFF", "question.wav")
+
+    assert_receive {:conversation, {:turns, [%Turn{question: "Where is Ralts"}, %Turn{id: id}]}}
+                   when is_integer(id)
+  end
+
   # The supervisor restarts the Conversation; wait for the new pid in the Registry.
   defp restarted(id, old, tries \\ 50) do
-    case Registry.lookup(Maya.ConversationRegistry, id) do
+    case Registry.lookup(Maya.ConversationRegistry, {:conversation, id}) do
       [{pid, _}] when pid != old -> pid
       _ when tries > 0 -> Process.sleep(10) && restarted(id, old, tries - 1)
     end

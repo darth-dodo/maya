@@ -23,7 +23,7 @@ Rerunning for the same Issue replaces its row and file; never add a second row.
 
 ## 2. Metrics row
 
-Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls`
+Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls,escaped_defects`
 
 | Column | Rule |
 |---|---|
@@ -38,6 +38,7 @@ Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_gree
 | `review_blockers` | Items under "Blocking" in the `factory:review` PR comment; "None" is 0 |
 | `permission_prompts` | Best effort: tool calls in the transcript window that waited on a human approval. Blank if the transcript does not show them |
 | `denied_calls` | Best effort: `is_error` tool results in the window saying denied, refused or "too complex to verify". Blank if no transcript |
+| `escaped_defects` | Production bugs found after merge that trace to this PR (a `bug` Issue, a fix PR, a phone or log finding). 0 when the evidence shows no production bug; blank while the PR's own production check (phone test, deploy check) is still open. When a later bug traces to an older PR, update that PR's row |
 
 Blank means unknown, never 0. Never guess a number.
 

@@ -10,9 +10,10 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 ## Who and where
 
-- One player: Abhishek, playing Pokémon Emerald on a GBA or DS, with Maya on a phone beside it. The phone is a dedicated Maya device.
+- The main player: Abhishek, playing Pokémon Emerald on a GBA or DS, with Maya on a phone beside it. The phone is a dedicated Maya device.
+- Every browser is a **Guest** with one signed session cookie, and each Guest has its own **Conversation** and **Progress** (ADR-008). "Start fresh" on the Talk screen gives the browser a new Guest; the old one's rows stay saved.
 - English only.
-- One login (`Plug.BasicAuth`). No accounts, no other players.
+- One login (`Plug.BasicAuth`, #49) is planned. No accounts.
 
 ## The experience
 
