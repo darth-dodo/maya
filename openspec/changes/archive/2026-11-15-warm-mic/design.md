@@ -8,12 +8,14 @@ See proposal.md, Why. Today `press()` calls `openMic()` (fresh `getUserMedia`, a
 
 **Goals:** no lost first syllable on any press after the first in a turn sequence; mic indicator off within about 5 s of the last turn; no server latency change.
 
-**Non-Goals:** fixing the very first cold press of a visit (the browser has no audio before `getUserMedia` resolves; the `recording` cue already tells the Guest when to speak); AudioWorklet; post-roll.
+**Non-Goals:** fixing the very first cold press of a visit (the browser has no audio before `getUserMedia` resolves; the `recording` cue already tells the Guest when to speak); AudioWorklet.
 
 ## Decisions
 
 - **Keep the mic for the turn, not the visit.** Closing 4 s after idle keeps #79's goal (the mic was live for the whole page session before #81) while covering follow-ups and barge-in, which happen while Maya speaks. Alternative: keep it open for the page session; rejected, it undoes #79.
 - **Pre-roll in the existing `onaudioprocess`.** While open and not held, blocks go into a ring capped at the pre-roll length (300 ms is 14,400 samples at 48 kHz); on press the ring is drained into `samples`. No new node, no new dependency. 300 ms covers a typical press-to-speech reaction overlap; configurable as a hook constant.
+- **Post-roll after release.** On release the button goes to `uploading` at once and the mic keeps writing into the clip for the post-roll (150 ms, `data-post-roll-ms` on `#talk-button`); a timer then encodes and uploads. Cost: release to upload, and so `mic_release_ms` and `playback_start_ms`, about 150 ms later. A press during the tail is ignored like any press while `uploading`.
+- **What leaves the phone.** The pre-roll ring exists only while the mic is warm (opened by a press, kept for the turn and 4 s after), lives in memory, is overwritten every block and is dropped when the mic closes. It is only ever read by a press, which sends the 300 ms just before that press as the head of the clip; with the 150 ms tail after release, nothing else heard outside a hold is ever sent.
 - **Echo cancellation stays on** (`echoCancellation: true` in today's constraints), so a barge-in pre-roll recorded while Maya speaks carries little of her voice.
 - **Close on hidden.** `visibilitychange` to hidden closes at once: a phone in a pocket never keeps the mic.
 

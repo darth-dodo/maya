@@ -4,6 +4,10 @@
 // and plays the server's pushed PCM (32-bit float little-endian, at data-sample-rate) as it arrives.
 
 const STT_RATE = 16000
+// Warm mic (#94): audio kept from just before a press, and how long the mic stays open once
+// the button is back to idle (#79: the phone's mic indicator goes off soon after the last turn).
+const PRE_ROLL_MS = 300
+const MIC_IDLE_MS = 4000
 
 // Averages input samples into each output sample (fromRate >= toRate).
 export function downsample(input, fromRate, toRate) {
@@ -65,14 +69,39 @@ export function alignF32(leftover, bytes) {
   return rem ? [bytes.subarray(0, -rem), bytes.slice(-rem)] : [bytes, null]
 }
 
-// The hold end report the server logs (#76, #79): which event ended the hold, how long it was,
-// whether pointer capture was lost before the release, and press to live mic time when the mic
-// went live before the release.
-export function holdReport(endedBy, pressedAt, releasedAt, lostCapture, micLiveAt) {
+// The hold end report the server logs (#76, #79, #94): which event ended the hold, how long it
+// was, whether pointer capture was lost before the release, press to live mic time when the mic
+// went live before the release (0 on a warm press), whether the mic was already open, and the
+// tail recorded after the release.
+export function holdReport(endedBy, pressedAt, releasedAt, lostCapture, micLiveAt, warm, postRollMs) {
   const ms = (from, to) => Math.max(0, Math.round(to - from))
-  const report = {ended_by: endedBy, hold_ms: ms(pressedAt, releasedAt), lost_capture: lostCapture}
+  const report = {ended_by: endedBy, hold_ms: ms(pressedAt, releasedAt), lost_capture: lostCapture,
+    warm, post_roll_ms: postRollMs}
   if (micLiveAt != null) report.mic_open_ms = ms(pressedAt, micLiveAt)
   return report
+}
+
+// The pre-roll ring (#94): the blocks heard while the mic is warm and no hold is active, cut to
+// the last `max` samples. Only a press ever reads it; everything older is dropped here.
+export function pushPreRoll(ring, block, max) {
+  const out = [...ring, block]
+  let extra = out.reduce((n, b) => n + b.length, 0) - max
+  while (extra > 0) {
+    if (out[0].length <= extra) {
+      extra -= out.shift().length
+    } else {
+      out[0] = out[0].subarray(extra)
+      extra = 0
+    }
+  }
+  return out
+}
+
+// When to close a warm mic: at once on a hidden page, after the idle delay once the button is
+// idle with no hold, otherwise never (null) while a turn is in flight.
+export function micCloseDelay(state, pressed, hidden, idleMs) {
+  if (hidden) return 0
+  return state === "idle" && !pressed ? idleMs : null
 }
 
 // Stops every track and unhooks the capture nodes, so the phone's mic indicator goes off (#79).
@@ -95,8 +124,10 @@ function concat(chunks) {
 export const TalkHook = {
   mounted() {
     this.sampleRate = Number(this.el.dataset.sampleRate)
+    this.postRollMs = Number(this.el.dataset.postRollMs) || 0
     this.sources = []
     this.samples = []
+    this.preRoll = []
     this.state = "idle" // the server renders idle on the button and the screen root
 
     this.el.addEventListener("pointerdown", e => this.press(e))
@@ -109,6 +140,9 @@ export const TalkHook = {
     // iOS: keep the touch from starting a scroll or the text loupe under the finger.
     this.el.addEventListener("touchstart", e => e.preventDefault(), {passive: false})
     this.el.addEventListener("contextmenu", e => e.preventDefault())
+    // A phone in a pocket never keeps the mic.
+    this.onVisibility = () => this.scheduleMicClose()
+    document.addEventListener("visibilitychange", this.onVisibility)
 
     this.handleEvent("heard", () => {
       if (this.state !== "uploading") return
@@ -121,10 +155,26 @@ export const TalkHook = {
   },
 
   destroyed() {
+    document.removeEventListener("visibilitychange", this.onVisibility)
+    clearTimeout(this.tailTimer)
     this.stopAudio()
+    this.dropMic()
+    this.ctx?.close()
+  },
+
+  dropMic() {
+    clearTimeout(this.micTimer)
     closeMic(this.mic)
     this.mic = null
-    this.ctx?.close()
+    this.preRoll = []
+  },
+
+  scheduleMicClose() {
+    clearTimeout(this.micTimer)
+    if (!this.mic) return
+    const delay = micCloseDelay(this.state, this.pressed, document.hidden, MIC_IDLE_MS)
+    if (delay === 0) this.dropMic()
+    else if (delay != null) this.micTimer = setTimeout(() => this.dropMic(), delay)
   },
 
   // The button's labels follow its own data-state at once (CSS); the screen root (ring, card,
@@ -133,6 +183,7 @@ export const TalkHook = {
     if (state !== this.state) this.pushEvent("talk_state", {state})
     this.state = state
     this.el.dataset.state = state
+    this.scheduleMicClose()
   },
 
   // Ignored elements still merge the server's data attributes on every patch
@@ -166,6 +217,16 @@ export const TalkHook = {
     this.micLiveAt = null
     this.lostCapture = false
     this.samples = []
+    if (this.mic) {
+      // Warm press: the pre-roll heads the clip and the button listens at once.
+      this.warm = true
+      this.samples = this.preRoll
+      this.preRoll = []
+      this.micLiveAt = this.pressedAt
+      this.recording = true
+      return this.set("recording")
+    }
+    this.warm = false
     let mic
     try {
       mic = await this.openMic()
@@ -176,46 +237,58 @@ export const TalkHook = {
     // Released (or pressed again) while the mic was opening: drop this mic at once.
     if (this.hold !== hold || !this.pressed) return closeMic(mic)
     this.mic = mic
+    this.preRoll = []
     this.micLiveAt = performance.now()
     this.recording = true // samples count from the live stream, and only then the button listens
     this.set("recording")
   },
 
-  // A fresh mic per hold (#79), closed again on release.
+  // Opened on a cold press; stays open for the turn and closes MIC_IDLE_MS after idle (#79, #94).
   async openMic() {
     const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}})
     const source = this.ctx.createMediaStreamSource(stream)
     // shortcut: ScriptProcessorNode is deprecated; move to an AudioWorklet if it glitches on a phone.
     const node = this.ctx.createScriptProcessor(4096, 1, 1)
+    const preRollMax = Math.round(this.ctx.sampleRate * PRE_ROLL_MS / 1000)
     node.onaudioprocess = e => {
-      if (this.recording) this.samples.push(new Float32Array(e.inputBuffer.getChannelData(0)))
+      const block = new Float32Array(e.inputBuffer.getChannelData(0))
+      if (this.recording) this.samples.push(block)
+      else this.preRoll = pushPreRoll(this.preRoll, block, preRollMax)
     }
     source.connect(node)
     node.connect(this.ctx.destination) // Chrome only runs the node when it is connected; it outputs silence
     return {stream, source, node}
   },
 
-  // Idempotent: the first pointerup or pointercancel ends the hold and closes the mic, any later
-  // one returns. A release before the mic is live sends nothing.
+  // Idempotent: the first pointerup or pointercancel ends the hold, any later one returns. A
+  // release before the mic is live sends nothing. The button shows sent at once while the mic
+  // keeps recording for the post-roll, so a clipped last word is kept; then the clip uploads.
   release(endedBy) {
     if (!this.pressed) return
     const releasedAt = performance.now()
     const wasRecording = this.recording
+    const tail = wasRecording ? this.postRollMs : 0
     this.pressed = false
-    this.recording = false
-    closeMic(this.mic)
-    this.mic = null
-    this.pushEvent("hold_ended", holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt))
-    if (!wasRecording || this.samples.length === 0) return this.set("idle")
+    this.pushEvent("hold_ended",
+      holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt, this.warm, tail))
+    if (!wasRecording) return this.set("idle")
 
-    const wav = encodeWav(downsample(concat(this.samples), this.ctx.sampleRate, STT_RATE), STT_RATE)
-    this.samples = []
     this.marks = {release: releasedAt}
     this.done = false
     this.reported = false
     this.nextTime = 0
     this.leftover = null
     this.set("uploading")
+    this.tailTimer = setTimeout(() => this.send(), tail)
+  },
+
+  send() {
+    this.recording = false
+    const samples = this.samples
+    this.samples = []
+    if (this.state !== "uploading") return // voice went down during the tail: the turn is over
+    if (samples.length === 0) return this.set("idle")
+    const wav = encodeWav(downsample(concat(samples), this.ctx.sampleRate, STT_RATE), STT_RATE)
     this.upload("question", [new File([wav], "question.wav", {type: "audio/wav"})])
   },
 
