@@ -3,12 +3,14 @@ defmodule MayaWeb.Endpoint do
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
+  # Not encrypted: it holds only the guest id its own browser already has (ADR-008).
+  # max_age keeps the guest when the phone browser closes; without it the cookie ends then.
   @session_options [
     store: :cookie,
     key: "_maya_key",
     signing_salt: "5QlWK30m",
-    same_site: "Lax"
+    same_site: "Lax",
+    max_age: 60 * 60 * 24 * 365
   ]
 
   socket "/live", Phoenix.LiveView.Socket,

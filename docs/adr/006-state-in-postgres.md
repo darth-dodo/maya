@@ -1,6 +1,6 @@
 # 006: Progress and the Conversation live in Postgres
 
-- Status: Accepted
+- Status: Accepted, partly superseded by 008 (one Conversation per guest)
 - Date: 2026-11-14
 
 ## Context

@@ -11,7 +11,7 @@ defmodule Maya.Application do
       MayaWeb.Telemetry,
       Maya.Repo,
       {Phoenix.PubSub, name: Maya.PubSub},
-      # The voice loop (ARCHITECTURE.md 2): one Conversation, found by name, its turn work in Tasks.
+      # The voice loop (ARCHITECTURE.md 2): one Conversation per guest, found by name, its turn work in Tasks.
       {Registry, keys: :unique, name: Maya.ConversationRegistry},
       {DynamicSupervisor, name: Maya.ConversationSupervisor, strategy: :one_for_one},
       {Task.Supervisor, name: Maya.TaskSupervisor},

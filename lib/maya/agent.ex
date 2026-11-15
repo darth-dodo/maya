@@ -12,14 +12,19 @@ defmodule Maya.Agent do
   @max_rounds 4
   @history 5
 
+  @doc """
+  Answers one Question for the guest in `opts[:guest_id]`, against that guest's Progress
+  (ADR-008). Without a guest there is no Progress, so it returns `{:error, :no_progress}`.
+  `opts[:model]` overrides the configured model.
+  """
   @spec answer(String.t(), [map()], keyword()) :: {:ok, String.t()} | {:error, term()}
-  def answer(question, turns, opts \\ []) do
+  def answer(question, turns, opts) do
     model = opts[:model] || voice(:agent_model)
 
     # One budget for the whole stage, so 4 slow rounds cannot leave the player in silence.
     deadline = System.monotonic_time(:millisecond) + voice(:agent_timeout_ms)
 
-    with %{} = progress <- GameData.progress() || {:error, :no_progress},
+    with %{} = progress <- guest_progress(opts[:guest_id]),
          {:ok, req} <- client() do
       loop(
         {req, deadline},
@@ -30,6 +35,9 @@ defmodule Maya.Agent do
       )
     end
   end
+
+  defp guest_progress(guest_id) when is_binary(guest_id), do: GameData.progress(guest_id)
+  defp guest_progress(_none), do: {:error, :no_progress}
 
   @doc "The system prompt, the last 5 turns as user and assistant messages, then the Question."
   def messages(system, turns, question) do

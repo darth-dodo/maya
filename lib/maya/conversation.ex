@@ -1,12 +1,14 @@
 defmodule Maya.Conversation do
   @moduledoc """
-  The one Conversation (ARCHITECTURE.md 2). It owns the turn in flight: STT, then the
-  agent (with the last 5 turns), then a streamed TTS Answer.
+  One guest's Conversation (ARCHITECTURE.md 2, ADR-008), found by `guest_id`. It owns the
+  turn in flight: STT, then the agent (with the last 5 turns), then a streamed TTS Answer.
+  After 30 idle minutes it stops normally; the next start reloads its turns from Postgres.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
   `{:audio, pcm}`, `:audio_done` and `:voice_down`.
   """
-  use GenServer
+  # Transient: a crash restarts it, an idle stop does not.
+  use GenServer, restart: :transient
 
   require Logger
 
@@ -15,10 +17,11 @@ defmodule Maya.Conversation do
 
   @not_heard "I did not catch that."
   @lost "Lost my train of thought, ask again?"
+  @idle :timer.minutes(30)
 
   ## Client
 
-  def ensure_started(id \\ "main") do
+  def start_or_find(id) when is_binary(id) do
     case DynamicSupervisor.start_child(Maya.ConversationSupervisor, {__MODULE__, id}) do
       {:ok, pid} -> {:ok, pid}
       {:error, {:already_started, pid}} -> {:ok, pid}
@@ -27,7 +30,7 @@ defmodule Maya.Conversation do
   end
 
   def stop(id) do
-    case Registry.lookup(Maya.ConversationRegistry, id) do
+    case Registry.lookup(Maya.ConversationRegistry, {:conversation, id}) do
       [{pid, _}] -> DynamicSupervisor.terminate_child(Maya.ConversationSupervisor, pid)
       [] -> :ok
     end
@@ -39,21 +42,29 @@ defmodule Maya.Conversation do
   def subscribe(id), do: Phoenix.PubSub.subscribe(Maya.PubSub, topic(id))
 
   def turns(id), do: GenServer.call(via(id), :turns)
-  def question(id, audio, filename), do: GenServer.cast(via(id), {:question, audio, filename})
+  # Starts the Conversation first, so a Question after an idle stop is not dropped.
+  def question(id, audio, filename) do
+    {:ok, pid} = start_or_find(id)
+    GenServer.cast(pid, {:question, audio, filename})
+  end
+
   def barge_in(id), do: GenServer.cast(via(id), :barge_in)
 
   @doc "The screen's timings for the latest turn: `mic_release_ms` and `playback_start_ms`."
   def playback_started(id, timings), do: GenServer.cast(via(id), {:timings, timings})
 
-  defp via(id), do: {:via, Registry, {Maya.ConversationRegistry, id}}
+  defp via(id), do: {:via, Registry, {Maya.ConversationRegistry, {:conversation, id}}}
 
   ## Server
 
   @impl true
-  def init(id), do: {:ok, %{id: id, turns: Turn.recent(), current: nil}}
+  def init(id) do
+    idle = Application.get_env(:maya, :conversation_idle_ms, @idle)
+    {:ok, %{id: id, idle: idle, turns: Turn.recent(id), current: nil}, idle}
+  end
 
   @impl true
-  def handle_call(:turns, _from, state), do: {:reply, all_turns(state), state}
+  def handle_call(:turns, _from, state), do: {:reply, all_turns(state), state, state.idle}
 
   @impl true
   def handle_cast({:question, audio, filename}, state) do
@@ -68,13 +79,16 @@ defmodule Maya.Conversation do
         end)
       end)
 
-    {:noreply, %{state | current: %{ref: ref, task: task, stage: :stt, turn: %Turn{}}}}
+    noreply(%{
+      state
+      | current: %{ref: ref, task: task, stage: :stt, turn: %Turn{guest_id: state.id}}
+    })
   end
 
-  def handle_cast(:barge_in, state), do: {:noreply, cut(state)}
+  def handle_cast(:barge_in, state), do: noreply(cut(state))
 
   def handle_cast({:timings, timings}, %{current: %{turn: turn} = c} = state) do
-    {:noreply, %{state | current: %{c | turn: struct(turn, timings)}}}
+    noreply(%{state | current: %{c | turn: struct(turn, timings)}})
   end
 
   def handle_cast({:timings, timings}, %{turns: turns} = state) do
@@ -82,25 +96,27 @@ defmodule Maya.Conversation do
       %Turn{id: id} = last when is_integer(id) ->
         {:ok, saved} = Turn.put_timings(last, timings)
 
-        {:noreply,
-         %{state | turns: List.replace_at(turns, -1, %{saved | voice_down: last.voice_down})}}
+        noreply(%{
+          state
+          | turns: List.replace_at(turns, -1, %{saved | voice_down: last.voice_down})
+        })
 
       _ ->
-        {:noreply, state}
+        noreply(state)
     end
   end
 
   @impl true
   def handle_info({ref, result}, %{current: %{task: %Task{ref: ref}}} = state) do
     Process.demonitor(ref, [:flush])
-    {:noreply, finished(state.current.stage, result, state)}
+    noreply(finished(state.current.stage, result, state))
   end
 
   def handle_info(
         {:DOWN, ref, :process, _pid, reason},
         %{current: %{task: %Task{ref: ref}}} = state
       ) do
-    {:noreply, finished(state.current.stage, {:error, reason}, state)}
+    noreply(finished(state.current.stage, {:error, reason}, state))
   end
 
   def handle_info({:tts_chunk, ref, pcm}, %{current: %{ref: ref, turn: turn} = c} = state) do
@@ -116,15 +132,21 @@ defmodule Maya.Conversation do
       end
 
     broadcast(state, {:audio, pcm})
-    {:noreply, %{state | current: c}}
+    noreply(%{state | current: c})
   end
 
   def handle_info({:stage_ms, ref, stage, ms}, %{current: %{ref: ref, turn: turn} = c} = state) do
-    {:noreply, %{state | current: %{c | turn: Map.put(turn, stage, ms)}}}
+    noreply(%{state | current: %{c | turn: Map.put(turn, stage, ms)}})
   end
 
+  # No message for the idle time: stop; the guest's turns are already in Postgres.
+  def handle_info(:timeout, state), do: {:stop, :normal, state}
+
   # Late chunks, timings and task results of a cut or finished turn.
-  def handle_info(_stale, state), do: {:noreply, state}
+  def handle_info(_stale, state), do: noreply(state)
+
+  # Every reply re-arms the idle timeout (GenServer timeout, reset by any message).
+  defp noreply(state), do: {:noreply, state, state.idle}
 
   ## Turn steps
 
@@ -138,7 +160,7 @@ defmodule Maya.Conversation do
     task =
       run(fn ->
         :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
-          {Agent.answer(question, turns), %{conversation: me, ref: ref}}
+          {Agent.answer(question, turns, guest_id: state.id), %{conversation: me, ref: ref}}
         end)
       end)
 

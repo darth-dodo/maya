@@ -33,5 +33,6 @@ What gets easier, what gets harder, what we will check.
 | 003 | [OpenSpec owns the spec station](003-openspec-for-specs.md) | Accepted |
 | 004 | [Facts only from tools and data](004-facts-only-from-tools.md) | Accepted |
 | 005 | [Voice transport over the LiveView socket](005-voice-transport-over-liveview.md) | Accepted |
-| 006 | [Progress and the Conversation live in Postgres](006-state-in-postgres.md) | Accepted |
+| 006 | [Progress and the Conversation live in Postgres](006-state-in-postgres.md) | Accepted, partly superseded by 008 |
 | 007 | [Agent model](007-agent-model.md) | Proposed |
+| 008 | [Guest sessions](008-guest-sessions.md) | Accepted |
