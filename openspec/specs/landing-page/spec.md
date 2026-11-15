@@ -2,20 +2,19 @@
 
 ## Purpose
 
-What a visitor sees at the site root before any Maya feature exists: Maya's name and tagline, and nothing from the web framework's generator.
+What a visitor sees at the site root around the Talk screen: Maya's name, the Emerald ball and badge case in the trainer card, Pokémon facts, and nothing from the web framework's generator.
 
 ## Requirements
 
 ### Requirement: Maya identity on the home page
-The home page SHALL show the heading "Maya" in the element with id `maya-heading` and the tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion." in the element with id `tagline`.
+The home page SHALL name Maya once, in the app header link to `/`, and SHALL have exactly one top-level heading, "Talk to Maya", with id `talk-heading`, visually hidden so it does not repeat the header. It SHALL NOT show the old `#maya-heading` or `#tagline`.
 
 #### Scenario: Visitor opens the home page
 - **WHEN** a visitor requests `/`
 - **THEN** the response is HTTP 200
-- **AND** the page contains a top-level heading with the text "Maya"
-- **AND** the page contains the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
-- **AND** the element `#maya-heading` has the text "Maya"
-- **AND** the element `#tagline` has the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
+- **AND** the header link to `/` reads "Maya"
+- **AND** the page has one `h1`, `#talk-heading`, reading "Talk to Maya"
+- **AND** the page has no `#maya-heading` and no `#tagline`
 
 ### Requirement: No framework marketing on the home page
 The home page, including the app layout around it, SHALL NOT show web framework generator content: marketing copy, framework documentation or repository links, framework logos or version numbers, or framework names in the page title.
@@ -31,50 +30,12 @@ The home page, including the app layout around it, SHALL NOT show web framework 
 - **WHEN** a visitor requests `/`
 - **THEN** the HTML title is "Maya"
 
-### Requirement: Poke Ball themed hero
-The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside a hero with id `maya-hero` whose background is the calm tide backdrop served from `/images/backdrops/tide.jpg`.
-
-#### Scenario: Poke Ball is present
-- **WHEN** a visitor requests `/`
-- **THEN** the element `#pokeball` exists
-- **AND** it contains no `img` element
-
-#### Scenario: Emerald ball on the tide backdrop
-- **WHEN** a visitor requests `/`
-- **THEN** `#pokeball` has the class `pokeball-emerald`
-- **AND** `#maya-hero` has `data-backdrop="tide"`
-
 ### Requirement: Backdrop images
 Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokemon, people, text or logos.
 
 #### Scenario: Backdrops are served
 - **WHEN** a visitor requests `/images/backdrops/tide.jpg`, `/images/backdrops/dusk.jpg` or `/images/backdrops/night.jpg`
 - **THEN** the response is 200 with content type `image/jpeg`
-
-### Requirement: Mudkip hype
-The home page SHALL show the line "Mudkip hype: 100. Best starter, no debate." in the element with id `mudkip-hype`.
-
-#### Scenario: Hype line
-- **WHEN** a visitor requests `/`
-- **THEN** the element `#mudkip-hype` has the text "Mudkip hype: 100. Best starter, no debate."
-
-### Requirement: Spoiler-free badge case
-The home page SHALL show, while the Conversation is empty, a badge case with id `badge-case` holding exactly 8 badge slots, each marked as not earned and labelled only by its number, and SHALL NOT name any gym, gym leader or badge. Once the Conversation has a turn, the badge case is not shown.
-
-#### Scenario: Eight empty slots
-- **WHEN** a visitor requests `/` and the Conversation is empty
-- **THEN** `#badge-case` contains exactly 8 elements with class `badge-slot`
-- **AND** every slot has `data-earned="false"`
-- **AND** the slots are labelled "Badge 1 of 8" through "Badge 8 of 8"
-
-#### Scenario: No spoilers
-- **WHEN** a visitor requests `/`
-- **THEN** the page contains none of the Hoenn gym leader names (Roxanne, Brawly, Wattson, Flannery, Norman, Winona, Tate, Liza, Juan)
-- **AND** none of the Hoenn badge names (Stone, Knuckle, Dynamo, Heat, Balance, Feather, Mind, Rain) followed by "Badge"
-
-#### Scenario: Hidden once the Conversation starts
-- **WHEN** a visitor requests `/` and the Conversation has a turn
-- **THEN** the page has no `#badge-case`
 
 ### Requirement: Original art only
 The home page SHALL NOT load images, fonts, stylesheets or scripts from any host other than its own, and SHALL NOT contain `img` elements.
@@ -105,3 +66,34 @@ While the Conversation is empty, the home page SHALL show a list `#poke-facts` o
 #### Scenario: Facts hidden once the Conversation starts
 - **WHEN** a visitor requests `/` and the Conversation has a turn
 - **THEN** the page has no `#poke-facts`
+
+### Requirement: Poke Ball in the trainer card
+The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
+
+#### Scenario: Poke Ball is present
+- **WHEN** a visitor requests `/`
+- **THEN** the element `#pokeball` exists
+- **AND** it contains no `img` element
+
+#### Scenario: Emerald ball in the trainer card
+- **WHEN** a visitor requests `/`
+- **THEN** `#trainer-card #pokeball` has the class `pokeball-emerald`
+- **AND** the page has no `#maya-hero`
+
+### Requirement: Badge case in the trainer card
+The home page SHALL show, in the trainer card, a badge case with id `badge-case` holding exactly 8 badge slots, each labelled only by its number and marked earned or not from the Guest's Progress. It SHALL NOT name any badge, and SHALL NOT name any gym or gym leader past the Guest's Next gym. The badge case stays shown once the Conversation has a turn.
+
+#### Scenario: Eight empty slots
+- **WHEN** a new Guest requests `/`
+- **THEN** `#badge-case` contains exactly 8 elements with class `badge-slot`
+- **AND** every slot has `data-earned="false"`
+- **AND** the slots are labelled "Badge 1 of 8" through "Badge 8 of 8"
+
+#### Scenario: No spoilers
+- **WHEN** a new Guest requests `/`
+- **THEN** the page names Roxanne, the Next gym, and none of the later Hoenn gym leaders (Brawly, Wattson, Flannery, Norman, Winona, Tate, Liza, Juan)
+- **AND** none of the Hoenn badge names (Stone, Knuckle, Dynamo, Heat, Balance, Feather, Mind, Rain) followed by "Badge"
+
+#### Scenario: Shown once the Conversation starts
+- **WHEN** a visitor requests `/` and the Conversation has a turn
+- **THEN** the page still has `#badge-case`
