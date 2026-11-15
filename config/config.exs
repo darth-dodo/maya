@@ -22,6 +22,8 @@ config :maya, :voice,
   # Generated speech is mono at 24 kHz (Mistral audio formats page); the hook plays at this rate.
   tts_sample_rate: 24_000,
   stt_timeout_ms: 8_000,
+  # The pending Question's countdown before the agent (#95); 0 sends at once.
+  confirm_ms: 2_000,
   # Realtime STT (ADR-009): off until the spike and `mix maya.stt_eval` run with the real key;
   # config/runtime.exs turns it on with MAYA_STT_REALTIME=true. Off means batch STT only.
   stt_realtime: false,

@@ -64,6 +64,7 @@ sequenceDiagram
   H->>L: release + 150 ms post-roll: stream_end  [mark: mic_release]
   C->>S: batch POST /v1/audio/transcriptions on the buffer (stt_final batch, or fallback)  [stt: release to final]
   S-->>C: final transcript (audio dropped)
+  C-->>L: Pending Question with countdown (confirm_ms, default 2 s); a tap edits or cancels  [confirm: STT done to agent]
   C->>A: last 5 turns + Question  [span: agent]
   A-->>C: Answer text (2 to 3 sentences)
   C->>T: POST /v1/audio/speech, stream  [span: tts_first_byte]
@@ -79,6 +80,8 @@ sequenceDiagram
 - **Recording format:** MediaRecorder gives MP4/AAC on iOS and WebM/Opus on Chrome; Mistral does not document which containers transcription accepts ([audio formats](https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats)). Block 2 starts with a curl spike on one real clip of each. If either fails, the hook records 16 kHz mono WAV with Web Audio instead. No server transcoding.
 - **STT:** `voxtral-mini-transcribe-3`, multipart `file` (the buffered stream with a WAV header), `language: en` and one `context_bias` field per known name ([transcribe files](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files), [context bias](https://docs.mistral.ai/studio/audio/speech-to-text/bias-context-and-vocabulary)). `Maya.Voice.Vocabulary` builds the names from game data and the Guest's Progress (at most 400) and snaps a near-miss name in the transcript before the agent; bias names are never shown or sent to the model. The clip is dropped after the call; only the transcript is kept.
 - **TTS:** Voxtral TTS 3 with `stream: true`, `response_format: pcm`; server-sent events `speech.audio.delta` then `speech.audio.done` ([stream speech](https://docs.mistral.ai/studio/audio/text-to-speech/stream-speech)). The server relays chunks over the socket (STT and TTS are always proxied, never called from the browser). The hook plays them with Web Audio as they arrive. The PCM sample rate is checked in the Block 2 spike before playback code is written.
+- **Pending Question (#95):** a non-empty transcript waits `:confirm_ms` (default 2000, 0 sends at once) in `#pending-question` before the agent. A tap stops the countdown and opens `#edit-form`; Send uses the edited text (1 to 300 characters, no `Vocabulary.correct`), Cancel stores nothing, and a new hold discards it. The countdown lives in the Conversation (`:confirm` and `:editing` stages), so the client never picks the text of an untouched Question. `turns.confirm_ms` holds the wait plus any edit; Answer time still counts from release.
+- **Typed Question (#95):** `#type-button` opens `#type-form`; Send cuts any turn in flight and goes straight to the agent (no STT, no countdown). The turn stores `typed` true with blank `mic_release_ms`, `stt_ms` and `confirm_ms`; `playback_start_ms` counts from Send.
 - **Barge-in:** a hold while Maya speaks stops the audio graph at once, the hook sends `barge_in`, and the Conversation cancels the TTS stream. The cut **Answer** stays as text.
 - **Answer time:** p50 at most 5 s, p95 at most 8 s, from mic release to playback start.
 
@@ -134,7 +137,7 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 | `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro City at 0 and through Dewford Town at 1 (sources in the `events-progress` design). A location not in the table counts as past the horizon (fail closed). |
 | `walkthrough_notes` | Written by Claude from the game data | Location, `badges_required`, text. SQL search in the MVP; pgvector embeddings later, first in the cut order. |
 | `progress`, `events` | Seed `priv/progress.json` on a Guest's first read, then `log_event` | One row per `guest_id` (unique). Badges, Team, location, Humor dial. Survives deploys (ADR-006, ADR-008). |
-| `turns` | The Conversation | `guest_id` (indexed), Question text, Answer text, cut flag, per-stage milliseconds |
+| `turns` | The Conversation | `guest_id` (indexed), Question text, Answer text, cut flag, `typed` flag, `stt_source`, per-stage milliseconds (including `confirm_ms`) |
 
 - **Import:** `mix maya.fetch_data` pulls pokeemerald files from a pinned commit and the PokeAPI species Maya needs into `priv/data/`, which is committed. `mix maya.import` loads Postgres only from `priv/data/`, so deploys and tests never hit the network. It seeds no Progress. Rows from before guests belong to the Guest `legacy`.
 - **Guests:** every turns and Progress query filters by `guest_id`, in app code, not row-level security (ADR-008).

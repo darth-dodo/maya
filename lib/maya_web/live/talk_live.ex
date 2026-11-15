@@ -68,7 +68,10 @@ defmodule MayaWeb.TalkLive do
        sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate],
        post_roll_ms: @post_roll_ms,
        live_question: nil,
-       pending_question: nil
+       pending_question: nil,
+       pending_ms: nil,
+       edit_form: nil,
+       type_form: nil
      )}
   end
 
@@ -115,7 +118,7 @@ defmodule MayaWeb.TalkLive do
   @impl true
   def handle_event("stream_start", _params, socket) do
     Conversation.stream_start(socket.assigns.guest_id)
-    {:noreply, assign(socket, voice_down: false, live_question: nil, pending_question: nil)}
+    {:noreply, socket |> assign(voice_down: false, live_question: nil) |> clear_pending()}
   end
 
   def handle_event("audio_chunk", %{"audio" => b64}, socket) when is_binary(b64) do
@@ -174,6 +177,48 @@ defmodule MayaWeb.TalkLive do
 
   def handle_event("hold_ended", _params, socket), do: {:noreply, socket}
 
+  # Tap on the pending Question: the countdown stops and the editor opens with its text.
+  def handle_event("edit_pending", _params, socket) do
+    case Conversation.edit(socket.assigns.guest_id) do
+      :ok ->
+        form = to_form(%{"text" => socket.assigns.pending_question}, as: :edit)
+        {:noreply, assign(socket, edit_form: form, pending_ms: nil)}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("send_pending", %{"edit" => %{"text" => text}}, socket) do
+    case Conversation.send_pending(socket.assigns.guest_id, text) do
+      :ok -> {:noreply, assign(socket, edit_form: nil)}
+      {:error, :invalid} -> {:noreply, assign(socket, edit_form: invalid(text, :edit))}
+      :error -> {:noreply, clear_pending(socket)}
+    end
+  end
+
+  def handle_event("cancel_pending", _params, socket) do
+    Conversation.cancel_pending(socket.assigns.guest_id)
+    {:noreply, socket |> clear_pending() |> push_event("question_cancelled", %{})}
+  end
+
+  def handle_event("open_type", _params, socket),
+    do: {:noreply, assign(socket, type_form: to_form(%{"text" => ""}, as: :type))}
+
+  def handle_event("cancel_type", _params, socket),
+    do: {:noreply, assign(socket, type_form: nil)}
+
+  def handle_event("send_typed", %{"type" => %{"text" => text}}, socket) do
+    case Conversation.typed(socket.assigns.guest_id, text) do
+      :ok ->
+        {:noreply,
+         socket |> assign(type_form: nil, voice_down: false) |> push_event("typed", %{})}
+
+      {:error, :invalid} ->
+        {:noreply, assign(socket, type_form: invalid(text, :type))}
+    end
+  end
+
   # Start fresh asks first; the confirm form posts to /fresh, which rotates the guest.
   def handle_event("ask_fresh", _params, socket),
     do: {:noreply, assign(socket, confirm_fresh: true)}
@@ -181,16 +226,25 @@ defmodule MayaWeb.TalkLive do
   def handle_event("keep_talking", _params, socket),
     do: {:noreply, assign(socket, confirm_fresh: false)}
 
+  defp clear_pending(socket),
+    do: assign(socket, pending_question: nil, pending_ms: nil, edit_form: nil)
+
+  defp invalid(text, as),
+    do: to_form(%{"text" => text}, as: as, errors: [text: {"Use 1 to 300 characters", []}])
+
   @impl true
   # A turn on screen replaces the pending Question.
   def handle_info({:conversation, {:turns, turns}}, socket),
-    do: {:noreply, assign(socket, turns: turns, live_question: nil, pending_question: nil)}
+    do: {:noreply, socket |> assign(turns: turns, live_question: nil) |> clear_pending()}
+
+  def handle_info({:conversation, {:pending, text, ms}}, socket),
+    do: {:noreply, assign(socket, live_question: nil, pending_question: text, pending_ms: ms)}
 
   def handle_info({:conversation, {:partial, text}}, socket),
     do: {:noreply, assign(socket, live_question: text)}
 
   def handle_info({:conversation, {:question, text}}, socket),
-    do: {:noreply, assign(socket, live_question: nil, pending_question: text)}
+    do: {:noreply, assign(socket, live_question: nil, pending_question: text, pending_ms: nil)}
 
   def handle_info({:conversation, {:audio, pcm}}, socket),
     do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm)})}
@@ -204,7 +258,8 @@ defmodule MayaWeb.TalkLive do
 
     {:noreply,
      socket
-     |> assign(voice_down: not on_turn?, live_question: nil, pending_question: nil)
+     |> assign(voice_down: not on_turn?, live_question: nil)
+     |> clear_pending()
      |> push_event("voice_down", %{})}
   end
 
@@ -291,13 +346,71 @@ defmodule MayaWeb.TalkLive do
               <p :if={@live_question} id="live-question" class="question you live">
                 {@live_question}
               </p>
-              <p :if={@pending_question} id="pending-question" class="question you">
+              <button
+                :if={@pending_question && @pending_ms}
+                id="pending-question"
+                type="button"
+                class="question you pending"
+                phx-click="edit_pending"
+                style={"--confirm-ms: #{@pending_ms}ms"}
+              >
+                <span class="pending-text">{@pending_question}</span>
+                <span id="pending-countdown" class="pending-countdown">
+                  Sending in {div(@pending_ms + 999, 1000)} s. Tap to edit
+                </span>
+              </button>
+              <p
+                :if={@pending_question && !@pending_ms && !@edit_form}
+                id="pending-question"
+                class="question you"
+              >
                 {@pending_question}
               </p>
+              <.form
+                :if={@edit_form}
+                for={@edit_form}
+                id="edit-form"
+                class="question you edit-form"
+                phx-submit="send_pending"
+              >
+                <.text_box field={@edit_form[:text]} id="edit-input" label="Edit your Question" />
+                <div class="form-actions">
+                  <button id="edit-send" type="submit" class="btn btn-primary tap-44">Send</button>
+                  <button
+                    id="edit-cancel"
+                    type="button"
+                    class="btn btn-ghost tap-44"
+                    phx-click="cancel_pending"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </.form>
             </li>
           </ol>
 
           <p :if={@voice_down} id="voice-down" class="voice-down">voice is down</p>
+
+          <.form
+            :if={@type_form}
+            for={@type_form}
+            id="type-form"
+            class="type-form"
+            phx-submit="send_typed"
+          >
+            <.text_box field={@type_form[:text]} id="type-input" label="Type a Question" />
+            <div class="form-actions">
+              <button id="type-send" type="submit" class="btn btn-primary tap-44">Send</button>
+              <button
+                id="type-cancel"
+                type="button"
+                class="btn btn-ghost tap-44"
+                phx-click="cancel_type"
+              >
+                Cancel
+              </button>
+            </div>
+          </.form>
 
           <section :if={@turns == []} class="poke-facts-box" aria-labelledby="poke-facts-heading">
             <h2 id="poke-facts-heading" class="card-label">Poké facts</h2>
@@ -377,9 +490,51 @@ defmodule MayaWeb.TalkLive do
               <span data-show="speaking">She stops right away</span>
             </span>
           </button>
+          <button
+            id="type-button"
+            type="button"
+            class="type-button tap-44"
+            aria-label="Type a Question"
+            phx-click="open_type"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
+          </button>
         </div>
       </div>
     </Layouts.app>
+    """
+  end
+
+  # A labelled text field for a Question, focused when it opens; the error shows under it.
+  attr :field, Phoenix.HTML.FormField, required: true
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+
+  defp text_box(assigns) do
+    ~H"""
+    <label for={@id} class="sr-only">{@label}</label>
+    <input
+      id={@id}
+      type="text"
+      name={@field.name}
+      value={@field.value}
+      maxlength="300"
+      autocomplete="off"
+      enterkeyhint="send"
+      class="input input-bordered w-full tap-44"
+      aria-describedby={@field.errors != [] && "#{@id}-error"}
+      phx-mounted={JS.focus()}
+    />
+    <p :for={{msg, _} <- @field.errors} id={"#{@id}-error"} class="voice-down">{msg}</p>
     """
   end
 end

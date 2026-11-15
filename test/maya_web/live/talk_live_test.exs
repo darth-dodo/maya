@@ -454,4 +454,173 @@ defmodule MayaWeb.TalkLiveTest do
     assert view |> element("#voice-down") |> render() =~ "voice is down"
     refute has_element?(view, "#conversation .turn")
   end
+
+  describe "countdown, tap to edit and typed Questions (#95)" do
+    setup %{guest: guest} do
+      voice = Application.fetch_env!(:maya, :voice)
+      Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 200))
+      on_exit(fn -> Application.put_env(:maya, :voice, voice) end)
+
+      me = self()
+
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        question = List.last(Jason.decode!(body)["messages"])["content"]
+        send(me, {:agent_asked, question})
+        message = %{"role" => "assistant", "content" => question}
+        Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+      end)
+
+      Maya.Conversation.subscribe(guest)
+      :ok
+    end
+
+    test "the countdown shows the seconds as text, then the Question is sent untouched", %{
+      conn: conn,
+      guest: guest
+    } do
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      send(view.pid, {:conversation, {:pending, "where do I catch Ralts?", 2000}})
+      assert view |> element("#pending-question") |> render() =~ "where do I catch Ralts?"
+      assert view |> element("#pending-countdown") |> render() =~ "2"
+      assert view |> element("#pending-question") |> render() =~ "Tap to edit"
+      assert has_element?(view, "#conversation[aria-live=polite] #pending-countdown")
+
+      stub(text("where do I catch Ralts?"), &speak/1)
+      ask(view)
+      assert_receive {:conversation, {:pending, "where do I catch Ralts?", 200}}
+      refute_received {:agent_asked, _}
+      assert_receive {:agent_asked, "where do I catch Ralts?"}, 1_000
+      assert_push_event(view, "audio_done", %{})
+
+      assert view |> element("#conversation .turn .question") |> render() =~ "Ralts"
+      refute has_element?(view, "#pending-question")
+      _ = Maya.Conversation.turns(guest)
+      assert [%Turn{confirm_ms: ms, typed: false}] = Turn.recent(guest)
+      assert ms >= 200
+    end
+
+    test "tap to edit stops the countdown, Send uses the edited text", %{conn: conn, guest: guest} do
+      stub(text("where is the gym"), &speak/1)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      ask(view)
+      assert_receive {:conversation, {:pending, _text, 200}}
+
+      view |> element("#pending-question") |> render_click()
+      assert has_element?(view, "#edit-form #edit-input[value='where is the gym']")
+      assert has_element?(view, "label[for=edit-input]")
+      assert has_element?(view, "#edit-send.tap-44")
+      assert has_element?(view, "#edit-cancel.tap-44")
+      refute has_element?(view, "#pending-countdown")
+      refute_receive {:agent_asked, _}, 400
+
+      view |> form("#edit-form", edit: %{text: ""}) |> render_submit()
+      assert has_element?(view, "#edit-form")
+      view |> form("#edit-form", edit: %{text: String.duplicate("a", 301)}) |> render_submit()
+      assert has_element?(view, "#edit-form")
+      refute_received {:agent_asked, _}
+
+      view |> form("#edit-form", edit: %{text: " where do I catch Ralts? "}) |> render_submit()
+      refute has_element?(view, "#edit-form")
+      assert_receive {:agent_asked, "where do I catch Ralts?"}
+      assert_push_event(view, "audio_done", %{})
+      _ = Maya.Conversation.turns(guest)
+      assert [%Turn{question: "where do I catch Ralts?"}] = Turn.recent(guest)
+    end
+
+    test "Cancel discards the Question: no agent and no turn", %{conn: conn, guest: guest} do
+      stub(text("where do I catch rawls"), &speak/1)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      ask(view)
+      assert_receive {:conversation, {:pending, _text, 200}}
+
+      view |> element("#pending-question") |> render_click()
+      view |> element("#edit-cancel") |> render_click()
+      assert_push_event(view, "question_cancelled", %{})
+      refute has_element?(view, "#edit-form")
+      refute has_element?(view, "#pending-question")
+      refute_receive {:agent_asked, _}, 400
+      assert Maya.Conversation.turns(guest) == []
+      assert Turn.recent(guest) == []
+    end
+
+    test "a hold during the countdown discards the pending Question", %{conn: conn} do
+      {:ok, texts} =
+        Elixir.Agent.start_link(fn -> ["first Question", "is Zigzagoon on route 101"] end)
+
+      stub(
+        fn conn ->
+          Req.Test.json(conn, %{"text" => Elixir.Agent.get_and_update(texts, &{hd(&1), tl(&1)})})
+        end,
+        &speak/1
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      ask(view)
+      assert_receive {:conversation, {:pending, "first Question", 200}}
+      ask(view)
+      assert_receive {:conversation, {:pending, "is Zigzagoon on route 101", 200}}
+      assert view |> element("#pending-question") |> render() =~ "Zigzagoon"
+
+      assert_receive {:agent_asked, "is Zigzagoon on route 101"}, 1_000
+      refute_received {:agent_asked, "first Question"}
+    end
+
+    test "a typed Question skips STT and the countdown and is stored as typed", %{
+      conn: conn,
+      guest: guest
+    } do
+      me = self()
+
+      stub(
+        fn conn ->
+          send(me, :stt_called)
+          Req.Test.json(conn, %{"text" => "nope"})
+        end,
+        &speak/1
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      assert has_element?(view, "#type-button.tap-44[aria-label='Type a Question']")
+      refute has_element?(view, "#type-form")
+
+      view |> element("#type-button") |> render_click()
+      assert has_element?(view, "#type-form label[for=type-input]")
+      view |> form("#type-form", type: %{text: String.duplicate("a", 301)}) |> render_submit()
+      assert has_element?(view, "#type-form")
+      refute_received {:agent_asked, _}
+
+      view
+      |> form("#type-form", type: %{text: "How do I earn Roxanne's badge?"})
+      |> render_submit()
+
+      assert_push_event(view, "typed", %{})
+      refute has_element?(view, "#type-form")
+      assert_receive {:agent_asked, "How do I earn Roxanne's badge?"}
+      assert_push_event(view, "audio_done", %{})
+      refute_received {:conversation, {:pending, _, _}}
+
+      assert view |> element("#conversation .turn .question") |> render() =~ "Roxanne"
+      _ = Maya.Conversation.turns(guest)
+
+      assert [%Turn{typed: true, stt_ms: nil, mic_release_ms: nil, confirm_ms: nil}] =
+               Turn.recent(guest)
+
+      refute_received :stt_called
+    end
+
+    test "Cancel closes the type form", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      view |> element("#type-button") |> render_click()
+      view |> element("#type-cancel") |> render_click()
+      refute has_element?(view, "#type-form")
+    end
+
+    test "targets are 44 px and the countdown bar stops under reduced motion" do
+      css = File.read!("assets/css/app.css")
+      assert css =~ ".tap-44 { min-width: 44px; min-height: 44px; }"
+      [_, reduced] = String.split(css, "@media (prefers-reduced-motion: reduce) {", parts: 2)
+      assert reduced =~ ~r/\.pending-countdown::after,[^}]*animation: none !important/
+    end
+  end
 end

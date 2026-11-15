@@ -301,6 +301,112 @@ defmodule Maya.ConversationTest do
                    when is_integer(id)
   end
 
+  describe "countdown and typed Questions (#95)" do
+    setup do
+      voice = Application.fetch_env!(:maya, :voice)
+      Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 200))
+      on_exit(fn -> Application.put_env(:maya, :voice, voice) end)
+
+      me = self()
+
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        question = List.last(Jason.decode!(body)["messages"])["content"]
+        send(me, {:agent_asked, question, System.monotonic_time(:millisecond)})
+        Req.Test.json(conn, reply(question))
+      end)
+
+      :ok
+    end
+
+    test "an untouched Question goes to the agent after the countdown, with confirm_ms",
+         %{id: id} do
+      stub(text("where do I catch Ralts?"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+
+      assert_receive {:conversation, {:pending, "where do I catch Ralts?", 200}}
+      pending_at = System.monotonic_time(:millisecond)
+      assert_receive {:agent_asked, "where do I catch Ralts?", asked_at}, 1_000
+      assert asked_at - pending_at >= 190
+
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+      turn = Repo.get!(Turn, turn_id)
+      assert turn.confirm_ms >= 200 and turn.confirm_ms < 400
+      assert turn.stt_ms >= 0
+      refute turn.typed
+    end
+
+    test "edit stops the countdown and Send uses the edited text", %{id: id} do
+      stub(text("where do I catch rawls"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 200}}
+
+      assert :ok = Conversation.edit(id)
+      refute_receive {:agent_asked, _q, _at}, 400
+      assert {:error, :invalid} = Conversation.send_pending(id, "   ")
+      assert :ok = Conversation.send_pending(id, "  where do I catch Ralts? ")
+
+      assert_receive {:agent_asked, "where do I catch Ralts?", _at}
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+      assert %Turn{question: "where do I catch Ralts?", confirm_ms: ms} = Repo.get!(Turn, turn_id)
+      assert ms >= 400
+    end
+
+    test "cancel calls no agent and stores no turn", %{id: id} do
+      stub(text("where do I catch rawls"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 200}}
+
+      assert :ok = Conversation.edit(id)
+      assert :ok = Conversation.cancel_pending(id)
+      assert :error = Conversation.edit(id)
+      refute_receive {:agent_asked, _q, _at}, 400
+      assert Conversation.turns(id) == []
+      assert Turn.recent(id) == []
+    end
+
+    test "a new Question discards the pending one", %{id: id} do
+      stub(text("where do I catch rawls"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 200}}
+
+      Conversation.stream_start(id)
+      refute_receive {:agent_asked, _q, _at}, 400
+      assert :error = Conversation.send_pending(id, "where do I catch Ralts?")
+    end
+
+    test "a typed Question skips STT and the countdown and is stored as typed", %{id: id} do
+      me = self()
+
+      stub(
+        fn conn ->
+          send(me, :stt_called)
+          Req.Test.json(conn, %{"text" => "nope"})
+        end,
+        &speak/1
+      )
+
+      assert {:error, :invalid} = Conversation.typed(id, String.duplicate("a", 301))
+      assert :ok = Conversation.typed(id, " How do I earn Roxanne's badge? ")
+
+      refute_receive {:conversation, {:pending, _text, _ms}}, 50
+      assert_receive {:agent_asked, "How do I earn Roxanne's badge?", _at}
+      assert_receive {:conversation, :audio_done}
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+
+      assert %Turn{
+               typed: true,
+               stt_ms: nil,
+               mic_release_ms: nil,
+               confirm_ms: nil,
+               stt_source: nil
+             } =
+               Repo.get!(Turn, turn_id)
+
+      refute_received :stt_called
+    end
+  end
+
   # The supervisor restarts the Conversation; wait for the new pid in the Registry.
   defp restarted(id, old, tries \\ 50) do
     case Registry.lookup(Maya.ConversationRegistry, {:conversation, id}) do

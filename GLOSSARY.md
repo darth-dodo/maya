@@ -7,8 +7,12 @@ Maya is a talking, spoiler-free companion for one player of Pokémon Emerald: th
 ### The conversation
 
 **Question**:
-One spoken request from the player, captured while the talk button is held.
+One request from the player, spoken while the talk button is held or typed with the keyboard button.
 _Avoid_: prompt, query, message
+
+**Pending Question**:
+A heard Question shown with a short countdown before it goes to the agent; a tap opens it to edit or cancel.
+_Avoid_: draft, preview
 
 **Answer**:
 Maya's reply to one Question: 2 to 3 spoken sentences, also shown as text.

@@ -149,6 +149,24 @@ export const TalkHook = {
     this.handleEvent("audio", ({pcm}) => this.play(pcm))
     this.handleEvent("audio_done", () => { this.done = true; this.maybeIdle() })
     this.handleEvent("voice_down", () => { this.stopAudio(); this.set("idle") })
+    // The pending Question was cancelled in its editor (#95): no Answer is coming.
+    this.handleEvent("question_cancelled", () => { if (this.state === "waiting") this.set("idle") })
+    // A typed Question (#95): the server already cut any Answer; Send is the release mark.
+    this.handleEvent("typed", () => {
+      if (this.pressed) return
+      this.stopAudio()
+      this.startTurn(performance.now())
+      this.set("waiting")
+    })
+  },
+
+  // Fresh per-turn playback marks: the release (or Send) every playback timing counts from.
+  startTurn(releasedAt) {
+    this.marks = {release: releasedAt}
+    this.done = false
+    this.reported = false
+    this.nextTime = 0
+    this.leftover = null
   },
 
   destroyed() {
@@ -284,11 +302,7 @@ export const TalkHook = {
       holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt, this.warm, tail))
     if (!wasRecording) return this.set("idle")
 
-    this.marks = {release: releasedAt}
-    this.done = false
-    this.reported = false
-    this.nextTime = 0
-    this.leftover = null
+    this.startTurn(releasedAt)
     this.set("uploading")
     this.tailTimer = setTimeout(() => this.endStream(), tail)
   },

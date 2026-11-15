@@ -8,8 +8,11 @@ defmodule Maya.Conversation do
   fails (ADR-009).
   After 30 idle minutes it stops normally; the next start reloads its turns from Postgres.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
+  A heard Question waits `confirm_ms` as a pending Question (`edit/1`, `send_pending/2`,
+  `cancel_pending/1`) before the agent; a typed Question (`typed/2`) skips STT and the wait.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
-  `{:partial, text}`, `{:question, text}`, `{:audio, pcm}`, `:audio_done` and `:voice_down`.
+  `{:partial, text}`, `{:pending, text, ms}`, `{:question, text}`, `{:audio, pcm}`,
+  `:audio_done` and `:voice_down`.
   """
   # Transient: a crash restarts it, an idle stop does not.
   use GenServer, restart: :transient
@@ -26,6 +29,7 @@ defmodule Maya.Conversation do
   # A 250 ms chunk is 8,000 bytes; the whole Question keeps the old 1 MB upload cap.
   @max_chunk 16_384
   @max_question 1_000_000
+  @max_text 300
 
   ## Client
 
@@ -70,6 +74,29 @@ defmodule Maya.Conversation do
 
   def barge_in(id), do: GenServer.cast(via(id), :barge_in)
 
+  @doc "Tap on the pending Question: stops the countdown. `:error` when nothing is pending."
+  def edit(id), do: GenServer.call(via(id), :edit)
+
+  @doc "Sends the edited pending Question. `{:error, :invalid}` unless 1 to 300 characters."
+  def send_pending(id, text), do: GenServer.call(via(id), {:send_pending, text})
+
+  @doc "Discards the pending Question: no agent call, no stored turn."
+  def cancel_pending(id), do: GenServer.call(via(id), :cancel_pending)
+
+  @doc "A typed Question: cuts the turn in flight and goes to the agent with no STT or countdown."
+  def typed(id, text) do
+    {:ok, pid} = start_or_find(id)
+    GenServer.call(pid, {:typed, text})
+  end
+
+  @doc "Typed or edited text, trimmed, if it is 1 to 300 characters."
+  def clean_text(text) when is_binary(text) do
+    text = String.trim(text)
+    if String.length(text) in 1..@max_text, do: {:ok, text}, else: {:error, :invalid}
+  end
+
+  def clean_text(_text), do: {:error, :invalid}
+
   @doc "The screen's timings for the latest turn: `mic_release_ms` and `playback_start_ms`."
   def playback_started(id, timings), do: GenServer.cast(via(id), {:timings, timings})
 
@@ -88,6 +115,40 @@ defmodule Maya.Conversation do
 
   @impl true
   def handle_call(:turns, _from, state), do: {:reply, all_turns(state), state, state.idle}
+
+  def handle_call(:edit, _from, %{current: %{stage: stage} = c} = state)
+      when stage in [:confirm, :editing],
+      do: {:reply, :ok, %{state | current: %{c | stage: :editing}}, state.idle}
+
+  def handle_call({:send_pending, text}, _from, %{current: %{stage: stage} = c} = state)
+      when stage in [:confirm, :editing] do
+    case clean_text(text) do
+      {:ok, text} -> {:reply, :ok, ask(state, c, text, c.progress), state.idle}
+      error -> {:reply, error, state, state.idle}
+    end
+  end
+
+  def handle_call(:cancel_pending, _from, %{current: %{stage: stage}} = state)
+      when stage in [:confirm, :editing] do
+    # A count, never the text.
+    Logger.info("pending Question cancelled")
+    {:reply, :ok, %{state | current: nil}, state.idle}
+  end
+
+  def handle_call({:typed, text}, _from, state) do
+    case clean_text(text) do
+      {:ok, text} ->
+        state = cut(state)
+        c = %{ref: make_ref(), task: nil, turn: %Turn{guest_id: state.id, typed: true}}
+        {:reply, :ok, ask(state, c, text, nil), state.idle}
+
+      error ->
+        {:reply, error, state, state.idle}
+    end
+  end
+
+  # Nothing pending (the countdown already ended, or a new hold cut it).
+  def handle_call(_pending_op, _from, state), do: {:reply, :error, state, state.idle}
 
   @impl true
   def handle_cast({:question, audio, filename}, state) do
@@ -265,6 +326,9 @@ defmodule Maya.Conversation do
       when reason != :normal,
       do: noreply(realtime_failed(state, %{c | relay: nil}, {:exit, crash_kind(reason)}))
 
+  def handle_info({:confirm, ref}, %{current: %{ref: ref, stage: :confirm} = c} = state),
+    do: noreply(ask(state, c, c.pending, c.progress))
+
   def handle_info({:stage_ms, ref, stage, ms}, %{current: %{ref: ref, turn: turn} = c} = state) do
     noreply(%{state | current: %{c | turn: Map.put(turn, stage, ms)}})
   end
@@ -360,22 +424,26 @@ defmodule Maya.Conversation do
   defp finished(:stt, {:ok, "", _progress}, state),
     do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
 
+  # The countdown: the Question is pending until `{:confirm, ref}`, an edit or a cut.
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
-    c = stt_ms(c)
-    broadcast(state, {:question, question})
-    me = self()
-    ref = c.ref
-    turns = state.turns
-    opts = [guest_id: state.id, progress: progress]
+    c =
+      c
+      |> stt_ms()
+      |> Map.merge(%{
+        pending: question,
+        progress: progress,
+        confirm_from: System.monotonic_time()
+      })
 
-    task =
-      run(fn ->
-        :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
-          {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
-        end)
-      end)
+    case Mistral.voice(:confirm_ms) do
+      0 ->
+        ask(state, c, question, progress)
 
-    %{state | current: %{c | stage: :agent, task: task, turn: %{c.turn | question: question}}}
+      ms ->
+        broadcast(state, {:pending, question, ms})
+        Process.send_after(self(), {:confirm, c.ref}, ms)
+        %{state | current: %{c | stage: :confirm, task: nil}}
+    end
   end
 
   defp finished(:stt, {:error, reason}, state) do
@@ -404,6 +472,30 @@ defmodule Maya.Conversation do
     broadcast(state, :voice_down)
     state
   end
+
+  # The agent stage for a heard (confirmed) or typed Question. A typed one reads Progress in
+  # the Task, as STT does for a spoken one.
+  defp ask(state, c, question, progress) do
+    broadcast(state, {:question, question})
+    {me, ref, turns, id} = {self(), c.ref, state.turns, state.id}
+
+    task =
+      run(fn ->
+        opts = [guest_id: id, progress: progress || GameData.progress(id)]
+
+        :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
+          {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
+        end)
+      end)
+
+    turn = %{c.turn | question: question, confirm_ms: confirm_ms(c)}
+    %{state | current: Map.merge(c, %{stage: :agent, task: task, turn: turn})}
+  end
+
+  defp confirm_ms(%{confirm_from: from}),
+    do: System.convert_time_unit(System.monotonic_time() - from, :native, :millisecond)
+
+  defp confirm_ms(_typed), do: nil
 
   # Starts streaming the Answer; the turn shows on screen from here.
   defp speak(%{current: c} = state, question, answer) do

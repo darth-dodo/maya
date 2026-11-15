@@ -32,6 +32,9 @@ config :maya, :openrouter,
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.OpenRouter}, retry: false]
 
+# No countdown unless a test sets one, so voice tests do not wait 2 s each.
+config :maya, :voice, confirm_ms: 0
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 
