@@ -1,1 +1,0 @@
-Added: OpenSpec change `sunday-proof`: a 20-question spoiler probe set as data, a no-network `spoiler-gate` CI job in `ci-success`, a nightly real-model spoiler probe that opens a `bug` Issue on a leak, a stubbed Roxanne then Ralts test and the Sunday phone checklist
