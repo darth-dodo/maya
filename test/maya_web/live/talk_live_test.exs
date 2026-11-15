@@ -162,12 +162,35 @@ defmodule MayaWeb.TalkLiveTest do
             "ended_by" => "pointercancel",
             "hold_ms" => 840,
             "lost_capture" => true,
-            "mic_open_ms" => 120
+            "mic_open_ms" => 120,
+            "warm" => false,
+            "post_roll_ms" => 150
           })
         end)
 
       assert log =~
-               "hold ended by pointercancel after 840 ms, lost capture: true, mic open: 120 ms"
+               "hold ended by pointercancel after 840 ms, lost capture: true, mic open: 120 ms, warm: false, post roll: 150 ms"
+    end
+
+    test "says when the press was warm", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      log =
+        capture_log([level: :info], fn ->
+          view
+          |> element("#talk-button")
+          |> render_hook("hold_ended", %{
+            "ended_by" => "pointerup",
+            "hold_ms" => 1500,
+            "lost_capture" => false,
+            "mic_open_ms" => 0,
+            "warm" => true,
+            "post_roll_ms" => 150
+          })
+        end)
+
+      assert log =~
+               "hold ended by pointerup after 1500 ms, lost capture: false, mic open: 0 ms, warm: true, post roll: 150 ms"
     end
 
     test "says when the hold ended before the mic was live", %{conn: conn} do
@@ -177,23 +200,37 @@ defmodule MayaWeb.TalkLiveTest do
         capture_log([level: :info], fn ->
           view
           |> element("#talk-button")
-          |> render_hook("hold_ended", %{"ended_by" => "pointerup", "hold_ms" => 60})
+          |> render_hook("hold_ended", %{
+            "ended_by" => "pointerup",
+            "hold_ms" => 60,
+            "warm" => false,
+            "post_roll_ms" => 0
+          })
         end)
 
-      assert log =~ "hold ended by pointerup after 60 ms, lost capture: false, mic open: none"
+      assert log =~
+               "hold ended by pointerup after 60 ms, lost capture: false, mic open: none, warm: false, post roll: 0 ms"
     end
 
-    test "with an unknown ending or a bad length is ignored", %{conn: conn} do
+    test "with an unknown ending, a bad length, warm or post roll is ignored", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/talk")
+
+      good = %{"ended_by" => "pointerup", "hold_ms" => 10, "warm" => true, "post_roll_ms" => 0}
 
       log =
         capture_log([level: :info], fn ->
-          for params <- [
-                %{"ended_by" => "<script>", "hold_ms" => 10},
-                %{"ended_by" => "pointerup", "hold_ms" => -1},
-                %{"ended_by" => "pointerup", "hold_ms" => "5000"},
-                %{}
+          for bad <- [
+                %{"ended_by" => "<script>"},
+                %{"hold_ms" => -1},
+                %{"hold_ms" => "5000"},
+                %{"warm" => "true"},
+                %{"post_roll_ms" => -5},
+                %{"post_roll_ms" => "150"}
               ] do
+            view |> element("#talk-button") |> render_hook("hold_ended", Map.merge(good, bad))
+          end
+
+          for params <- [Map.delete(good, "warm"), Map.delete(good, "post_roll_ms"), %{}] do
             view |> element("#talk-button") |> render_hook("hold_ended", params)
           end
         end)
@@ -268,6 +305,7 @@ defmodule MayaWeb.TalkLiveTest do
 
     assert has_element?(view, "#talk-button[data-state='idle'][phx-hook='TalkHook']")
     assert has_element?(view, "#talk-button[data-sample-rate='24000']")
+    assert has_element?(view, "#talk-button[data-post-roll-ms='150']")
     refute has_element?(view, "#conversation .turn")
   end
 
