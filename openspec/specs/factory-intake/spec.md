@@ -97,7 +97,7 @@ The skill SHALL ask only questions whose answer changes the route: build now or 
 
 ### Requirement: Decision recorded with date and words
 
-Every route that creates something SHALL record the date and Abhishek's words: in the Issue body (Bug), in a comment on the Issue once `factory:plan` creates it (Feature, Gated), in the PHASE_2.md line (Later), or in the Candidates row (Experiment). Every repo edit SHALL follow the factory conventions (branch, conventional commit, changelog fragment, PR) and the skill SHALL never merge. A PR that only adds a PHASE_2.md line or a Candidates row SHALL need no Issue and SHALL ride along in the next related open PR where one exists (Abhishek, 2026-11-15, #106).
+Every route that creates something SHALL record the date and Abhishek's words: in the Issue body (Bug), in a comment on the Issue once `factory:plan` creates it (Feature, Gated), in the PHASE_2.md line (Later), or in the Candidates row (Experiment). Every repo edit SHALL follow the factory conventions (branch, conventional commit, changelog fragment, PR) and the skill SHALL never merge.
 
 #### Scenario: Feature decision on the Issue
 - **WHEN** `factory:plan` creates Issue #N for a request routed by `factory:ask`
@@ -106,3 +106,11 @@ Every route that creates something SHALL record the date and Abhishek's words: i
 #### Scenario: Writing rules
 - **WHEN** the skill writes any line, Issue or comment
 - **THEN** the text uses inclusive language, writes "Pokémon" with é, and has no em or en dashes
+
+### Requirement: Intake lines ride along
+
+A PHASE_2.md line or Candidates row SHALL need no Issue and SHALL ride along in the next related open PR where one exists; only when none exists SHALL the skill open its own `docs/intake-<yyyy-mm-dd>` PR (Abhishek, 2026-11-15, #106).
+
+#### Scenario: Related PR open
+- **WHEN** a Later line is routed while a related PR is open
+- **THEN** the line is committed on that PR and no Issue or new PR is created
