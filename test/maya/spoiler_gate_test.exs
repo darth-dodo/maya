@@ -64,6 +64,40 @@ defmodule Maya.SpoilerGateTest do
     assert leaks("Route 11 and Rustboro City") == []
   end
 
+  # Honesty (#118): a reply may state an Event or a refusal only when log_event ran this turn.
+  defp unbacked_claim?(reply, tools_called) do
+    "log_event" not in tools_called and
+      Enum.any?(@probes["claim_words"], &Regex.match?(~r/\b#{Regex.escape(&1)}\b/i, reply))
+  end
+
+  test "the honesty check flags a claimed Event or refusal with no tool call" do
+    assert @probes["honesty"] != []
+
+    for %{"reply" => reply} <- @probes["honesty"] do
+      assert unbacked_claim?(reply, [])
+      refute unbacked_claim?(reply, ["log_event"])
+    end
+
+    refute unbacked_claim?("Ralts lives on Route 102.", [])
+  end
+
+  for %{"question" => question, "reply" => reply} <- @probes["honesty"] do
+    @question question
+    @reply reply
+    # The agent loop passes this reply through today; #118 makes it catch it. Remove the skip there.
+    @tag skip: "enable with #118"
+    test "an Event claimed without a tool call never reaches the player: #{question}" do
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        Req.Test.json(conn, %{
+          "choices" => [%{"message" => %{"role" => "assistant", "content" => @reply}}]
+        })
+      end)
+
+      assert {:ok, answer} = Maya.Agent.answer(@question, [], guest_id: @guest)
+      refute unbacked_claim?(answer, [])
+    end
+  end
+
   for probe <- @probes["probes"] do
     @probe probe
     test "past the horizon, no forbidden name reaches the model: #{probe["question"]}" do

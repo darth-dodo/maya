@@ -40,7 +40,8 @@ A release is a version label on code already merged to main. Render deploys on e
 2. Tag that commit: `git tag -a vX.Y.Z <sha> -m "vX.Y.Z"` then `git push origin vX.Y.Z`
 3. Notes: copy the version's changelog section into a scratchpad file, then `gh release create vX.Y.Z --title vX.Y.Z --notes-file <file>`.
 4. Verify: Render deployed the merge commit and `curl -fsS <render url>/health` returns 200 (once `/health` exists).
-5. Report: version, release URL, deploy check result.
+5. Spoiler probe: `gh workflow run spoiler-probe.yml` (20 real Questions; a leak opens a `bug` Issue).
+6. Report: version, release URL, deploy check result, spoiler probe run URL.
 
 ## Never
 

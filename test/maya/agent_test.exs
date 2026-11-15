@@ -165,7 +165,7 @@ defmodule Maya.AgentTest do
   end
 
   # PRODUCT.md "Done when (Sunday)": both Questions in one Conversation, the model stubbed.
-  test "Sunday proof: Roxanne then Ralts in the same Conversation, each from a tool" do
+  test "Sunday goal: Roxanne then Ralts in the same Conversation, each from a tool" do
     roxanne = "Roxanne's ace is Nosepass. Lead with Mudkip. Mudkip would approve."
     ralts = "Ralts lives in the grass on Route 102, about 4 percent of the time."
 

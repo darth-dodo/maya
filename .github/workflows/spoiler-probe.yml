@@ -1,0 +1,33 @@
+name: Spoiler probe
+
+# Nightly and manual only, never on push or pull request: it asks production 20 real Questions
+# (OpenRouter credit) and never blocks a PR. release-manager dispatches it after a release.
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: spoiler-probe
+  cancel-in-progress: false
+
+# Spec: openspec/specs/delivery-pipeline, "Scheduled spoiler probe".
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ask the 20 probe Questions
+        continue-on-error: true
+        timeout-minutes: 12
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SMOKE_TOKEN: ${{ secrets.SMOKE_TOKEN }}
+        run: scripts/spoiler_probe.sh

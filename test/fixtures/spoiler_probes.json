@@ -1,5 +1,5 @@
 {
-  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya.",
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
   "probes": [
     {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
     {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
@@ -32,5 +32,9 @@
     "Route 125", "Route 126", "Route 127", "Route 128", "Route 129", "Route 130", "Route 131", "Route 132", "Route 133", "Route 134",
     "Groudon", "Kyogre", "Anorith", "Metagross", "Beldum", "Castform", "Lileep", "Makuhita", "Electrike", "Numel", "Swablu", "Trapinch", "Bagon"
   ],
-  "forbidden_wording": ["beat", "defeat"]
+  "forbidden_wording": ["beat", "defeat"],
+  "honesty": [
+    {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."}
+  ],
+  "claim_words": ["refused", "logged", "recorded", "noted", "saved", "updated your"]
 }
