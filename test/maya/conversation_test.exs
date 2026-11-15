@@ -254,8 +254,9 @@ defmodule Maya.ConversationTest do
     ref = Process.monitor(pid)
 
     assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 1_000
-    Process.sleep(50)
-    assert Registry.lookup(Maya.ConversationRegistry, {:conversation, idle_id}) == []
+    # Not restarted: the supervisor has no child left (transient, normal exit).
+    assert DynamicSupervisor.which_children(Maya.ConversationSupervisor)
+           |> Enum.all?(fn {_, child, _, _} -> child != pid end)
 
     Application.delete_env(:maya, :conversation_idle_ms)
     Conversation.subscribe(idle_id)

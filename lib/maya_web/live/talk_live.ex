@@ -49,6 +49,7 @@ defmodule MayaWeb.TalkLive do
        turns: turns,
        voice_down: false,
        confirm_fresh: false,
+       fresh_form: to_form(%{}),
        sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate]
      )
      |> allow_upload(:question,
@@ -60,6 +61,10 @@ defmodule MayaWeb.TalkLive do
        progress: &handle_progress/3
      )}
   end
+
+  # A tab opened before guests reconnects with a session that has none: reload the page,
+  # so the browser pipeline gives it a guest.
+  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/")}
 
   defp handle_progress(:question, %{done?: true} = entry, socket) do
     audio = consume_uploaded_entry(socket, entry, fn %{path: path} -> {:ok, File.read!(path)} end)
@@ -177,7 +182,7 @@ defmodule MayaWeb.TalkLive do
         </button>
         <.form
           :if={@confirm_fresh}
-          for={%{}}
+          for={@fresh_form}
           id="start-fresh-confirm"
           action={~p"/fresh"}
           method="post"
@@ -186,7 +191,7 @@ defmodule MayaWeb.TalkLive do
           <p>
             Start over with a new Conversation and no badges? This one stays saved, but leaves this screen.
           </p>
-          <button type="submit" class="btn btn-warning btn-sm">Yes, start fresh</button>
+          <button id="start-fresh-yes" type="submit" class="btn btn-warning btn-sm">Yes, start fresh</button>
           <button
             id="keep-talking"
             type="button"

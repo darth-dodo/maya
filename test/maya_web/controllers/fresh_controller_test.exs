@@ -15,7 +15,8 @@ defmodule MayaWeb.FreshControllerTest do
 
     conn = get(recycle(conn), ~p"/")
     assert get_session(conn, :guest_id) == fresh
-    refute html_response(conn, 200) =~ "Where is Ralts"
+    assert html_response(conn, 200)
+    assert Turn.recent(fresh) == []
     assert [%Turn{question: "Where is Ralts"}] = Turn.recent("guest-a")
   end
 end

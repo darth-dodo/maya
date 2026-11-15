@@ -1,6 +1,6 @@
 # 006: Progress and the Conversation live in Postgres
 
-- Status: Accepted, partly superseded by 008 (one Conversation per guest)
+- Status: Accepted
 - Date: 2026-11-14
 
 ## Context
@@ -11,6 +11,7 @@ CLAUDE.md names `progress.json` as the knowledge source for badges, Team and loc
 - There is one Conversation, kept forever. Each Question and Answer (text only, audio discarded) is a `turns` row with per-stage latency in milliseconds.
 
 ## Consequences
+- Partly superseded by ADR-008: one Conversation per Guest, not one forever.
 - Easier: deploys, crashes and reloads keep Progress and history; latency p50 and p95 come from SQL.
 - Harder: every turn writes across regions (Frankfurt to Ireland, ADR-002), so writes happen after the Answer starts playing, never on the critical path.
 - Check: the agent stage timing with and without the turn reads; revisit if history reads show up in Answer time.

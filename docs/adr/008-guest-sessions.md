@@ -1,7 +1,7 @@
 # 008: Guest sessions
 
-- Status: Accepted (Abhishek, 2026-11-15)
-- Date: 2026-11-15
+- Status: Accepted
+- Date: 2026-11-15 (accepted by Abhishek)
 
 ## Context
 ADR-006 kept one Conversation forever and one Progress row. Since the Render deploy, test runs, a second phone and anyone with the link all write into that one history and badge case. Login is not built yet (#49). habla-hermano solved the same problem for guests by keying every row by a guest id and filtering in app code.

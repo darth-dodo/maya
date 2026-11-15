@@ -67,11 +67,16 @@ defmodule MayaWeb.TalkLiveTest do
     {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Mine", answer: "Yours"})
     {:ok, _} = Turn.insert(%Turn{guest_id: "someone-else", question: "Theirs", answer: "No"})
 
-    {:ok, view, html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/")
 
-    assert html =~ "Mine"
     assert view |> element("#conversation .turn .question") |> render() =~ "Mine"
-    refute render(view) =~ "Theirs"
+    refute has_element?(view, "#conversation .turn .question", "Theirs")
+  end
+
+  test "a session with no guest reloads the page so the pipeline gives it one" do
+    # A fresh conn: the setup conn's test session already holds a guest.
+    assert {:error, {:redirect, %{to: "/"}}} =
+             live_isolated(build_conn(), MayaWeb.TalkLive, session: %{})
   end
 
   test "Start fresh asks first, then offers a form that posts to /fresh", %{conn: conn} do
@@ -81,6 +86,7 @@ defmodule MayaWeb.TalkLiveTest do
     view |> element("#start-fresh-button") |> render_click()
     assert has_element?(view, "#start-fresh-confirm[action='/fresh'][method='post']")
     assert has_element?(view, "#start-fresh-confirm input[name='_csrf_token']")
+    assert has_element?(view, "#start-fresh-confirm #start-fresh-yes[type='submit']")
 
     view |> element("#keep-talking") |> render_click()
     refute has_element?(view, "#start-fresh-confirm")
