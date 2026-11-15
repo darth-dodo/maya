@@ -65,6 +65,26 @@ export function alignF32(leftover, bytes) {
   return rem ? [bytes.subarray(0, -rem), bytes.slice(-rem)] : [bytes, null]
 }
 
+// The hold end report the server logs (#76, #79): which event ended the hold, how long it was,
+// whether pointer capture was lost before the release, and press to live mic time when the mic
+// went live before the release.
+export function holdReport(endedBy, pressedAt, releasedAt, lostCapture, micLiveAt) {
+  const ms = (from, to) => Math.max(0, Math.round(to - from))
+  const report = {ended_by: endedBy, hold_ms: ms(pressedAt, releasedAt), lost_capture: lostCapture}
+  if (micLiveAt != null) report.mic_open_ms = ms(pressedAt, micLiveAt)
+  return report
+}
+
+// Stops every track and unhooks the capture nodes, so the phone's mic indicator goes off (#79).
+// The playback AudioContext stays: iOS only unlocks it inside a gesture.
+export function closeMic(mic) {
+  if (!mic) return
+  mic.stream.getTracks().forEach(t => t.stop())
+  mic.node.onaudioprocess = null
+  mic.source.disconnect()
+  mic.node.disconnect()
+}
+
 function concat(chunks) {
   const out = new Float32Array(chunks.reduce((n, c) => n + c.length, 0))
   let at = 0
@@ -80,8 +100,14 @@ export const TalkHook = {
     this.state = "idle" // the server renders idle on the button and the screen root
 
     this.el.addEventListener("pointerdown", e => this.press(e))
-    this.el.addEventListener("pointerup", () => this.release())
-    this.el.addEventListener("pointercancel", () => this.release())
+    this.el.addEventListener("pointerup", () => this.release("pointerup"))
+    // A real cancel (app switch, palm rejection) still stops recording and sends the clip.
+    this.el.addEventListener("pointercancel", () => this.release("pointercancel"))
+    // Only noted: it also follows every pointerup, so releasing on it would end a hold twice,
+    // or early when capture is lost mid-hold.
+    this.el.addEventListener("lostpointercapture", () => { if (this.pressed) this.lostCapture = true })
+    // iOS: keep the touch from starting a scroll or the text loupe under the finger.
+    this.el.addEventListener("touchstart", e => e.preventDefault(), {passive: false})
     this.el.addEventListener("contextmenu", e => e.preventDefault())
 
     this.handleEvent("heard", () => {
@@ -96,7 +122,8 @@ export const TalkHook = {
 
   destroyed() {
     this.stopAudio()
-    this.stream?.getTracks().forEach(t => t.stop())
+    closeMic(this.mic)
+    this.mic = null
     this.ctx?.close()
   },
 
@@ -108,38 +135,56 @@ export const TalkHook = {
     this.el.dataset.state = state
   },
 
+  // Ignored elements still merge the server's data attributes on every patch
+  // (https://hexdocs.pm/phoenix_live_view/bindings.html#dom-patching), which resets the
+  // static data-state="idle" mid-hold. This runs in the same patch, before any paint.
+  updated() {
+    this.el.dataset.state = this.state
+  },
+
   reconnected() {
     this.pushEvent("talk_state", {state: this.state})
   },
 
   async press(e) {
     e.preventDefault()
-    if (this.state === "uploading" || this.state === "recording") return
+    if (this.pressed || this.state === "uploading") return
     if (this.state === "speaking") {
-      // Barge-in: silence at once, then tell the server to cancel the stream.
+      // Barge-in: silence at once, then tell the server to cancel the stream. Idle drops the cut
+      // turn's late chunks while the mic opens.
       this.stopAudio()
       this.pushEvent("barge_in", {})
+      this.set("idle")
     }
     this.el.setPointerCapture?.(e.pointerId)
     // Created and resumed inside the gesture, or iOS keeps it suspended.
     this.ctx ||= new (window.AudioContext || window.webkitAudioContext)()
     this.ctx.resume()
+    const hold = (this.hold = {})
     this.pressed = true
+    this.pressedAt = performance.now()
+    this.micLiveAt = null
+    this.lostCapture = false
     this.samples = []
-    this.set("recording")
+    let mic
     try {
-      await this.openMic()
+      mic = await this.openMic()
     } catch (_err) {
-      this.set("idle")
+      if (this.hold === hold) this.pressed = false
       return
     }
-    this.recording = this.pressed
+    // Released (or pressed again) while the mic was opening: drop this mic at once.
+    if (this.hold !== hold || !this.pressed) return closeMic(mic)
+    this.mic = mic
+    this.micLiveAt = performance.now()
+    this.recording = true // samples count from the live stream, and only then the button listens
+    this.set("recording")
   },
 
+  // A fresh mic per hold (#79), closed again on release.
   async openMic() {
-    if (this.stream) return
-    this.stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}})
-    const source = this.ctx.createMediaStreamSource(this.stream)
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}})
+    const source = this.ctx.createMediaStreamSource(stream)
     // shortcut: ScriptProcessorNode is deprecated; move to an AudioWorklet if it glitches on a phone.
     const node = this.ctx.createScriptProcessor(4096, 1, 1)
     node.onaudioprocess = e => {
@@ -147,14 +192,21 @@ export const TalkHook = {
     }
     source.connect(node)
     node.connect(this.ctx.destination) // Chrome only runs the node when it is connected; it outputs silence
+    return {stream, source, node}
   },
 
-  release() {
-    if (this.state !== "recording") return
+  // Idempotent: the first pointerup or pointercancel ends the hold and closes the mic, any later
+  // one returns. A release before the mic is live sends nothing.
+  release(endedBy) {
+    if (!this.pressed) return
     const releasedAt = performance.now()
+    const wasRecording = this.recording
     this.pressed = false
     this.recording = false
-    if (this.samples.length === 0) return this.set("idle")
+    closeMic(this.mic)
+    this.mic = null
+    this.pushEvent("hold_ended", holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt))
+    if (!wasRecording || this.samples.length === 0) return this.set("idle")
 
     const wav = encodeWav(downsample(concat(this.samples), this.ctx.sampleRate, STT_RATE), STT_RATE)
     this.samples = []
