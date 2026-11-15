@@ -2,6 +2,8 @@
 
 One change at a time, kept only when its metric improves. Opened and closed by `factory:improve` (FACTORY.md "Flywheel"). Metric names are the columns of `~/maya-factory/metrics.csv`; values are medians over 5 retros (`escaped_defects` is a sum, since its median is almost always 0).
 
+The public `/factory` page shows this table and the backfill below; `test/maya_web/controllers/factory_page_test.exs` fails until the page matches a new or changed row.
+
 Last improve run: 2026-11-14T23:38:27Z
 
 Status: `running` (next 5 retros pending), `kept` (target met or metric improved), `reverted` (not improved, revert PR merged).
@@ -11,3 +13,12 @@ Status: `running` (next 5 retros pending), `kept` (target met or metric improved
 | E1 | `factory:build` step 9: merge main and finish everything before the first push, then no push until the first CI run finishes | first_pass_green | 60% | 100% | kept (80% over #42, #44, #46, #47, #48; 100% without #42's Hex outage) | #36 |
 | E2 | CI setup falls back to the `cdn.jsdelivr.net/hex` mirror when `builds.hex.pm` fails | first_pass_green | 80% | 100% | kept (100%, 5 of 5 over #53, #54, #55, #59, #60; no Hex download failure) | #52 |
 | E3 | The hourly post-deploy smoke check asks production one real Question (`POST /health/ask`, gated by `SMOKE_TOKEN`) and opens a `bug` Issue on a non-200, an empty Answer or the agent error line | escaped_defects | 1 per 5 PRs | 0 | running | #63 |
+
+## Review reward backfill
+
+Snapshot of `~/maya-factory/metrics.csv` read on 2026-11-15 (23 rows, PRs #16 to #60), so the public `/factory` page cites only numbers in the repo. A tested fix is a finding whose `file:line` a later commit changed with a test that fails without the change (FACTORY.md "Flywheel"); per PR it is `review_findings` times `review_precision`.
+
+- Findings: 67 in all, on the 10 PRs with scored findings.
+- Tested fixes: 4 of 67 findings led to a tested fix (#22, #24, #55).
+- Precision: `review_precision` median 0.00 over those 10 PRs, highest 0.20 (#22).
+- Escaped defects: 3 (#22, #48, #55). 2 of 3 escaped defects were missed: no finding flagged them (`review_misses`, #22 and #55).

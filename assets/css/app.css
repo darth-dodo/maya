@@ -543,3 +543,10 @@
   text-underline-offset: 3px;
 }
 
+
+/* Public factory page (#92): the experiments table scrolls inside its own focusable region on a
+   phone, so the page never scrolls sideways and the table keeps its semantics. */
+.experiments-scroll { overflow-x: auto; border-radius: 0.75rem; border: 2px solid var(--color-base-content); }
+.experiments-scroll table { overflow-wrap: normal; min-width: 44rem; }
+.experiments-scroll th, .experiments-scroll td { vertical-align: top; }
+.home-section a { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }

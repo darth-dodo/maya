@@ -59,7 +59,7 @@ defmodule MayaWeb.Layouts do
 
   @doc """
   The site footer for public pages: the wave and badges art from `docs/assets/footer.svg`,
-  inline so it needs no image file (decorative, hidden from screen readers), and links to the factory page, the repo and its README.
+  inline so it needs no image file (decorative, hidden from screen readers), and links to the home page, the factory page, the repo and its README.
   """
   def site_footer(assigns) do
     ~H"""
@@ -105,6 +105,7 @@ defmodule MayaWeb.Layouts do
         </g>
       </svg>
       <nav aria-label="About Maya" class="footer-links">
+        <a href="/">Home</a>
         <a href="/factory">How Maya is built</a>
         <a href="https://github.com/darth-dodo/maya">GitHub repo</a>
         <a href="https://github.com/darth-dodo/maya#readme">README</a>
