@@ -76,6 +76,8 @@ defmodule Maya.MixProject do
        compile: false,
        depth: 1},
       {:req, "~> 0.5"},
+      # Server side WebSocket to Voxtral realtime STT (ADR-009): https://hexdocs.pm/mint_web_socket/1.0.6
+      {:mint_web_socket, "1.0.6"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},

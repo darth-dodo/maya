@@ -1,7 +1,8 @@
 defmodule MayaWeb.TalkLive do
   @moduledoc """
   The Talk screen at `/talk` (ARCHITECTURE.md 1). It only draws: the Question arrives as a
-  LiveView upload from the TalkHook, the Conversation does the work, and Answer audio
+  stream of 16 kHz PCM chunks from the TalkHook while the button is held (ADR-009), the
+  Conversation does the work and reports live partial text, and Answer audio
   goes back to the hook as pushed PCM events (ADR-005). It talks to the Conversation of the
   guest in the session (ADR-008).
   """
@@ -38,7 +39,7 @@ defmodule MayaWeb.TalkLive do
 
   # How a hold can end (#76); lostpointercapture is only a flag, it never ends a hold.
   @hold_ends ~w(pointerup pointercancel)
-  # Recording kept after release so a clipped last word is heard (#94); costs as much on upload.
+  # Recording kept after release so a clipped last word is heard (#94); it is streamed too.
   @post_roll_ms 150
 
   def poke_facts, do: @poke_facts
@@ -65,15 +66,9 @@ defmodule MayaWeb.TalkLive do
        confirm_fresh: false,
        fresh_form: to_form(%{}),
        sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate],
-       post_roll_ms: @post_roll_ms
-     )
-     |> allow_upload(:question,
-       accept: ~w(.wav .webm .mp4),
-       auto_upload: true,
-       chunk_size: 256_000,
-       max_file_size: 1_000_000,
-       max_entries: 1,
-       progress: &handle_progress/3
+       post_roll_ms: @post_roll_ms,
+       live_question: nil,
+       pending_question: nil
      )}
   end
 
@@ -116,22 +111,24 @@ defmodule MayaWeb.TalkLive do
     end
   end
 
-  defp handle_progress(:question, %{done?: true} = entry, socket) do
-    audio = consume_uploaded_entry(socket, entry, fn %{path: path} -> {:ok, File.read!(path)} end)
-
-    Conversation.question(
-      socket.assigns.guest_id,
-      audio,
-      "question" <> Path.extname(entry.client_name)
-    )
-
-    {:noreply, socket |> assign(voice_down: false) |> push_event("heard", %{})}
+  # One hold is one Question: start, chunks, end. The Conversation validates each chunk.
+  @impl true
+  def handle_event("stream_start", _params, socket) do
+    Conversation.stream_start(socket.assigns.guest_id)
+    {:noreply, assign(socket, voice_down: false, live_question: nil, pending_question: nil)}
   end
 
-  defp handle_progress(:question, _entry, socket), do: {:noreply, socket}
+  def handle_event("audio_chunk", %{"audio" => b64}, socket) when is_binary(b64) do
+    Conversation.audio_chunk(socket.assigns.guest_id, b64)
+    {:noreply, socket}
+  end
 
-  @impl true
-  def handle_event("validate", _params, socket), do: {:noreply, socket}
+  def handle_event("audio_chunk", _params, socket), do: {:noreply, socket}
+
+  def handle_event("stream_end", _params, socket) do
+    Conversation.stream_end(socket.assigns.guest_id)
+    {:noreply, push_event(socket, "heard", %{})}
+  end
 
   def handle_event("barge_in", _params, socket) do
     Conversation.barge_in(socket.assigns.guest_id)
@@ -185,8 +182,15 @@ defmodule MayaWeb.TalkLive do
     do: {:noreply, assign(socket, confirm_fresh: false)}
 
   @impl true
+  # A turn on screen replaces the pending Question.
   def handle_info({:conversation, {:turns, turns}}, socket),
-    do: {:noreply, assign(socket, turns: turns)}
+    do: {:noreply, assign(socket, turns: turns, live_question: nil, pending_question: nil)}
+
+  def handle_info({:conversation, {:partial, text}}, socket),
+    do: {:noreply, assign(socket, live_question: text)}
+
+  def handle_info({:conversation, {:question, text}}, socket),
+    do: {:noreply, assign(socket, live_question: nil, pending_question: text)}
 
   def handle_info({:conversation, {:audio, pcm}}, socket),
     do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm)})}
@@ -197,7 +201,11 @@ defmodule MayaWeb.TalkLive do
   # A failed TTS flags its turn; only a failed STT (no turn) needs the note on its own.
   def handle_info({:conversation, :voice_down}, socket) do
     on_turn? = match?(%Turn{voice_down: true}, List.last(socket.assigns.turns))
-    {:noreply, socket |> assign(voice_down: not on_turn?) |> push_event("voice_down", %{})}
+
+    {:noreply,
+     socket
+     |> assign(voice_down: not on_turn?, live_question: nil, pending_question: nil)
+     |> push_event("voice_down", %{})}
   end
 
   defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
@@ -279,6 +287,14 @@ defmodule MayaWeb.TalkLive do
               <p :if={turn.cut} class="cut">cut short</p>
               <p :if={turn.voice_down} class="voice-down">voice is down</p>
             </li>
+            <li :if={@live_question || @pending_question} class="turn now">
+              <p :if={@live_question} id="live-question" class="question you live">
+                {@live_question}
+              </p>
+              <p :if={@pending_question} id="pending-question" class="question you">
+                {@pending_question}
+              </p>
+            </li>
           </ol>
 
           <p :if={@voice_down} id="voice-down" class="voice-down">voice is down</p>
@@ -325,10 +341,6 @@ defmodule MayaWeb.TalkLive do
             </button>
           </.form>
         </section>
-
-        <form id="question-form" phx-change="validate" phx-submit="validate" class="hidden">
-          <.live_file_input upload={@uploads.question} />
-        </form>
 
         <div class="talk-dock">
           <button

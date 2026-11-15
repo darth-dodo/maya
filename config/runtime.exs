@@ -33,6 +33,8 @@ if config_env() != :test do
   config :maya, :mistral, api_key: System.get_env("MISTRAL_API_KEY")
   # Agent key. Missing means every Answer is the spoken agent error line, not a boot failure.
   config :maya, :openrouter, api_key: System.get_env("OPENROUTER_API_KEY")
+  # Realtime STT relay and live preview (ADR-009). Anything but "true" keeps batch STT only.
+  config :maya, :voice, stt_realtime: System.get_env("MAYA_STT_REALTIME") == "true"
 end
 
 if config_env() == :dev do

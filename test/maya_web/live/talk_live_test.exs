@@ -48,12 +48,15 @@ defmodule MayaWeb.TalkLiveTest do
     Plug.Conn.send_resp(conn, 200, body)
   end
 
+  # One hold: a stream start, two 200 ms chunks of silence and the end of the stream.
   defp ask(view) do
-    view
-    |> file_input("#question-form", :question, [
-      %{name: "question.wav", content: "RIFFclip", type: "audio/wav"}
-    ])
-    |> render_upload("question.wav")
+    button = element(view, "#talk-button")
+    render_hook(button, "stream_start", %{})
+
+    for _ <- 1..2,
+        do: render_hook(button, "audio_chunk", %{"audio" => Base.encode64(<<0::51_200>>)})
+
+    render_hook(button, "stream_end", %{})
   end
 
   defp earn(guest, badges) do
@@ -342,19 +345,39 @@ defmodule MayaWeb.TalkLiveTest do
     assert has_element?(view, "#start-fresh-button")
   end
 
-  test "the upload accepts one clip of at most 1 MB", %{conn: conn} do
+  test "a hold streams its audio: no upload form, one Question per hold", %{
+    conn: conn,
+    guest: guest
+  } do
+    stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/talk")
-    assert has_element?(view, "#question-form input[type=file]:not([multiple])")
+    refute has_element?(view, "input[type=file]")
 
-    big =
-      file_input(view, "#question-form", :question, [
-        %{name: "question.wav", content: :binary.copy("a", 1_000_001), type: "audio/wav"}
-      ])
+    ask(view)
+    assert_push_event(view, "audio_done", %{})
+    # A late second end for the same hold is ignored.
+    view |> element("#talk-button") |> render_hook("stream_end", %{})
 
-    assert {:error, [[_ref, :too_large]]} = render_upload(big, "question.wav")
+    _ = Maya.Conversation.turns(guest)
+    assert [%Turn{question: "Where is Ralts", stt_source: "batch"}] = Turn.recent(guest)
   end
 
-  test "one upload is transcribed, answered, spoken and shown", %{conn: conn, guest: guest} do
+  test "partial text shows in the live bubble, then the final Question is pending", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/talk")
+
+    send(view.pid, {:conversation, {:partial, "where do I catch"}})
+    assert view |> element("#live-question") |> render() =~ "where do I catch"
+
+    send(view.pid, {:conversation, {:question, "where do I catch Ralts?"}})
+    refute has_element?(view, "#live-question")
+    assert view |> element("#pending-question") |> render() =~ "where do I catch Ralts?"
+    assert has_element?(view, "#conversation[aria-live=polite] #pending-question")
+
+    send(view.pid, {:conversation, {:turns, []}})
+    refute has_element?(view, "#pending-question")
+  end
+
+  test "one hold is transcribed, answered, spoken and shown", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/talk")
 

@@ -22,6 +22,17 @@ config :maya, :voice,
   # Generated speech is mono at 24 kHz (Mistral audio formats page); the hook plays at this rate.
   tts_sample_rate: 24_000,
   stt_timeout_ms: 8_000,
+  # Realtime STT (ADR-009): off until the spike and `mix maya.stt_eval` run with the real key;
+  # config/runtime.exs turns it on with MAYA_STT_REALTIME=true. Off means batch STT only.
+  stt_realtime: false,
+  # Which STT gives the final transcript; realtime only if it wins the eval (ADR-009).
+  stt_final: :batch,
+  stt_realtime_url: "wss://api.mistral.ai/v1/audio/transcriptions/realtime",
+  stt_realtime_model: "voxtral-mini-transcribe-realtime-3",
+  # 80 to 2400; shorter is faster but less accurate (Mistral realtime docs). Docs default.
+  stt_realtime_delay_ms: 480,
+  # After the hold ends, how long to wait for `transcription.done` before batch takes over.
+  stt_realtime_done_ms: 1_500,
   tts_timeout_ms: 8_000,
   # Agent model on OpenRouter with tool calling (ADR-007 picks it by measured agent ms).
   agent_model: "anthropic/claude-haiku-5.5",
