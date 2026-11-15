@@ -14,10 +14,10 @@ The home page SHALL name Maya once, in the app header link to `/`, and SHALL hav
 
 ## ADDED Requirements
 
-### Requirement: Poke Ball in the trainer card
-The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
+### Requirement: Poké Ball in the trainer card
+The home page SHALL show an Emerald edition Poké Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
 
-#### Scenario: Poke Ball is present
+#### Scenario: Poké Ball is present
 - **WHEN** a visitor requests `/`
 - **THEN** the element `#pokeball` exists
 - **AND** it contains no `img` element
@@ -53,7 +53,7 @@ The home page SHALL show, in the trainer card, a badge case with id `badge-case`
 
 ### Requirement: Poke Ball themed hero
 **Reason**: The hero goes; the ball moves into the trainer card (#66).
-**Migration**: See "Poke Ball in the trainer card".
+**Migration**: See "Poké Ball in the trainer card".
 
 ### Requirement: Spoiler-free badge case
 **Reason**: The badge case moves into the trainer card, shows earned badges and allows the Next gym (#66).

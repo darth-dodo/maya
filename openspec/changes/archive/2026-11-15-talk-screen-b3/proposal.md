@@ -4,7 +4,7 @@ GitHub Issue: #66. Stacks on #65 (guest sessions).
 
 ## Why
 
-The Talk screen still opens with the old hero (Poke Ball, a second "Maya" heading, tagline) and a plain list of every turn. It does not show where the Guest is, who is on their Team or what the Next gym is, and nothing on screen changes while Maya listens, thinks or speaks except the button text. Abhishek picked layout B3 ("rich trainer card") from the mockups: a game HUD card at the top that shrinks while the Guest talks, a ring on Maya's ball per moment, a short chat and a Talk button pinned in the thumb zone.
+The Talk screen still opens with the old hero (Poké Ball, a second "Maya" heading, tagline) and a plain list of every turn. It does not show where the Guest is, who is on their Team or what the Next gym is, and nothing on screen changes while Maya listens, thinks or speaks except the button text. Abhishek picked layout B3 ("rich trainer card") from the mockups: a game HUD card at the top that shrinks while the Guest talks, a ring on Maya's ball per moment, a short chat and a Talk button pinned in the thumb zone.
 
 ## What Changes
 
@@ -23,7 +23,7 @@ None.
 
 ### Modified Capabilities
 - `talk-screen`: the trainer card, the Talk moment on the root, the short chat and the pinned Talk button.
-- `landing-page`: the hero, heading, tagline and Mudkip hype go; the Poke Ball moves into the card; the badge case shows the Guest's earned badges; the no spoilers rule allows the Next gym.
+- `landing-page`: the hero, heading, tagline and Mudkip hype go; the Poké Ball moves into the card; the badge case shows the Guest's earned badges; the no spoilers rule allows the Next gym.
 
 ## Impact
 

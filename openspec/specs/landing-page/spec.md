@@ -2,7 +2,7 @@
 
 ## Purpose
 
-What a visitor sees at the site root around the Talk screen: Maya's name, the Emerald ball and badge case in the trainer card, Pokémon facts, and nothing from the web framework's generator.
+What a visitor sees at the site root around the Talk screen: Maya's name, the Emerald ball and badge case in the trainer card, Poké facts, and nothing from the web framework's generator.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ The home page, including the app layout around it, SHALL NOT show web framework 
 - **THEN** the HTML title is "Maya"
 
 ### Requirement: Backdrop images
-Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokemon, people, text or logos.
+Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokémon, people, text or logos.
 
 #### Scenario: Backdrops are served
 - **WHEN** a visitor requests `/images/backdrops/tide.jpg`, `/images/backdrops/dusk.jpg` or `/images/backdrops/night.jpg`
@@ -45,8 +45,8 @@ The home page SHALL NOT load images, fonts, stylesheets or scripts from any host
 - **THEN** every `src` and stylesheet `href` on the page is a relative path
 - **AND** the page contains no `img` element
 
-### Requirement: Rotating Poke facts
-While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokemon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
+### Requirement: Rotating Poké facts
+While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokémon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
 
 #### Scenario: Facts are listed
 - **WHEN** a visitor requests `/` and the Conversation is empty
@@ -67,10 +67,10 @@ While the Conversation is empty, the home page SHALL show a list `#poke-facts` o
 - **WHEN** a visitor requests `/` and the Conversation has a turn
 - **THEN** the page has no `#poke-facts`
 
-### Requirement: Poke Ball in the trainer card
-The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
+### Requirement: Poké Ball in the trainer card
+The home page SHALL show an Emerald edition Poké Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
 
-#### Scenario: Poke Ball is present
+#### Scenario: Poké Ball is present
 - **WHEN** a visitor requests `/`
 - **THEN** the element `#pokeball` exists
 - **AND** it contains no `img` element

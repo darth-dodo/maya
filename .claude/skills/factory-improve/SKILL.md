@@ -22,7 +22,7 @@ Record the result in the same PR as step 3, or in its own `chore(factory): close
 
 ## 2. Pick the worst metric
 
-Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to compare: pick the metric furthest from its ideal (0, or 100% for `first_pass_green`). Metrics, and which way is better:
+Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to compare: pick the metric furthest from its ideal (0, or 100% for `first_pass_green` and 1.00 for `review_precision`). Metrics, and which way is better:
 
 | Column | Better |
 |---|---|
@@ -34,6 +34,8 @@ Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to
 | `permission_prompts` | lower |
 | `denied_calls` | lower |
 | `escaped_defects` (sum over the 5 rows, not median) | lower |
+| `review_precision` | higher |
+| `review_misses` (sum over the 5 rows, not median) | lower |
 
 `issue`, `pr`, `merged_at` and `estimate_h` are context (an experiment may still cite `estimate_h`); they are not scored. Skip a metric that is blank in more than 2 of the rows used (today `permission_prompts` is always blank, so it competes only once retros can fill it). The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal.
 

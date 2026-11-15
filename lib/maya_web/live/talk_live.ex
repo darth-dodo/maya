@@ -253,8 +253,8 @@ defmodule MayaWeb.TalkLive do
           <p :if={@voice_down} id="voice-down" class="voice-down">voice is down</p>
 
           <section :if={@turns == []} class="poke-facts-box" aria-labelledby="poke-facts-heading">
-            <h2 id="poke-facts-heading" class="card-label">Pokémon facts</h2>
-            <ul id="poke-facts" class="poke-facts" aria-label="Pokémon facts">
+            <h2 id="poke-facts-heading" class="card-label">Poké facts</h2>
+            <ul id="poke-facts" class="poke-facts" aria-label="Poké facts">
               <li :for={fact <- poke_facts()} class="poke-fact">{fact}</li>
             </ul>
           </section>

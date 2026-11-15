@@ -1,6 +1,6 @@
 # Maya
 
-Maya is a talking, spoiler-free companion for one player of Pokemon Emerald: the player holds a button, asks out loud, and hears a short answer that fits their progress.
+Maya is a talking, spoiler-free companion for one player of Pokémon Emerald: the player holds a button, asks out loud, and hears a short answer that fits their progress.
 
 ## Language
 
@@ -37,7 +37,7 @@ What Maya knows about the player's save: badges earned, team, and current locati
 _Avoid_: state, save data, profile
 
 **Team**:
-The Pokemon currently in the player's party, with their levels.
+The Pokémon currently in the player's party, with their levels.
 _Avoid_: party (in Maya's speech), roster
 
 **Next gym**:
@@ -53,7 +53,7 @@ The edge of what Maya may talk about: everything up to and including the Next gy
 _Avoid_: spoiler limit, safe zone
 
 **Spoiler**:
-Any fact about the game past the Spoiler horizon: places, trainers, Pokemon, items or story.
+Any fact about the game past the Spoiler horizon: places, trainers, Pokémon, items or story.
 _Avoid_: leak
 
 **Event**:
@@ -63,7 +63,7 @@ _Avoid_: update, log entry, "beat" or "defeat" (say "earned the badge")
 ### What Maya knows
 
 **Fact**:
-A piece of game information that comes from Maya's own data (Pokemon, moves, encounters, trainers, Walkthrough notes), never from the model's memory.
+A piece of game information that comes from Maya's own data (Pokémon, moves, encounters, trainers, Walkthrough notes), never from the model's memory.
 _Avoid_: knowledge, info
 
 **Walkthrough note**:

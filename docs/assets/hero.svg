@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Maya: ask out loud, hear a spoiler-free answer. An Emerald green ball with a gem button floats above soft tide waves at sunrise.">
-  <title>Maya: ask out loud, hear a spoiler-free answer.</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="Maya: Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion. So I hear you like Mudkip. Good. Correct choice. An Emerald green ball with a gem button floats above soft tide waves at sunrise.">
+  <title>Maya: Maps, Answers, Yaps, Advice.</title>
   <defs>
     <clipPath id="card"><rect width="1200" height="400" rx="24"/></clipPath>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -47,8 +47,9 @@
     <ellipse cx="880" cy="120" rx="26" ry="12" fill="#FFFFFF" opacity="0.28" transform="rotate(-30 880 120)"/>
   </g>
   <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
-    <text x="80" y="108" font-size="17" font-weight="700" letter-spacing="2.4" fill="#2F6B5E">MAPS, ANSWERS, YAPS, ADVICE</text>
+    <text x="80" y="108" font-size="17" font-weight="700" letter-spacing="2.4" fill="#2F6B5E">SPOILER-FREE POKÉMON EMERALD COMPANION</text>
     <text x="76" y="202" font-size="104" font-weight="800" letter-spacing="-2" fill="#12432F">Maya</text>
-    <text x="80" y="246" font-size="27" font-weight="500" fill="#2E4A45">Ask out loud, hear a spoiler-free answer.</text>
+    <text x="80" y="246" font-size="27" font-weight="500" fill="#2E4A45">Maps, Answers, Yaps, Advice.</text>
+    <text x="80" y="290" font-size="20" font-weight="700" fill="#12432F">So I hear you like Mudkip. Good. Correct choice.</text>
   </g>
 </svg>

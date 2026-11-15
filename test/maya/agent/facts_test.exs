@@ -118,7 +118,7 @@ defmodule Maya.Agent.FactsTest do
              ]
     end
 
-    test "a Pokemon found only past the horizon is past the horizon" do
+    test "a Pokémon found only past the horizon is past the horizon" do
       encounters = [
         %{map: "MAP_DEWFORD_TOWN", method: "land", rate: 10, min_level: 9, max_level: 9}
       ]
@@ -127,12 +127,12 @@ defmodule Maya.Agent.FactsTest do
                {:error, :past_horizon}
     end
 
-    test "a Pokemon with no wild places at all is a Fact with no places" do
+    test "a Pokémon with no wild places at all is a Fact with no places" do
       mudkip = %{name: "mudkip", types: ["water"], evolutions: []}
       assert {:ok, %{places: []}} = Facts.find_pokemon(mudkip, [], @locations, @progress)
     end
 
-    test "an unknown Pokemon is not found" do
+    test "an unknown Pokémon is not found" do
       assert Facts.find_pokemon(nil, [], @locations, @progress) == {:error, :not_found}
     end
   end

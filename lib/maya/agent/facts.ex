@@ -108,7 +108,7 @@ defmodule Maya.Agent.Facts do
     end
   end
 
-  @doc "A spoken Pokemon name as a PokeAPI species name (`Mr Mime` is `mr-mime`)."
+  @doc "A spoken Pokémon name as a PokeAPI species name (`Mr Mime` is `mr-mime`)."
   def species_name(name),
     do: name |> String.trim() |> String.downcase() |> String.replace(~r/\s+/, "-")
 
