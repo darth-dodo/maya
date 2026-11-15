@@ -12,11 +12,11 @@ defmodule Maya.Release do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
 
-    # Every deploy seeds game data; Progress only when its row is missing (ADR-006).
+    # Every deploy seeds game data; each guest seeds their own Progress on first use (ADR-008).
     import_data()
   end
 
-  @doc "The release form of `mix maya.import`: loads game data and seeds Progress from priv/."
+  @doc "The release form of `mix maya.import`: loads game data from priv/data/."
   def import_data do
     load_app()
     {:ok, :ok, _} = Ecto.Migrator.with_repo(Maya.Repo, fn _repo -> Maya.GameData.import!() end)

@@ -1,7 +1,8 @@
 defmodule Maya.GameData do
   @moduledoc """
-  Maya's game Facts and Progress in Postgres, loaded only from committed files
-  (`priv/data/*.json`, `priv/progress.json`) by `import!/0`. No network.
+  Maya's game Facts and each guest's Progress in Postgres, loaded only from committed files:
+  game data from `priv/data/*.json` by `import!/0`, and a guest's Progress seeded from
+  `priv/progress.json` on first use (ADR-008). No network.
   """
 
   import Ecto.Query
@@ -12,8 +13,8 @@ defmodule Maya.GameData do
   @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations)
 
   @doc """
-  Replaces the game data tables from `priv/data/` in one transaction and seeds
-  Progress from `priv/progress.json` only when there is none (ADR-006).
+  Replaces the game data tables from `priv/data/` in one transaction. Progress is
+  never touched: each guest seeds their own on first use (`progress/1`).
   """
   def import!(priv \\ Application.app_dir(:maya, "priv")) do
     data = fn file ->
@@ -43,7 +44,6 @@ defmodule Maya.GameData do
         )
 
         insert!("locations", data.("locations"), ~w(name map badges_required))
-        seed_progress!(priv |> Path.join("progress.json") |> File.read!() |> Jason.decode!())
       end)
 
     :ok
@@ -61,29 +61,6 @@ defmodule Maya.GameData do
     |> Enum.map(fn row -> Map.new(fields, &{String.to_existing_atom(&1), row[&1]}) end)
     |> Enum.chunk_every(1000)
     |> Enum.each(&Repo.insert_all(table, &1))
-  end
-
-  defp seed_progress!(seed) do
-    now = DateTime.utc_now(:second)
-
-    Repo.insert_all(
-      "progress",
-      [
-        %{
-          id: 1,
-          badges: seed["badges"],
-          team: seed["team"],
-          location: seed["location"],
-          humor: seed["humor"],
-          inserted_at: now,
-          updated_at: now
-        }
-      ],
-      on_conflict: :nothing,
-      conflict_target: :id
-    )
-
-    :ok
   end
 
   @doc "A trainer by pokeemerald party label (`Roxanne1`) with its party in order, or nil."
@@ -158,12 +135,45 @@ defmodule Maya.GameData do
         select: %{name: l.name, map: l.map, badges_required: l.badges_required}
       )
 
-  @doc "The player's Progress."
-  def progress do
-    Repo.one(
+  @doc """
+  A guest's Progress, seeded from `priv/progress.json` on the first read. Racing first reads
+  end with one row: the insert does nothing on the guest's unique index.
+  """
+  def progress(guest_id) when is_binary(guest_id) do
+    query =
       from p in "progress",
-        where: p.id == 1,
+        where: p.guest_id == ^guest_id,
         select: %{badges: p.badges, team: p.team, location: p.location, humor: p.humor}
+
+    case Repo.one(query) do
+      nil ->
+        seed_progress!(guest_id)
+        Repo.one!(query)
+
+      progress ->
+        progress
+    end
+  end
+
+  defp seed_progress!(guest_id) do
+    seed = Application.app_dir(:maya, "priv/progress.json") |> File.read!() |> Jason.decode!()
+    now = DateTime.utc_now(:second)
+
+    Repo.insert_all(
+      "progress",
+      [
+        %{
+          guest_id: guest_id,
+          badges: seed["badges"],
+          team: seed["team"],
+          location: seed["location"],
+          humor: seed["humor"],
+          inserted_at: now,
+          updated_at: now
+        }
+      ],
+      on_conflict: :nothing,
+      conflict_target: :guest_id
     )
   end
 end

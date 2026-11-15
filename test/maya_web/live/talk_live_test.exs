@@ -1,15 +1,14 @@
 defmodule MayaWeb.TalkLiveTest do
-  # Not async: the screen talks to the one "main" Conversation (shared sandbox and stubs).
+  # Not async: the screen's Conversation runs outside the test process (shared sandbox and stubs).
   use MayaWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
-  alias Maya.Repo
   alias Maya.Voice.Turn
 
   setup {Req.Test, :set_req_test_to_shared}
 
-  setup do
+  setup %{conn: conn} do
     :ok = Maya.GameData.import!()
 
     # The agent answers with the Question, so screen tests read one known text.
@@ -20,7 +19,9 @@ defmodule MayaWeb.TalkLiveTest do
       Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
     end)
 
-    on_exit(fn -> Maya.Conversation.stop("main") end)
+    guest = "talk-#{System.unique_integer([:positive])}"
+    on_exit(fn -> Maya.Conversation.stop(guest) end)
+    %{guest: guest, conn: Plug.Test.init_test_session(conn, guest_id: guest)}
   end
 
   defp sse(type, extra),
@@ -59,6 +60,39 @@ defmodule MayaWeb.TalkLiveTest do
     refute has_element?(view, "#conversation .turn")
   end
 
+  test "the screen shows the session guest's turns and no other guest's", %{
+    conn: conn,
+    guest: guest
+  } do
+    {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Mine", answer: "Yours"})
+    {:ok, _} = Turn.insert(%Turn{guest_id: "someone-else", question: "Theirs", answer: "No"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert view |> element("#conversation .turn .question") |> render() =~ "Mine"
+    refute has_element?(view, "#conversation .turn .question", "Theirs")
+  end
+
+  test "a session with no guest reloads the page so the pipeline gives it one" do
+    # A fresh conn: the setup conn's test session already holds a guest.
+    assert {:error, {:redirect, %{to: "/"}}} =
+             live_isolated(build_conn(), MayaWeb.TalkLive, session: %{})
+  end
+
+  test "Start fresh asks first, then offers a form that posts to /fresh", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    refute has_element?(view, "#start-fresh-confirm")
+
+    view |> element("#start-fresh-button") |> render_click()
+    assert has_element?(view, "#start-fresh-confirm[action='/fresh'][method='post']")
+    assert has_element?(view, "#start-fresh-confirm input[name='_csrf_token']")
+    assert has_element?(view, "#start-fresh-confirm #start-fresh-yes[type='submit']")
+
+    view |> element("#keep-talking") |> render_click()
+    refute has_element?(view, "#start-fresh-confirm")
+    assert has_element?(view, "#start-fresh-button")
+  end
+
   test "the upload accepts one clip of at most 1 MB", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     assert has_element?(view, "#question-form input[type=file]:not([multiple])")
@@ -71,7 +105,7 @@ defmodule MayaWeb.TalkLiveTest do
     assert {:error, [[_ref, :too_large]]} = render_upload(big, "question.wav")
   end
 
-  test "one upload is transcribed, answered, spoken and shown", %{conn: conn} do
+  test "one upload is transcribed, answered, spoken and shown", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -86,11 +120,11 @@ defmodule MayaWeb.TalkLiveTest do
     assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
     refute has_element?(view, "#badge-case")
     # A call returns only after the Conversation stored the turn.
-    _ = Maya.Conversation.turns("main")
-    assert [%Turn{question: "Where is Ralts"}] = Turn.recent()
+    _ = Maya.Conversation.turns(guest)
+    assert [%Turn{question: "Where is Ralts"}] = Turn.recent(guest)
   end
 
-  test "playback timings are stored, junk values are dropped", %{conn: conn} do
+  test "playback timings are stored, junk values are dropped", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/")
     ask(view)
@@ -101,11 +135,11 @@ defmodule MayaWeb.TalkLiveTest do
     |> element("#talk-button")
     |> render_hook("playback_started", %{"mic_release_ms" => 180, "playback_start_ms" => "soon"})
 
-    _ = Maya.Conversation.turns("main")
-    assert [%Turn{mic_release_ms: 180, playback_start_ms: nil}] = Repo.all(Turn)
+    _ = Maya.Conversation.turns(guest)
+    assert [%Turn{mic_release_ms: 180, playback_start_ms: nil}] = Turn.recent(guest)
   end
 
-  test "barge-in keeps the Answer as text and marks it cut", %{conn: conn} do
+  test "barge-in keeps the Answer as text and marks it cut", %{conn: conn, guest: guest} do
     me = self()
 
     stub(text("Where is Ralts"), fn conn ->
@@ -120,7 +154,7 @@ defmodule MayaWeb.TalkLiveTest do
 
     view |> element("#talk-button") |> render_hook("barge_in", %{})
 
-    _ = Maya.Conversation.turns("main")
+    _ = Maya.Conversation.turns(guest)
     assert view |> element("#conversation .turn .cut") |> render() =~ "cut short"
     assert view |> element("#conversation .turn .answer") |> render() =~ "Where is Ralts"
   end

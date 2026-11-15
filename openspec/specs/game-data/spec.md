@@ -47,13 +47,21 @@ The `locations` table SHALL list Littleroot Town, Route 101, Oldale Town, Route 
 - **WHEN** the committed data is imported
 - **THEN** exactly those nine locations exist, each with a badges required value
 
-### Requirement: Progress seeded once
-Progress SHALL be seeded from `priv/progress.json` only when no Progress exists, and a later import SHALL NOT overwrite it (ADR-006).
+### Requirement: Progress seeded per guest
+Each guest SHALL have at most one Progress row. The first read of a guest's Progress SHALL seed it from `priv/progress.json`, safely when two reads race. Later reads and imports SHALL NOT overwrite it. The import SHALL seed game data only. Rows that existed before guests SHALL belong to the guest id `legacy`.
 
-#### Scenario: Seed on an empty table
-- **WHEN** the import runs with no Progress
-- **THEN** Progress has 0 badges, a Team of one level 5 Mudkip, location Littleroot Town and humor 75
+#### Scenario: New guest seeded
+- **WHEN** a guest with no Progress has its Progress read
+- **THEN** it has 0 badges, a Team of one level 5 Mudkip, location Littleroot Town and humor 75
 
 #### Scenario: Existing Progress kept
-- **WHEN** Progress already has 1 badge and the import runs again
-- **THEN** Progress still has 1 badge
+- **WHEN** a guest's Progress has 1 badge and the import runs again
+- **THEN** that guest's Progress still has 1 badge
+
+#### Scenario: Import seeds game data only
+- **WHEN** the release migrate runs twice on an empty database
+- **THEN** the game data is loaded, no Progress row exists, and the second run changes no row counts
+
+#### Scenario: Legacy rows kept
+- **WHEN** the guest migration runs over an existing turn and Progress row
+- **THEN** both rows have guest id `legacy` and no row is lost
