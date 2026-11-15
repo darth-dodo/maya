@@ -1,6 +1,6 @@
 <Layouts.app flash={@flash} main_class="px-4 pt-2 pb-8 sm:px-6 lg:px-8">
   <%!-- Every number here comes from docs/factory/experiments.md; factory_page_test.exs checks them. --%>
-  <div class="home">
+  <div class="home factory">
     <section id="factory-hero" class="home-hero" aria-labelledby="factory-heading">
       <div class="pokeball pokeball-emerald" aria-hidden="true">
         <div class="pokeball-button"></div>
@@ -53,11 +53,11 @@
         <li id="gate-ci">
           <strong>CI must pass before merge.</strong>
           The required <code>ci-success</code>
-          check covers format, Credo, tests with a coverage floor, a security scan and a Docker boot. Render deploys only after checks pass, and an agent cannot merge its own pull request.
+          check covers format, Credo, tests with a coverage floor, a security scan and a Docker boot. Render deploys only after checks pass. Branch protection and a permission deny list keep an agent from merging its own pull request.
         </li>
         <li id="gate-probe">
           <strong>Production answers a real Question every hour.</strong>
-          A scheduled smoke check asks the live app one real Question and opens a bug Issue when the Answer fails. It is experiment E3 below.
+          A scheduled smoke check asks the live app one real Question and opens a bug Issue when that Question fails. It is experiment E3 below.
         </li>
         <li id="gate-spoiler">
           <strong>A CI spoiler gate is planned.</strong>
@@ -68,7 +68,7 @@
 
     <section id="flywheel" class="home-section" aria-labelledby="flywheel-heading">
       <h2 id="flywheel-heading">The flywheel</h2>
-      <p>
+      <p id="flywheel-intro">
         After every merge, a retro records one row of metrics and one lesson. Every 5 retros, the factory picks its worst metric and runs one experiment, kept or reverted on that metric. Lessons are folded into
         <a href="https://github.com/darth-dodo/maya/blob/main/docs/factory/LESSONS.md">
           the lessons file
@@ -136,7 +136,7 @@
           <li><strong>4 of 67 findings led to a tested fix.</strong></li>
           <li>
             <strong>Review precision is low.</strong>
-            The median is 0.00 over the 10 pull requests with scored findings.
+            Median 0.00 over the 10 pull requests with scored findings.
           </li>
           <li><strong>2 of 3 escaped defects were missed:</strong> no finding flagged them.</li>
         </ul>

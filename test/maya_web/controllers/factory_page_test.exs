@@ -54,18 +54,18 @@ defmodule MayaWeb.FactoryPageTest do
       refute Enum.any?(robots, &(&1 =~ "noindex"))
 
       body = build_conn() |> get("/robots.txt") |> response(200)
-      refute body =~ ~r/^Disallow: \/factory\s*$/m
+      # Any Disallow path that is a prefix of /factory (/, /f, /factory) would block it.
+      disallowed = Regex.scan(~r/^Disallow:\s*(\S+)\s*$/m, body, capture: :all_but_first)
+      refute Enum.any?(disallowed, fn [path] -> String.starts_with?("/factory", path) end)
     end
   end
 
   test "four stations in order" do
-    names =
-      factory()
-      |> query("#stations .station .station-name")
-      |> Enum.map(&text/1)
+    html = factory()
+    names = html |> query("#stations .station .station-name") |> Enum.map(&text/1)
 
     assert names == ["Plan", "Build", "Test", "Review"]
-    assert count(factory(), "#stations .station") == 4
+    assert count(html, "#stations .station") == 4
   end
 
   describe "independent gates" do
@@ -112,8 +112,12 @@ defmodule MayaWeb.FactoryPageTest do
     test "review reward backfill shown, honestly" do
       reward = text_of(factory(), "#review-reward")
 
-      assert reward =~ "2 of 3 escaped defects"
-      assert backfill_section() =~ "2 of 3 escaped defects"
+      # Whole phrases, so a swapped pair of numbers fails too.
+      for phrase <- ["4 of 67 findings", "2 of 3 escaped defects", "median 0.00"] do
+        assert String.downcase(reward) =~ phrase, phrase
+        assert backfill_section() =~ phrase, phrase
+      end
+
       assert reward =~ "low"
 
       section_numbers = numbers(backfill_section())
@@ -127,9 +131,7 @@ defmodule MayaWeb.FactoryPageTest do
 
       assert count(html, "#flywheel #experiments") == 1
       assert count(html, "#flywheel #review-reward") == 1
-      flywheel = text_of(html, "#flywheel")
-      assert flywheel =~ "retro"
-      assert flywheel =~ ~r/\b5\b/
+      assert text_of(html, "#flywheel-intro") =~ ~r/retro.*Every 5 retros/
     end
   end
 
