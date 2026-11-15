@@ -29,7 +29,8 @@ live="$(curl -sS --max-time 10 "$SITE/health/version" 2>/dev/null | tr -d '[:spa
 problem=""
 
 if [ "$live" = "$HEAD_SHA" ]; then
-  for path in / /health; do
+  # The home page and the Talk screen (#91) are public while the login is deferred (#49).
+  for path in / /talk /health; do
     status="$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$SITE$path")"
     echo "$path -> $status"
     if [ "$status" != "200" ]; then problem="$SITE$path answered $status"; break; fi

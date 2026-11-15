@@ -5,7 +5,8 @@ defmodule MayaWeb.SiteMetadataTest do
 
   @description "Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
 
-  defp head(conn), do: conn |> get(~p"/") |> html_response(200) |> LazyHTML.from_document()
+  defp page_head(conn, path \\ ~p"/"),
+    do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
 
   defp attr(doc, selector, name) do
     case doc |> LazyHTML.query(selector) |> LazyHTML.attribute(name) do
@@ -15,7 +16,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "page metadata: title, description, theme colours and viewport", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
 
     assert doc |> LazyHTML.query("title") |> LazyHTML.text() |> String.trim() == "Maya"
     assert attr(doc, "meta[name='description']", "content") == @description
@@ -29,7 +30,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "iOS home screen tags and the manifest link", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
 
     assert attr(doc, "link[rel='apple-touch-icon']", "href") == "/images/apple-touch-icon.png"
     assert attr(doc, "link[rel='apple-touch-icon']", "sizes") == "180x180"
@@ -44,7 +45,7 @@ defmodule MayaWeb.SiteMetadataTest do
   end
 
   test "link preview tags use absolute URLs from the configured host", %{conn: conn} do
-    doc = head(conn)
+    doc = page_head(conn)
     base = MayaWeb.Endpoint.url()
 
     assert attr(doc, "meta[property='og:title']", "content") == "Maya"
@@ -58,8 +59,19 @@ defmodule MayaWeb.SiteMetadataTest do
     assert attr(doc, "meta[name='twitter:image']", "content") == base <> "/images/og-image.png"
   end
 
-  test "robots meta keeps the page out of search engines", %{conn: conn} do
-    assert conn |> head() |> attr("meta[name='robots']", "content") == "noindex, nofollow"
+  test "no noindex on the home page", %{conn: conn} do
+    robots =
+      conn
+      |> page_head()
+      |> LazyHTML.query("meta[name='robots']")
+      |> LazyHTML.attribute("content")
+
+    refute Enum.any?(robots, &(&1 =~ "noindex"))
+  end
+
+  test "noindex on the Talk screen", %{conn: conn} do
+    assert conn |> page_head(~p"/talk") |> attr("meta[name='robots']", "content") ==
+             "noindex, nofollow"
   end
 
   test "manifest is served as JSON with the app fields and icons", %{conn: conn} do
@@ -73,7 +85,7 @@ defmodule MayaWeb.SiteMetadataTest do
 
     assert manifest["name"] == "Maya"
     assert manifest["short_name"] == "Maya"
-    assert manifest["start_url"] == "/"
+    assert manifest["start_url"] == "/talk"
     assert manifest["display"] == "standalone"
     assert manifest["theme_color"] =~ ~r/^#[0-9a-f]{6}$/i
     assert manifest["background_color"] =~ ~r/^#[0-9a-f]{6}$/i
@@ -89,10 +101,12 @@ defmodule MayaWeb.SiteMetadataTest do
     end
   end
 
-  test "robots.txt disallows all", %{conn: conn} do
+  test "robots.txt per route: only the Talk screen and Start fresh are disallowed", %{conn: conn} do
     body = conn |> get("/robots.txt") |> response(200)
 
     assert body =~ ~r/^User-agent: \*$/m
-    assert body =~ ~r/^Disallow: \/$/m
+    assert body =~ ~r/^Disallow: \/talk$/m
+    assert body =~ ~r/^Disallow: \/fresh$/m
+    refute body =~ ~r/^Disallow: \/\s*$/m
   end
 end

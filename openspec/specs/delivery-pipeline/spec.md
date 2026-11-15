@@ -62,11 +62,11 @@ Every pull request SHALL fail when a dependency has a known vulnerability adviso
 - **THEN** the security job fails and names the file
 
 ### Requirement: Post-deploy smoke check
-Every 15 minutes, and on manual dispatch, the pipeline SHALL compare the version reported by the live service with the head commit of main; when they match it SHALL verify the home page and liveness endpoint, and it SHALL open an Issue labelled `bug` when the head commit is not live 20 minutes after it was committed or a check fails. The smoke check SHALL NOT be triggered by a push, SHALL NOT wait for a deploy, and SHALL always succeed, so it cannot block a deploy.
+Every 15 minutes, and on manual dispatch, the pipeline SHALL compare the live version with the head of main; when they match it SHALL check `/`, `/talk` and the liveness endpoint. It SHALL open an Issue labelled `bug` when the head is not live 20 minutes after its commit or a check fails. It SHALL NOT be triggered by a push or wait for a deploy, and SHALL always succeed.
 
 #### Scenario: Deploy goes live
 - **WHEN** the live version endpoint reports the head commit of main
-- **AND** the home page and liveness endpoint answer HTTP 200
+- **AND** the home page, the Talk screen and the liveness endpoint answer HTTP 200
 - **THEN** the smoke check reports ok and no Issue is opened
 
 #### Scenario: Deploy in progress
@@ -80,7 +80,7 @@ Every 15 minutes, and on manual dispatch, the pipeline SHALL compare the version
 - **THEN** an Issue labelled `bug` is opened naming the commit, the failure "not live after 20 minutes" and the workflow run
 
 #### Scenario: Live checks fail
-- **WHEN** the head commit of main is live but the home page or liveness endpoint does not answer HTTP 200
+- **WHEN** the head commit of main is live but the home page, the Talk screen or the liveness endpoint does not answer HTTP 200
 - **THEN** an Issue labelled `bug` is opened naming the commit, the failing URL and its status
 
 #### Scenario: Issue already open for that commit

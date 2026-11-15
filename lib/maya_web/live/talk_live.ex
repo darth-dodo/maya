@@ -1,6 +1,6 @@
 defmodule MayaWeb.TalkLive do
   @moduledoc """
-  The Talk screen at `/` (ARCHITECTURE.md 1). It only draws: the Question arrives as a
+  The Talk screen at `/talk` (ARCHITECTURE.md 1). It only draws: the Question arrives as a
   LiveView upload from the TalkHook, the Conversation does the work, and Answer audio
   goes back to the hook as pushed PCM events (ADR-005). It talks to the Conversation of the
   guest in the session (ADR-008).
@@ -79,7 +79,7 @@ defmodule MayaWeb.TalkLive do
 
   # A tab opened before guests reconnects with a session that has none: reload the page,
   # so the browser pipeline gives it a guest.
-  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/")}
+  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/talk")}
 
   # Read once on mount: Progress only changes through Start fresh, which leaves the page.
   defp trainer_card(progress) do

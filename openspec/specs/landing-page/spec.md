@@ -2,25 +2,31 @@
 
 ## Purpose
 
-What a visitor sees at the site root around the Talk screen: Maya's name, the Emerald ball and badge case in the trainer card, Poké facts, and nothing from the web framework's generator.
+The public home page at `/`: the hero, the demo slot, the voice loop, the spoiler promise and the footer, open to search engines, with nothing from the web framework's generator.
 
 ## Requirements
 
 ### Requirement: Maya identity on the home page
-The home page SHALL name Maya once, in the app header link to `/`, and SHALL have exactly one top-level heading, "Talk to Maya", with id `talk-heading`, visually hidden so it does not repeat the header. It SHALL NOT show the old `#maya-heading` or `#tagline`.
+The home page at `/` SHALL be public and SHALL have exactly one top-level heading, "Maya", with id `home-heading`, followed by the tagline "Maps, Answers, Yaps, Advice." in `#home-tagline` and the line "So I hear you like Mudkip. Good. Correct choice." in `#home-catchphrase`. It SHALL NOT show the Talk screen (`#talk-screen`) or the Talk heading `#talk-heading`.
 
 #### Scenario: Visitor opens the home page
 - **WHEN** a visitor requests `/`
 - **THEN** the response is HTTP 200
 - **AND** the header link to `/` reads "Maya"
-- **AND** the page has one `h1`, `#talk-heading`, reading "Talk to Maya"
-- **AND** the page has no `#maya-heading` and no `#tagline`
+- **AND** the page has one `h1`, `#home-heading`, reading "Maya"
+- **AND** `#home-tagline` reads "Maps, Answers, Yaps, Advice."
+- **AND** `#home-catchphrase` reads "So I hear you like Mudkip. Good. Correct choice."
+- **AND** the page has no `#talk-screen`, no `#talk-heading` and no `#talk-button`
+
+#### Scenario: Way in to the Talk screen
+- **WHEN** a visitor requests `/`
+- **THEN** the page has a link `#talk-link` to `/talk`
 
 ### Requirement: No framework marketing on the home page
-The home page, including the app layout around it, SHALL NOT show web framework generator content: marketing copy, framework documentation or repository links, framework logos or version numbers, or framework names in the page title.
+The home page and the Talk screen, including the app layout around them, SHALL NOT show web framework generator content: marketing copy, framework documentation or repository links, framework logos or version numbers, or framework names in the page title.
 
 #### Scenario: Generator content is gone
-- **WHEN** a visitor requests `/`
+- **WHEN** a visitor requests `/` or `/talk`
 - **THEN** the page does not contain the text "Peace of mind from prototype to production"
 - **AND** the page does not contain "Phoenix Framework"
 - **AND** the page does not link to `github.com/phoenixframework`
@@ -38,62 +44,96 @@ Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin u
 - **THEN** the response is 200 with content type `image/jpeg`
 
 ### Requirement: Original art only
-The home page SHALL NOT load images, fonts, stylesheets or scripts from any host other than its own, and SHALL NOT contain `img` elements.
+The home page SHALL NOT load images, video, captions, fonts, stylesheets or scripts from any host other than its own, and SHALL NOT contain `iframe` or `embed` elements. Every `img` on it SHALL be a screenshot of Maya itself served under `/images/demo/` with non-empty `alt` text.
 
 #### Scenario: Only own assets
 - **WHEN** a visitor requests `/`
-- **THEN** every `src` and stylesheet `href` on the page is a relative path
-- **AND** the page contains no `img` element
+- **THEN** every `src`, `poster` and stylesheet `href` on the page is a relative path
+- **AND** the page contains no `iframe` and no `embed` element
+- **AND** every `img` has a `src` starting with `/images/demo/` and a non-empty `alt`
 
-### Requirement: Rotating Poké facts
-While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokémon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
+### Requirement: Hero
+The home page SHALL open with a hero `#home-hero` holding an Emerald edition Poké Ball drawn in CSS without images (`#pokeball` with class `pokeball-emerald`) over the tide backdrop, and the heading, tagline and catchphrase.
 
-#### Scenario: Facts are listed
-- **WHEN** a visitor requests `/` and the Conversation is empty
-- **THEN** the element `#poke-facts` exists
-- **AND** it contains between 10 and 14 elements with class `poke-fact`
-- **AND** every `.poke-fact` has non-empty text
-
-#### Scenario: Facts stay spoiler-free
+#### Scenario: Hero parts
 - **WHEN** a visitor requests `/`
-- **THEN** the "No spoilers" scenario of the badge case still holds for the whole page, facts included
-- **AND** no `.poke-fact` names an evolved form of a Hoenn starter (Grovyle, Sceptile, Combusken, Blaziken, Marshtomp, Swampert)
+- **THEN** `#home-hero` contains `#pokeball.pokeball-emerald`, `#home-heading`, `#home-tagline` and `#home-catchphrase`
+- **AND** `#pokeball` contains no `img` element
 
-#### Scenario: No script for the rotation
+### Requirement: Demo slot
+The home page SHALL have a demo section `#demo`. Until the clip `priv/static/videos/maya-demo.mp4` exists, `#demo` SHALL show 1 to 4 real screenshots of the Talk screen and no `video`. It SHALL NEVER show made-up data or a placeholder posing as a video.
+
+#### Scenario: Screenshots before the clip
+- **WHEN** a visitor requests `/` and `priv/static/videos/maya-demo.mp4` does not exist
+- **THEN** `#demo` contains between 1 and 4 `img` elements under `/images/demo/`, each with non-empty `alt`
+- **AND** `#demo` contains no `video` element
+
+### Requirement: Demo clip
+Once the clip exists, `#demo` SHALL show it as `video#demo-video` from Maya's own origin: muted, inline, no autoplay with sound, with controls so a tap unmutes, a poster image, a captions track and a text transcript `#demo-transcript`. The MP4 SHALL be under 5 MB.
+
+#### Scenario: Clip present
+- **WHEN** a visitor requests `/` and `priv/static/videos/maya-demo.mp4` exists
+- **THEN** `#demo-video` has the attributes `muted`, `playsinline` and `controls`, a relative `poster`, and a source `/videos/maya-demo.mp4` of type `video/mp4`
+- **AND** it has a `track` with `kind="captions"` and a relative `.vtt` `src`
+- **AND** `#demo-transcript` has non-empty text
+
+#### Scenario: Size budget
+- **WHEN** `priv/static/videos/maya-demo.mp4` exists
+- **THEN** its size is under 5,000,000 bytes
+- **AND** `GET /videos/maya-demo.mp4` answers 200 with content type `video/mp4`
+
+### Requirement: Voice loop section
+The home page SHALL have a section `#voice-loop` showing the loop as four ordered steps `.loop-step`: "Hold", "Transcribe", "Agent with tools", "Speak", with a simple diagram that needs no image file. It SHALL show per-stage latency numbers only once they are measured on the phone and recorded in the repo; until then it SHALL show the note `#latency-pending` and no millisecond or second figures.
+
+#### Scenario: Four steps in order
 - **WHEN** a visitor requests `/`
-- **THEN** the page content (`main`) contains no `script` element
+- **THEN** `#voice-loop` has an ordered list of 4 `.loop-step` elements reading "Hold", "Transcribe", "Agent with tools" and "Speak" in that order
 
-#### Scenario: Facts hidden once the Conversation starts
-- **WHEN** a visitor requests `/` and the Conversation has a turn
-- **THEN** the page has no `#poke-facts`
+#### Scenario: No invented latency
+- **WHEN** a visitor requests `/` and no phone latency numbers are recorded in the repo
+- **THEN** `#latency-pending` exists
+- **AND** the text of `#voice-loop` matches no number followed by "ms" or "s"
 
-### Requirement: Poké Ball in the trainer card
-The home page SHALL show an Emerald edition Poké Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside the trainer card `#trainer-card`. The old hero `#maya-hero` SHALL NOT be shown.
+### Requirement: Spoiler promise section
+The home page SHALL have a section `#spoiler-promise` with three items: `#promise-facts` (Facts only from Maya's own game data, ADR-004), `#promise-horizon` (the Spoiler horizon at the Next gym) and `#promise-ci-gate` (the CI spoiler gate). The CI gate item SHALL say the gate is planned until the CI workflow has a spoiler gate job (#40), and SHALL NOT claim it runs before then.
 
-#### Scenario: Poké Ball is present
+#### Scenario: Three promises
 - **WHEN** a visitor requests `/`
-- **THEN** the element `#pokeball` exists
-- **AND** it contains no `img` element
+- **THEN** `#spoiler-promise` contains `#promise-facts`, `#promise-horizon` and `#promise-ci-gate`, each with non-empty text
 
-#### Scenario: Emerald ball in the trainer card
+#### Scenario: Gate wording stays honest
+- **WHEN** a visitor requests `/` and `.github/workflows/ci.yml` has no job whose id contains "spoiler"
+- **THEN** `#promise-ci-gate` contains the word "planned"
+
+#### Scenario: Homepage stays spoiler-free
 - **WHEN** a visitor requests `/`
-- **THEN** `#trainer-card #pokeball` has the class `pokeball-emerald`
-- **AND** the page has no `#maya-hero`
+- **THEN** the page names none of the Hoenn gym leaders after Roxanne (Brawly, Wattson, Flannery, Norman, Winona, Tate, Liza, Juan)
+- **AND** no evolved form of a Hoenn starter (Grovyle, Sceptile, Combusken, Blaziken, Marshtomp, Swampert)
 
-### Requirement: Badge case in the trainer card
-The home page SHALL show, in the trainer card, a badge case with id `badge-case` holding exactly 8 badge slots, each labelled only by its number and marked earned or not from the Guest's Progress. It SHALL NOT name any badge, and SHALL NOT name any gym or gym leader past the Guest's Next gym. The badge case stays shown once the Conversation has a turn.
+### Requirement: Site footer
+The home page SHALL end with a footer `#site-footer` linking to `/factory`, the GitHub repo `https://github.com/darth-dodo/maya` and its README, with the wave and badges footer art drawn inline (no image file) and hidden from screen readers or given a text alternative.
 
-#### Scenario: Eight empty slots
-- **WHEN** a new Guest requests `/`
-- **THEN** `#badge-case` contains exactly 8 elements with class `badge-slot`
-- **AND** every slot has `data-earned="false"`
-- **AND** the slots are labelled "Badge 1 of 8" through "Badge 8 of 8"
+#### Scenario: Footer links
+- **WHEN** a visitor requests `/`
+- **THEN** `#site-footer` has links to `/factory`, `https://github.com/darth-dodo/maya` and `https://github.com/darth-dodo/maya#readme`
+- **AND** `#site-footer` contains an inline `svg` with `aria-hidden="true"` or a `title`
 
-#### Scenario: No spoilers
-- **WHEN** a new Guest requests `/`
-- **THEN** the page names Roxanne, the Next gym, and none of the later Hoenn gym leaders (Brawly, Wattson, Flannery, Norman, Winona, Tate, Liza, Juan)
-- **AND** none of the Hoenn badge names (Stone, Knuckle, Dynamo, Heat, Balance, Feather, Mind, Rain) followed by "Badge"
+### Requirement: Homepage is indexable
+The home page SHALL be open to search engines: it SHALL NOT carry a `noindex` robots meta, and `/robots.txt` SHALL disallow only `/talk` and `/fresh`.
 
-#### Scenario: Shown once the Conversation starts
-- **WHEN** a visitor requests `/` and the Conversation has a turn
-- **THEN** the page still has `#badge-case`
+#### Scenario: No noindex on the home page
+- **WHEN** a visitor requests `/`
+- **THEN** the page has no `meta[name="robots"]` whose content contains "noindex"
+
+#### Scenario: robots.txt per route
+- **WHEN** a visitor requests `/robots.txt`
+- **THEN** the response is 200 and contains `Disallow: /talk` and `Disallow: /fresh`
+- **AND** it has no line `Disallow: /`
+
+### Requirement: No API credit on the home page
+The home page SHALL NOT open a LiveView socket, start a Conversation or call any speech or agent service.
+
+#### Scenario: Static page
+- **WHEN** a visitor requests `/`
+- **THEN** the page has no `[data-phx-main]` element
+- **AND** no Conversation is started for the request

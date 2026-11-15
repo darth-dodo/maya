@@ -6,7 +6,7 @@
 The home page at `/` SHALL be public and SHALL have exactly one top-level heading, "Maya", with id `home-heading`, followed by the tagline "Maps, Answers, Yaps, Advice." in `#home-tagline` and the line "So I hear you like Mudkip. Good. Correct choice." in `#home-catchphrase`. It SHALL NOT show the Talk screen (`#talk-screen`) or the Talk heading `#talk-heading`.
 
 #### Scenario: Visitor opens the home page
-- **WHEN** a visitor without a login requests `/`
+- **WHEN** a visitor requests `/`
 - **THEN** the response is HTTP 200
 - **AND** the header link to `/` reads "Maya"
 - **AND** the page has one `h1`, `#home-heading`, reading "Maya"
@@ -14,7 +14,7 @@ The home page at `/` SHALL be public and SHALL have exactly one top-level headin
 - **AND** `#home-catchphrase` reads "So I hear you like Mudkip. Good. Correct choice."
 - **AND** the page has no `#talk-screen`, no `#talk-heading` and no `#talk-button`
 
-#### Scenario: Way in for friends
+#### Scenario: Way in to the Talk screen
 - **WHEN** a visitor requests `/`
 - **THEN** the page has a link `#talk-link` to `/talk`
 
@@ -22,7 +22,7 @@ The home page at `/` SHALL be public and SHALL have exactly one top-level headin
 The home page and the Talk screen, including the app layout around them, SHALL NOT show web framework generator content: marketing copy, framework documentation or repository links, framework logos or version numbers, or framework names in the page title.
 
 #### Scenario: Generator content is gone
-- **WHEN** a visitor requests `/`, or a signed in friend requests `/talk`
+- **WHEN** a visitor requests `/` or `/talk`
 - **THEN** the page does not contain the text "Peace of mind from prototype to production"
 - **AND** the page does not contain "Phoenix Framework"
 - **AND** the page does not link to `github.com/phoenixframework`

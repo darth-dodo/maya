@@ -1,4 +1,4 @@
-# Maya stays out of search engines until the login lands (#49).
-# Then remove the Disallow line and the robots meta in root.html.heex.
+# The home page is for everyone. The Talk screen and Start fresh stay out of search (#91).
 User-agent: *
-Disallow: /
+Disallow: /talk
+Disallow: /fresh
