@@ -13,7 +13,7 @@ defmodule MayaWeb.BasicAuthTest do
     assert conn.status == 401
     assert [challenge] = get_resp_header(conn, "www-authenticate")
     assert challenge =~ "Basic"
-    refute conn.resp_body =~ "talk-screen"
+    assert conn.resp_body == "Unauthorized"
   end
 
   test "Start fresh without credentials is refused", %{conn: conn} do
@@ -36,7 +36,8 @@ defmodule MayaWeb.BasicAuthTest do
   end
 
   test "Talk screen with the configured login renders", %{conn: conn} do
-    assert conn |> get(~p"/") |> html_response(200) =~ "talk-screen"
+    doc = conn |> get(~p"/") |> html_response(200) |> LazyHTML.from_document()
+    assert doc |> LazyHTML.query("#talk-screen") |> Enum.count() == 1
   end
 
   test "health checks and static files stay open without credentials", %{conn: conn} do
