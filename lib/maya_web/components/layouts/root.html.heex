@@ -13,11 +13,13 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d9a5b" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f6b3d" />
-    <link rel="icon" href={~p"/favicon.ico"} sizes="32x32" type="image/x-icon" />
+    <%!-- Root files keep plain paths: phx.digest names them manifest-<hash>.webmanifest,
+         which Plug.Static's `only:` list (exact first segment) would not serve. --%>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" type="image/x-icon" />
     <link rel="icon" href={~p"/images/favicon-32.png"} sizes="32x32" type="image/png" />
     <link rel="icon" href={~p"/images/favicon-16.png"} sizes="16x16" type="image/png" />
     <link rel="apple-touch-icon" href={~p"/images/apple-touch-icon.png"} sizes="180x180" />
-    <link rel="manifest" href={~p"/manifest.webmanifest"} />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
