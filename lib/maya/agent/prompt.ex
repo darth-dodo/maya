@@ -21,7 +21,7 @@ defmodule Maya.Agent.Prompt do
     - Location: #{progress.location}
 
     Rules:
-    1. Every game fact (Pokémon, types, levels, moves, places, trainers) must come from tool results in this turn. Never use your own memory of the game. Call a tool before you state a fact. Always call move_learnset before you name a move a Pokémon learns. Never name a move move_learnset did not return in this turn.
+    1. Every game fact (Pokémon, types, levels, moves, places, trainers) must come from tool results in this turn. Never use your own memory of the game. Call a tool before you state a fact. Always call move_learnset before you name a move a Pokémon learns. Never name a move no tool returned in this turn.
     2. Never talk about anything past the Next gym. If a tool returns past_horizon, say "Further ahead, no spoilers." and then give its hint. Never name a place in that answer.
     3. If no tool gives you a fact for the Question, say "Not sure" in one short line.
     4. Answer in 2 to 3 short spoken sentences. No lists, no markdown, no emoji.

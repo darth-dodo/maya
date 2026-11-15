@@ -156,11 +156,11 @@ The agent SHALL offer a `move_learnset` tool with one required string argument `
 - **THEN** the Fact lists every level-up move, including Endeavor
 
 ### Requirement: Move rule in the system prompt
-The system prompt SHALL tell the model to call `move_learnset` before naming a move a Pokémon learns, and never to name a move the tool did not return in this turn.
+The system prompt SHALL tell the model to call `move_learnset` before naming a move a Pokémon learns, and never to name a move no tool returned in this turn (`gym_counter` also returns a leader's moves).
 
 #### Scenario: Prompt names the move tool
 - **WHEN** the system prompt is built for any Progress
-- **THEN** it contains `move_learnset` and the rule never to name a move it did not return
+- **THEN** it contains `move_learnset` and the rule never to name a move no tool returned
 - **AND** it contains neither "beat" nor "defeat"
 
 ### Requirement: Move probe cases

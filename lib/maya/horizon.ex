@@ -74,11 +74,13 @@ defmodule Maya.Horizon do
   @doc """
   The level horizon: the Next gym ace's level, or the Team's highest level when higher.
   Nil (no cap) with all 8 badges. The caller reads the ace level, so this stays pure; a nil
-  ace before the last gym counts as 0, so a missing party never removes the cap.
+  ace or a Team level that is not an integer counts as 0 (nil sorts above every integer),
+  so missing data never removes the cap.
   """
   def level_cap(progress, ace_level) do
     if next_gym(progress) do
-      progress.team |> Enum.map(& &1["level"]) |> Enum.max(fn -> 0 end) |> max(ace_level || 0)
+      (for(%{"level" => l} when is_integer(l) <- progress.team, do: l) ++ [ace_level || 0])
+      |> Enum.max()
     end
   end
 
