@@ -15,7 +15,7 @@ defmodule Maya.Agent.ToolsTest do
             Tools.definitions(),
           do: n
 
-    assert Enum.sort(names) == ["find_pokemon", "gym_counter"]
+    assert Enum.sort(names) == ["find_pokemon", "gym_counter", "log_event"]
   end
 
   test "gym_counter for Roxanne from the imported data and the seed Team", %{progress: progress} do
@@ -46,7 +46,8 @@ defmodule Maya.Agent.ToolsTest do
 
   test "wrong arguments and unknown tools are errors, not crashes", %{progress: progress} do
     assert Tools.call("gym_counter", %{"name" => 1}, progress) == {:error, :bad_arguments}
-    assert Tools.call("log_event", %{}, progress) == {:error, :unknown_tool}
+    assert Tools.call("set_setting", %{}, progress) == {:error, :unknown_tool}
+    assert Tools.call("log_event", %{"kind" => 1}, progress) == {:error, :bad_arguments}
   end
 
   test "results are encoded as JSON for the model, past horizon with a hint", %{
@@ -62,5 +63,28 @@ defmodule Maya.Agent.ToolsTest do
 
     assert hint =~ "Roxanne"
     assert %{"error" => "not_found"} = Jason.decode!(Tools.encode({:error, :not_found}, progress))
+  end
+
+  test "log_event writes the Event and returns the new Progress with its confirm line", %{
+    progress: progress
+  } do
+    args = %{"kind" => "badge_earned", "details" => %{"leader" => "Roxanne"}}
+
+    assert {:logged, "Stone Badge logged. Mudkip would approve.", %{badges: [1]}} =
+             result = Tools.call("log_event", args, progress)
+
+    assert Jason.decode!(Tools.encode(result, progress)) == %{
+             "confirm" => "Stone Badge logged. Mudkip would approve."
+           }
+
+    assert GameData.progress("tools-test").badges == [1]
+  end
+
+  test "log_event refusals are a line for the model; details may be left out", %{
+    progress: progress
+  } do
+    refused = Tools.call("log_event", %{"kind" => "badge_earned"}, progress)
+    assert refused == {:refused, "I can only log Roxanne's badge next."}
+    assert Jason.decode!(Tools.encode(refused, progress)) == %{"refused" => elem(refused, 1)}
   end
 end

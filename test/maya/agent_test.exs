@@ -60,7 +60,13 @@ defmodule Maya.AgentTest do
 
     for body <- [first, second] do
       assert body["model"] == "anthropic/claude-haiku-5.5"
-      assert Enum.map(body["tools"], & &1["function"]["name"]) == ["gym_counter", "find_pokemon"]
+
+      assert Enum.map(body["tools"], & &1["function"]["name"]) == [
+               "gym_counter",
+               "find_pokemon",
+               "log_event"
+             ]
+
       refute Map.has_key?(body, "temperature")
     end
 
@@ -183,5 +189,66 @@ defmodule Maya.AgentTest do
     assert_received {:request, _, %{"messages" => [%{"content" => brand_new} | _]}}
     assert one_badge =~ "Next gym: Brawly"
     assert brand_new =~ "Next gym: Roxanne"
+  end
+
+  describe "Events" do
+    @badge ~s({"kind":"badge_earned","details":{"leader":"Roxanne"}})
+
+    test "\"I just earned Roxanne's badge\": logged, the Next gym is Brawly, and the next prompt says so" do
+      guest = "events-agent"
+
+      script([
+        calls([{"log", "log_event", @badge}, {"brawly", "gym_counter", ~s({"leader":"Brawly"})}]),
+        text("Stone Badge logged. Mudkip would approve.")
+      ])
+
+      assert {:ok, "Stone Badge logged. Mudkip would approve."} =
+               Agent.answer("I just earned Roxanne's badge", [], guest_id: guest)
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+
+      assert [%{"tool_call_id" => "log", "content" => logged}, %{"content" => brawly}] =
+               tool_messages(second)
+
+      assert Jason.decode!(logged) == %{"confirm" => "Stone Badge logged. Mudkip would approve."}
+      # The same turn already uses the new Progress: Brawly is now the Next gym.
+      assert %{"fact" => %{"leader" => "Brawly"}} = Jason.decode!(brawly)
+
+      assert Maya.Horizon.next_gym(Maya.GameData.progress(guest)).leader == "Brawly"
+
+      assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: guest)
+      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]}}
+      assert prompt =~ "Next gym: Brawly (badge 2)"
+    end
+
+    test "\"No, undo that\" in the next turn reverts the last Event" do
+      guest = "events-undo"
+      script([calls([{"log", "log_event", @badge}]), text("Stone Badge logged.")])
+      assert {:ok, _} = Agent.answer("I just earned Roxanne's badge", [], guest_id: guest)
+
+      script([calls([{"undo", "log_event", ~s({"kind":"undo"})}]), text("Undone.")])
+      assert {:ok, _} = Agent.answer("No, undo that", [], guest_id: guest)
+
+      assert Maya.GameData.progress(guest).badges == []
+      assert Maya.Horizon.next_gym(Maya.GameData.progress(guest)).leader == "Roxanne"
+    end
+
+    test "a later badge is refused politely and nothing changes" do
+      guest = "events-later"
+
+      script([
+        calls([{"log", "log_event", ~s({"kind":"badge_earned","details":{"leader":"Wattson"}})}]),
+        text("I can only log Roxanne's badge next.")
+      ])
+
+      assert {:ok, _} = Agent.answer("I earned Wattson's badge", [], guest_id: guest)
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+      assert [%{"content" => refused}] = tool_messages(second)
+      assert Jason.decode!(refused) == %{"refused" => "I can only log Roxanne's badge next."}
+      refute refused =~ "Mauville"
+      assert Maya.GameData.progress(guest).badges == []
+    end
   end
 end

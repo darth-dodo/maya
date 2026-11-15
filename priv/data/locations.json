@@ -7,5 +7,10 @@
 {"name":"Petalburg City","map":"MAP_PETALBURG_CITY","badges_required":0},
 {"name":"Route 104","map":"MAP_ROUTE104","badges_required":0},
 {"name":"Petalburg Woods","map":"MAP_PETALBURG_WOODS","badges_required":0},
-{"name":"Rustboro City","map":"MAP_RUSTBORO_CITY","badges_required":0}
+{"name":"Rustboro City","map":"MAP_RUSTBORO_CITY","badges_required":0},
+{"name":"Route 116","map":"MAP_ROUTE116","badges_required":1},
+{"name":"Rusturf Tunnel","map":"MAP_RUSTURF_TUNNEL","badges_required":1},
+{"name":"Route 105","map":"MAP_ROUTE105","badges_required":1},
+{"name":"Route 106","map":"MAP_ROUTE106","badges_required":1},
+{"name":"Dewford Town","map":"MAP_DEWFORD_TOWN","badges_required":1}
 ]

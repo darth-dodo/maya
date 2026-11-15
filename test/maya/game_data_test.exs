@@ -42,21 +42,32 @@ defmodule Maya.GameDataTest do
     assert GameData.multiplier("normal", "water") == 1.0
   end
 
-  test "locations are Littleroot Town to Rustboro City; anything else fails closed" do
-    names = for l <- GameData.locations(), do: l.name
+  test "locations are Littleroot Town to Dewford Town; anything else fails closed" do
+    required = Map.new(GameData.locations(), &{&1.name, &1.badges_required})
 
-    assert Enum.sort(names) ==
-             Enum.sort([
-               "Littleroot Town",
-               "Route 101",
-               "Oldale Town",
-               "Route 103",
-               "Route 102",
-               "Petalburg City",
-               "Route 104",
-               "Petalburg Woods",
-               "Rustboro City"
-             ])
+    assert required == %{
+             "Littleroot Town" => 0,
+             "Route 101" => 0,
+             "Oldale Town" => 0,
+             "Route 103" => 0,
+             "Route 102" => 0,
+             "Petalburg City" => 0,
+             "Route 104" => 0,
+             "Petalburg Woods" => 0,
+             "Rustboro City" => 0,
+             "Route 116" => 1,
+             "Rusturf Tunnel" => 1,
+             "Route 105" => 1,
+             "Route 106" => 1,
+             "Dewford Town" => 1
+           }
+
+    one_badge = %{badges: [1]}
+    assert Horizon.allowed?(GameData.location("Route 104"), one_badge)
+    assert Horizon.allowed?(GameData.location("Dewford Town"), one_badge)
+    refute Horizon.allowed?(GameData.location("Mauville City"), one_badge)
+    refute Horizon.allowed?(GameData.location("Dewford Town"), %{badges: []})
+    refute Horizon.allowed?(GameData.location("Route 116"), %{badges: []})
 
     progress = GameData.progress("guest-a")
     assert Horizon.allowed?(GameData.location("Rustboro City"), progress)

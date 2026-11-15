@@ -146,10 +146,7 @@ defmodule Maya.GameData do
   end with one row: the insert does nothing on the guest's unique index.
   """
   def progress(guest_id) when is_binary(guest_id) do
-    query =
-      from p in "progress",
-        where: p.guest_id == ^guest_id,
-        select: %{badges: p.badges, team: p.team, location: p.location, humor: p.humor}
+    query = progress_query(guest_id)
 
     case Repo.one(query) do
       nil ->
@@ -159,6 +156,37 @@ defmodule Maya.GameData do
       progress ->
         progress
     end
+  end
+
+  @doc "A seeded guest's Progress row, locked `FOR UPDATE` until the transaction ends."
+  def lock_progress!(guest_id),
+    do: Repo.one!(from p in progress_query(guest_id), lock: "FOR UPDATE")
+
+  @doc "Writes badges, Team and location back to the guest's Progress row (Events only, ADR-006)."
+  def put_progress!(%{guest_id: guest_id} = progress) do
+    {1, _} =
+      Repo.update_all(from(p in "progress", where: p.guest_id == ^guest_id),
+        set: [
+          badges: progress.badges,
+          team: progress.team,
+          location: progress.location,
+          updated_at: DateTime.utc_now(:second)
+        ]
+      )
+
+    :ok
+  end
+
+  defp progress_query(guest_id) do
+    from p in "progress",
+      where: p.guest_id == ^guest_id,
+      select: %{
+        guest_id: p.guest_id,
+        badges: p.badges,
+        team: p.team,
+        location: p.location,
+        humor: p.humor
+      }
   end
 
   defp seed_progress!(guest_id) do

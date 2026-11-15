@@ -41,6 +41,22 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "Badges earned: 1"
   end
 
+  test "progress the player reports becomes a log_event call, and no or undo that undoes it" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "log_event"
+    assert prompt =~ ~s(kind "undo")
+    assert prompt =~ "confirm"
+    assert prompt =~ "refused"
+  end
+
+  test "the prompt shows the Progress after an Event" do
+    prompt =
+      Prompt.system(%{@progress | badges: [1], team: [%{"species" => "mudkip", "level" => 13}]})
+
+    assert prompt =~ "Next gym: Brawly (badge 2)"
+    assert prompt =~ "mudkip level 13"
+  end
+
   test "with all 8 badges there is no Next gym" do
     assert Prompt.system(%{@progress | badges: Enum.to_list(1..8)}) =~ "Next gym: none"
   end

@@ -5,6 +5,7 @@ defmodule Maya.Agent.Tools do
   """
 
   alias Maya.Agent.Facts
+  alias Maya.Events
   alias Maya.GameData
 
   @definitions [
@@ -33,6 +34,35 @@ defmodule Maya.Agent.Tools do
           required: ["name"]
         }
       }
+    },
+    %{
+      type: "function",
+      function: %{
+        name: "log_event",
+        description:
+          "Records what the player just told you about their game and updates their Progress. Returns a confirm line to say, or a refused line to say instead.",
+        parameters: %{
+          type: "object",
+          properties: %{
+            kind: %{type: "string", enum: Events.kinds()},
+            details: %{
+              type: "object",
+              description:
+                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. level_up: species, level. moved: location. undo: nothing.",
+              properties: %{
+                leader: %{type: "string"},
+                badge: %{type: "integer"},
+                species: %{type: "string"},
+                level: %{type: "integer"},
+                from: %{type: "string"},
+                to: %{type: "string"},
+                location: %{type: "string"}
+              }
+            }
+          },
+          required: ["kind"]
+        }
+      }
     }
   ]
 
@@ -54,7 +84,17 @@ defmodule Maya.Agent.Tools do
     end
   end
 
-  def call(name, _args, _progress) when name in ["gym_counter", "find_pokemon"],
+  # Writes, so its result carries the new Progress for the rest of the turn.
+  def call("log_event", %{"kind" => kind} = args, progress) when is_binary(kind) do
+    details = if is_map(args["details"]), do: args["details"], else: %{}
+
+    case Events.log(progress, kind, details) do
+      {:ok, line, new_progress} -> {:logged, line, new_progress}
+      refused -> refused
+    end
+  end
+
+  def call(name, _args, _progress) when name in ["gym_counter", "find_pokemon", "log_event"],
     do: {:error, :bad_arguments}
 
   def call(_name, _args, _progress), do: {:error, :unknown_tool}
@@ -65,6 +105,8 @@ defmodule Maya.Agent.Tools do
 
   @doc "A tool result as the JSON content of its `role: \"tool\"` message."
   def encode({:ok, fact}, _progress), do: Jason.encode!(%{fact: fact})
+  def encode({:logged, line, _new_progress}, _progress), do: Jason.encode!(%{confirm: line})
+  def encode({:refused, line}, _progress), do: Jason.encode!(%{refused: line})
 
   def encode({:error, :past_horizon}, progress),
     do: Jason.encode!(%{error: "past_horizon", hint: Facts.hint(progress)})
