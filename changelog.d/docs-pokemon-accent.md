@@ -1,0 +1,1 @@
+Changed: "Pokémon" is written with the accent in all user-facing text and docs (code identifiers stay ASCII); the README hero now carries the "Maps, Answers, Yaps, Advice." tagline and the Mudkip line that missed #54
