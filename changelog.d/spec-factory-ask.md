@@ -1,1 +1,0 @@
-Added: OpenSpec change `factory-ask`: one `factory:ask` entry point routes each request to a bug Issue, `factory:plan`, a PHASE_2.md line, an experiment candidate, an answer, or a stack question for Abhishek
