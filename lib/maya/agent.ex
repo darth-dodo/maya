@@ -14,7 +14,8 @@ defmodule Maya.Agent do
 
   @doc """
   Answers one Question for the guest in `opts[:guest_id]`, against that guest's Progress
-  (ADR-008). Without a guest there is no Progress, so it returns `{:error, :no_progress}`.
+  (ADR-008), or `opts[:progress]` when the caller already read it (the Conversation does, for
+  STT). Without either there is no Progress, so it returns `{:error, :no_progress}`.
   `opts[:model]` overrides the configured model.
   """
   @spec answer(String.t(), [map()], keyword()) :: {:ok, String.t()} | {:error, term()}
@@ -24,7 +25,7 @@ defmodule Maya.Agent do
     # One budget for the whole stage, so 4 slow rounds cannot leave the player in silence.
     deadline = System.monotonic_time(:millisecond) + voice(:agent_timeout_ms)
 
-    with %{} = progress <- guest_progress(opts[:guest_id]),
+    with %{} = progress <- opts[:progress] || guest_progress(opts[:guest_id]),
          {:ok, req} <- client() do
       loop(
         {req, deadline},

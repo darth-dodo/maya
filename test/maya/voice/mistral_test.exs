@@ -33,6 +33,23 @@ defmodule Maya.Voice.MistralTest do
       assert STT.transcribe("RIFF", "q.wav") == {:ok, "Hi"}
     end
 
+    test "sends one context_bias field per term" do
+      terms = ["Maya", "Ralts", "Rustboro City"]
+      me = self()
+
+      Req.Test.stub(Maya.Mistral, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        fields = Regex.scan(~r/name="context_bias"\r\n(?:[^\r\n]+\r\n)*\r\n([^\r\n]*)\r\n/, body)
+        send(me, {:bias, Enum.map(fields, &List.last/1), byte_size(body)})
+        Req.Test.json(conn, %{"text" => "Hi"})
+      end)
+
+      assert STT.transcribe("RIFF", "q.wav", terms) == {:ok, "Hi"}
+      assert_received {:bias, ^terms, size}
+      # Three short fields add a few hundred bytes of multipart framing, nothing more.
+      assert size < 1_500
+    end
+
     test "an HTTP error is an error tuple" do
       Req.Test.stub(Maya.Mistral, &Plug.Conn.send_resp(&1, 500, "down"))
       assert STT.transcribe("RIFF", "question.wav") == {:error, {:http, 500}}

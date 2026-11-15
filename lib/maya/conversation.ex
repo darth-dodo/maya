@@ -12,8 +12,8 @@ defmodule Maya.Conversation do
 
   require Logger
 
-  alias Maya.Agent
-  alias Maya.Voice.{STT, Turn, TTS}
+  alias Maya.{Agent, GameData}
+  alias Maya.Voice.{STT, TTS, Turn, Vocabulary}
 
   @nothing_heard "(nothing heard)"
   @not_heard "I did not catch that."
@@ -75,11 +75,12 @@ defmodule Maya.Conversation do
     state = cut(state)
     me = self()
     ref = make_ref()
+    id = state.id
 
     task =
       run(fn ->
         :telemetry.span([:maya, :voice, :stt], %{conversation: me, ref: ref}, fn ->
-          {STT.transcribe(audio, filename), %{conversation: me, ref: ref}}
+          {transcribe(id, audio, filename), %{conversation: me, ref: ref}}
         end)
       end)
 
@@ -154,17 +155,28 @@ defmodule Maya.Conversation do
 
   ## Turn steps
 
-  defp finished(:stt, {:ok, ""}, state), do: speak(state, @nothing_heard, @not_heard)
+  # The turn's one Progress read: it biases STT toward the Team and horizon and goes on to the agent.
+  defp transcribe(id, audio, filename) do
+    progress = GameData.progress(id)
+    terms = Vocabulary.bias_terms(progress)
 
-  defp finished(:stt, {:ok, question}, %{current: c} = state) do
+    with {:ok, text} <- STT.transcribe(audio, filename, terms),
+         do: {:ok, Vocabulary.correct(text, terms), progress}
+  end
+
+  defp finished(:stt, {:ok, "", _progress}, state),
+    do: speak(state, @nothing_heard, @not_heard)
+
+  defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
     me = self()
     ref = c.ref
     turns = state.turns
+    opts = [guest_id: state.id, progress: progress]
 
     task =
       run(fn ->
         :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
-          {Agent.answer(question, turns, guest_id: state.id), %{conversation: me, ref: ref}}
+          {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
         end)
       end)
 
