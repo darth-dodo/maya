@@ -1,8 +1,13 @@
-## ADDED Requirements
+# factory-intake Specification
+
+## Purpose
+How a request from Abhishek enters the factory through `factory:ask`: the routes, what each creates, the questions asked, the decision record and the hand-off.
+
+## Requirements
 
 ### Requirement: One entry point routes every request
 
-`factory:ask <request>` SHALL classify a request from Abhishek into exactly one route (Bug, Feature, Later, Experiment, Question, Gated, Ambiguous; table in design.md) and SHALL name the route, the reason and the next command before it creates anything.
+`factory:ask <request>` SHALL classify a request from Abhishek into exactly one route (Bug, Feature, Later, Experiment, Question, Gated, Ambiguous; table in `.claude/skills/factory-ask/SKILL.md`) and SHALL name the route, the reason and the next command before it creates anything.
 
 #### Scenario: Route announced first
 - **WHEN** Abhishek runs `factory:ask "the Talk button sticks on iPad"`
@@ -84,7 +89,7 @@ A request that needs something outside the frozen stack, a paid service or a new
 
 ### Requirement: Ask only routing questions
 
-The skill SHALL ask only questions whose answer changes the route: build now or later, paid or stack change approved, which block or milestone, which metric. It SHALL ask at most two, using AskUserQuestion with options when the answers are a short list. It SHALL NOT interview for requirements (that is `grill-with-docs` and `openspec-propose`).
+The skill SHALL ask only questions whose answer changes the route: build now or later, paid or stack change approved, which block or milestone, which metric, or evidence for a Bug. It SHALL ask at most two, using AskUserQuestion with options when the answers are a short list. It SHALL NOT interview for requirements (that is `grill-with-docs` and `openspec-propose`).
 
 #### Scenario: Ambiguous request
 - **WHEN** Abhishek runs `factory:ask "Mudkip facts on the homepage"`
@@ -101,3 +106,11 @@ Every route that creates something SHALL record the date and Abhishek's words: i
 #### Scenario: Writing rules
 - **WHEN** the skill writes any line, Issue or comment
 - **THEN** the text uses inclusive language, writes "Pokémon" with é, and has no em or en dashes
+
+### Requirement: Intake lines ride along
+
+A PHASE_2.md line or Candidates row SHALL need no Issue and SHALL ride along in the next related open PR where one exists; only when none exists SHALL the skill open its own `docs/intake-<yyyy-mm-dd>` PR (Abhishek, 2026-11-15, #106).
+
+#### Scenario: Related PR open
+- **WHEN** a Later line is routed while a related PR is open
+- **THEN** the line is committed on that PR and no Issue or new PR is created

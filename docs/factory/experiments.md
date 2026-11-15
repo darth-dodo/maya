@@ -22,3 +22,10 @@ Snapshot of `~/maya-factory/metrics.csv` read on 2026-11-15 (23 rows, PRs #16 to
 - Tested fixes: 4 of 67 findings led to a tested fix (#22, #24, #55).
 - Precision: `review_precision` median 0.00 over those 10 PRs, highest 0.20 (#22).
 - Escaped defects: 3 (#22, #48, #55). 2 of 3 escaped defects were missed: no finding flagged them (`review_misses`, #22 and #55).
+
+## Candidates
+
+Process ideas waiting for an experiment, added by `factory:ask` (Experiment route). `factory:improve` step 3 prefers a candidate whose metric is the worst metric and removes its row when it opens the experiment.
+
+| date | change | metric | hypothesis | words |
+|---|---|---|---|---|

@@ -25,7 +25,7 @@ Goals: one repeatable routing decision with a record. Non-goals: re-implementing
 - **A router skill, not a new station.** `factory:ask` sits on the "Idea from Abhishek" arrow. Alternative: extend `project-manager` "New ideas". Rejected: project-manager plans the whole board; per-request routing there hides the route table.
 - **Creates at most one thing.** A bug Issue, a PHASE_2.md line, a Candidates row, or nothing. Everything else is a hand-off, so each station keeps a single owner.
 - **Candidates live in `docs/factory/experiments.md`.** Retro notes sit outside the repo (`~/maya-factory/`), so a candidate there is invisible to other sessions. A `## Candidates` list below the backfill keeps one log. `factory:improve` step 3 gains one line to prefer a matching candidate; without it the route is a dead end.
-- **Repo lines ride a docs PR.** A PHASE_2.md line or Candidates row is a repo change, so it goes on a `docs/intake-<yyyy-mm-dd>` branch and PR (reused while open the same day) with a changelog fragment. Per the Later rule those lines get no Issue (see Open Questions).
+- **Repo lines ride a docs PR.** A PHASE_2.md line or Candidates row is a repo change, so it goes on a `docs/intake-<yyyy-mm-dd>` branch and PR (reused while open the same day) with a changelog fragment. Those lines get no Issue and ride along in the next related PR where possible (see Open Questions).
 
 ## Risks / Trade-offs
 
@@ -35,4 +35,4 @@ Goals: one repeatable routing decision with a record. Non-goals: re-implementing
 
 ## Open Questions
 
-- Are intake-line PRs (PHASE_2.md, Candidates) exempt from "every PR gets an Issue"? The design assumes yes, since the Later rule says "no Issue".
+- Resolved by Abhishek on 2026-11-15 (#106): intake-line PRs (PHASE_2.md, Candidates) need no Issue, and the lines ride along in the next related PR where possible.
