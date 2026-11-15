@@ -1,4 +1,4 @@
-# Tasks: sunday-proof
+# Tasks: sunday-goal
 
 ## 1. Probe set and the spoiler gate
 
@@ -6,6 +6,8 @@
 - [ ] 1.2 Add a `spoiler_gate` tagged test that runs every probe through `Maya.Agent.answer/3` with OpenRouter stubbed and asserts `past_horizon` per tool result and no forbidden name in any system or tool message. Verify: `mix test --only spoiler_gate` fails on Groudon before 1.4 (the red run).
 - [ ] 1.3 Add the `spoiler-gate` job to `.github/workflows/ci.yml` (Postgres service, `mix test --only spoiler_gate`) and to `ci-success`'s needs. Verify: actionlint if installed; CI shows `spoiler-gate` red on the first push, failing `ci-success`.
 - [ ] 1.4 `find_pokemon` returns `past_horizon` for a species with no wild place inside the horizon unless on the Team, with Facts tests for Groudon, Beldum and Mudkip on the Team. Verify: `mix test test/maya/agent/facts_test.exs` and the gate pass; CI green on the second push.
+
+- [ ] 1.5 Add the honesty case from #118 to the probe file (a stubbed reply claiming a refusal with no tool call) and a check that flags a reply stating an Event or refusal when no `log_event` or `set_setting` call ran in that turn. The agent-level assertion is a skipped test that #118 enables. Verify: the check test passes; the skipped test names #118.
 
 ## 2. Roxanne then Ralts
 
@@ -19,10 +21,10 @@
 
 ## 4. Phone checklist and docs
 
-- [ ] 4.1 Add `docs/sunday-proof.md`: the two Questions, 10 holds, Answer time under 8 s, the latency SQL from #40 and `mix maya.latency`. Verify: the doc has each item.
+- [ ] 4.1 Add `mix maya.sunday`: prints the phone checklist (the two Questions, 10 holds, Answer time under 8 s, `mix maya.latency`) and the latency SQL from #40. Verify: a Mix task test asserts each item in the output.
 - [ ] 4.2 Changelog fragment, CLAUDE.md status line. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
 
 ## Workflow follow-up
 
-- Archive with `openspec-archive-change sunday-proof` in the build PR.
+- Archive with `openspec-archive-change sunday-goal` in the build PR.
 - Abhishek runs the phone checklist and pastes the latency numbers on #40.
