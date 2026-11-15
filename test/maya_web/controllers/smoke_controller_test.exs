@@ -54,7 +54,7 @@ defmodule MayaWeb.SmokeControllerTest do
              "answer" => "Lead with Mudkip, Roxanne's rocks fear water."
            }
 
-    assert Maya.Voice.Turn.recent() == []
+    assert Maya.Voice.Turn.recent("smoke") == []
   end
 
   test "asks as the dedicated smoke Guest (ADR-008)", %{conn: conn} do
@@ -69,7 +69,10 @@ defmodule MayaWeb.SmokeControllerTest do
   end
 
   test "answers 503 with the reason when the agent fails", %{conn: conn} do
-    # No game data imported, so there is no Progress: the #55 production failure.
-    assert conn |> ask("secret") |> json_response(503) == %{"error" => "no_progress"}
+    # Since guest sessions (#65) every Guest's Progress is seeded on first use, so the
+    # failure left to catch is the model call itself.
+    Req.Test.stub(Maya.OpenRouter, fn conn -> Plug.Conn.send_resp(conn, 500, "upstream down") end)
+
+    assert conn |> ask("secret") |> json_response(503) == %{"error" => "{:http, 500}"}
   end
 end
