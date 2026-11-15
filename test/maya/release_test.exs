@@ -24,7 +24,8 @@ defmodule Maya.ReleaseTest do
   end
 
   test "the guest migration gives existing turns and Progress to the legacy guest, losing none" do
-    Ecto.Migrator.run(Repo, :down, to: @guest_migration, log: false)
+    # No migration lock: the lock would hold the one sandbox connection the migration Task needs.
+    Ecto.Migrator.run(Repo, :down, to: @guest_migration, log: false, migration_lock: false)
 
     Repo.query!("""
     INSERT INTO turns (question, answer, inserted_at, updated_at)
@@ -37,7 +38,7 @@ defmodule Maya.ReleaseTest do
     VALUES (1, '{1}', '[]', 'Rustboro City', 75, now(), now())
     """)
 
-    Ecto.Migrator.run(Repo, :up, all: true, log: false)
+    Ecto.Migrator.run(Repo, :up, all: true, log: false, migration_lock: false)
 
     assert [%{question: "Where is Ralts"}] = Maya.Voice.Turn.recent("legacy")
     assert %{badges: [1], location: "Rustboro City"} = GameData.progress("legacy")
