@@ -92,3 +92,16 @@ Every 15 minutes, and on manual dispatch, the pipeline SHALL compare the version
 - **WHEN** a commit is pushed to main
 - **THEN** no smoke check run is triggered by that push
 - **AND** every smoke check run finishes within 5 minutes and exits successfully, whatever it finds
+
+### Requirement: Post-deploy Question
+Once an hour, and on manual dispatch, the smoke check SHALL ask the live head commit one Question through the smoke Question endpoint when the smoke token is set, and SHALL open an Issue labelled `bug` (one per commit) when the response is not HTTP 200, the Answer is empty or the Answer is the agent error line. It SHALL always succeed, like the smoke check.
+
+#### Scenario: Production Question fails
+- **WHEN** the head commit of main is live and its home page and liveness endpoint answer HTTP 200
+- **AND** the run is the hourly scheduled run or a manual dispatch, with the smoke token set
+- **AND** the smoke Question endpoint answers a status other than HTTP 200, an empty Answer or the agent error line
+- **THEN** an Issue labelled `bug` is opened naming the commit and the failure
+
+#### Scenario: No smoke token
+- **WHEN** the smoke token is not set in the pipeline
+- **THEN** the Question is skipped and no Issue is opened for it

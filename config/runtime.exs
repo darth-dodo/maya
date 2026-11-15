@@ -25,6 +25,9 @@ config :maya, MayaWeb.Endpoint, http: [port: String.to_integer(System.get_env("P
 # Commit Render deployed (set by Render per deploy); served by /health/version for the smoke check.
 config :maya, :git_commit, System.get_env("RENDER_GIT_COMMIT", "unknown")
 
+# Header token for POST /health/ask (the post-deploy Question). Unset turns the endpoint off.
+config :maya, :smoke_token, System.get_env("SMOKE_TOKEN")
+
 # Mistral key for STT and TTS. Missing means "voice is down" (Answers as text), not a boot failure.
 if config_env() != :test do
   config :maya, :mistral, api_key: System.get_env("MISTRAL_API_KEY")
