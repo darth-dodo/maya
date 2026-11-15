@@ -1,5 +1,4 @@
-# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# To ban all spiders from the entire site uncomment the next two lines:
-# User-agent: *
-# Disallow: /
+# Maya stays out of search engines until the login lands (#49).
+# Then remove the Disallow line and the robots meta in root.html.heex.
+User-agent: *
+Disallow: /
