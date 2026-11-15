@@ -164,6 +164,44 @@ defmodule Maya.AgentTest do
     assert rest == expected
   end
 
+  # PRODUCT.md "Done when (Sunday)": both Questions in one Conversation, the model stubbed.
+  test "Sunday goal: Roxanne then Ralts in the same Conversation, each from a tool" do
+    roxanne = "Roxanne's ace is Nosepass. Lead with Mudkip. Mudkip would approve."
+    ralts = "Ralts lives in the grass on Route 102, about 4 percent of the time."
+
+    script([
+      calls([{"rox", "gym_counter", ~s({"leader":"Roxanne"})}]),
+      text(roxanne),
+      calls([{"ralts", "find_pokemon", ~s({"name":"Ralts"})}]),
+      text(ralts)
+    ])
+
+    assert {:ok, ^roxanne} = Agent.answer(@roxanne, [], guest_id: @guest)
+
+    turns = [%Turn{question: @roxanne, answer: roxanne}]
+    assert {:ok, ^ralts} = Agent.answer("Where do I catch a Ralts?", turns, guest_id: @guest)
+
+    assert_received {:request, _, _}
+    assert_received {:request, _, rox_result}
+    assert_received {:request, _, ralts_first}
+    assert_received {:request, _, ralts_result}
+
+    assert [%{"content" => fact}] = tool_messages(rox_result)
+
+    assert %{"fact" => %{"ace" => %{"species" => "nosepass"}, "suggested_lead" => "mudkip"}} =
+             Jason.decode!(fact)
+
+    assert [%{"content" => places}] = tool_messages(ralts_result)
+    assert %{"fact" => %{"places" => [%{"location" => "Route 102"} | _]}} = Jason.decode!(places)
+
+    assert [
+             %{"role" => "system"},
+             %{"role" => "user", "content" => @roxanne},
+             %{"role" => "assistant", "content" => ^roxanne},
+             %{"role" => "user", "content" => "Where do I catch a Ralts?"}
+           ] = ralts_first["messages"]
+  end
+
   test "the model can be chosen per call" do
     script([text("Hi.")])
     assert {:ok, "Hi."} = Agent.answer("Hi", [], model: "openai/gpt-5.4-mini", guest_id: @guest)

@@ -60,8 +60,11 @@
           A scheduled smoke check asks the live app one real Question and opens a bug Issue when that Question fails. It is experiment E3 below.
         </li>
         <li id="gate-spoiler">
-          <strong>A CI spoiler gate is planned.</strong>
-          A check on every change that fails when an Answer names something past the Spoiler horizon (Issue #40). Until that CI job exists, the spoiler promise rests on the tools and the tests.
+          <strong>A CI spoiler gate checks every change.</strong>
+          The <code>spoiler-gate</code>
+          job runs 20 spoiler Questions through the agent with the model stubbed and fails
+          <code>ci-success</code>
+          if a tool result is a Fact past the Spoiler horizon or a forbidden name reaches the model (Issue #40). A nightly probe asks the live app the same Questions and opens a bug Issue on a leak.
         </li>
       </ul>
     </section>
