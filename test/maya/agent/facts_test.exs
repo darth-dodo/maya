@@ -146,6 +146,69 @@ defmodule Maya.Agent.FactsTest do
     end
   end
 
+  describe "move_learnset/5" do
+    @mudkip %{name: "mudkip", types: ["water"], evolutions: []}
+    @moves for {move, level} <- [
+                 {"tackle", 1},
+                 {"growl", 1},
+                 {"mud-slap", 6},
+                 {"water-gun", 10},
+                 {"bide", 15},
+                 {"foresight", 19},
+                 {"endeavor", 46}
+               ],
+               do: %{move: move, level: level, method: "level-up"}
+
+    test "Mudkip at 0 badges lists moves up to Roxanne's ace at 15, none above" do
+      assert {:ok, fact} = Facts.move_learnset(@mudkip, @moves, [], @progress, 15)
+      assert fact.name == "mudkip"
+      assert fact.level_horizon == 15
+
+      assert Enum.map(fact.moves, &{&1.move, &1.level}) == [
+               {"tackle", 1},
+               {"growl", 1},
+               {"mud-slap", 6},
+               {"water-gun", 10},
+               {"bide", 15}
+             ]
+
+      assert Enum.all?(fact.moves, &(&1.method == "level-up"))
+    end
+
+    test "a Team above the ace raises the level horizon" do
+      progress = %{@progress | team: [%{"species" => "mudkip", "level" => 20}]}
+
+      assert {:ok, %{level_horizon: 20, moves: moves}} =
+               Facts.move_learnset(@mudkip, @moves, [], progress, 15)
+
+      assert List.last(moves).move == "foresight"
+    end
+
+    test "with all 8 badges every move is listed, Endeavor included" do
+      progress = %{@progress | badges: Enum.to_list(1..8)}
+
+      assert {:ok, %{level_horizon: nil, moves: moves}} =
+               Facts.move_learnset(@mudkip, @moves, [], progress, nil)
+
+      assert List.last(moves).move == "endeavor"
+    end
+
+    test "a species off the Team with no wild place inside the horizon is past the horizon" do
+      groudon = %{name: "groudon", types: ["ground"], evolutions: []}
+      assert Facts.move_learnset(groudon, @moves, [], @progress, 15) == {:error, :past_horizon}
+    end
+
+    test "a wild species inside the horizon is a Fact" do
+      ralts = %{name: "ralts", types: ["psychic"], evolutions: []}
+      place = %{location: "Route 102", method: "land", rate: 4, min_level: 4, max_level: 4}
+      assert {:ok, %{name: "ralts"}} = Facts.move_learnset(ralts, @moves, [place], @progress, 15)
+    end
+
+    test "an unknown species is not found" do
+      assert Facts.move_learnset(nil, [], [], @progress, 15) == {:error, :not_found}
+    end
+  end
+
   test "species names are normalized to PokeAPI names" do
     assert Facts.species_name("  Mr Mime ") == "mr-mime"
     assert Facts.species_name("Ralts") == "ralts"

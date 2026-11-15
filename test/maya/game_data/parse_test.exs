@@ -281,4 +281,49 @@ defmodule Maya.GameData.ParseTest do
              }
     end
   end
+
+  describe "learnset/2" do
+    defp detail(group, method, level),
+      do: %{
+        "version_group" => %{"name" => group},
+        "move_learn_method" => %{"name" => method},
+        "level_learned_at" => level
+      }
+
+    test "keeps Emerald level-up rows only, in level order" do
+      mudkip = %{
+        "moves" => [
+          %{
+            "move" => %{"name" => "water-gun"},
+            "version_group_details" => [
+              detail("ruby-sapphire", "level-up", 7),
+              detail("emerald", "level-up", 10)
+            ]
+          },
+          %{
+            "move" => %{"name" => "tackle"},
+            "version_group_details" => [detail("emerald", "level-up", 1)]
+          },
+          %{
+            "move" => %{"name" => "surf"},
+            "version_group_details" => [detail("emerald", "machine", 0)]
+          },
+          %{
+            "move" => %{"name" => "mud-shot"},
+            "version_group_details" => [detail("diamond-pearl", "level-up", 25)]
+          }
+        ]
+      }
+
+      assert Parse.learnset("mudkip", mudkip) == [
+               %{"species" => "mudkip", "move" => "tackle", "method" => "level-up", "level" => 1},
+               %{
+                 "species" => "mudkip",
+                 "move" => "water-gun",
+                 "method" => "level-up",
+                 "level" => 10
+               }
+             ]
+    end
+  end
 end

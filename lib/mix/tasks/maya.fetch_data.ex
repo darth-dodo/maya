@@ -2,8 +2,8 @@ defmodule Mix.Tasks.Maya.FetchData do
   @shortdoc "Downloads pokeemerald and PokeAPI data into priv/data/ (network, run by hand)"
   @moduledoc """
   Downloads `wild_encounters.json` and `trainer_parties.h` from pret/pokeemerald
-  at a pinned commit, plus the species and types Maya needs from PokeAPI as of
-  Generation III, and writes compact JSON into `priv/data/`. Commit the output.
+  at a pinned commit, plus the species, types and Emerald level-up learnsets Maya needs from
+  PokeAPI as of Generation III, and writes compact JSON into `priv/data/`. Commit the output.
 
   `priv/data/locations.json` is hand-written and never touched here.
   """
@@ -40,17 +40,27 @@ defmodule Mix.Tasks.Maya.FetchData do
       |> pmap(&(&1 |> get!() |> Parse.evolutions()))
       |> Enum.reduce(&Map.merge/2)
 
-    species =
+    # One `pokemon` reply per species gives both its types and its learnset.
+    {species, learnsets} =
       evolutions
       |> Map.keys()
       |> Enum.sort()
       |> pmap(fn name ->
-        %{
-          "name" => name,
-          "types" => name |> default_pokemon() |> Parse.gen3_types(),
-          "evolutions" => evolutions[name]
-        }
+        pokemon = default_pokemon(name)
+
+        {%{
+           "name" => name,
+           "types" => Parse.gen3_types(pokemon),
+           "evolutions" => evolutions[name]
+         }, {pokemon["id"], Parse.learnset(name, pokemon)}}
       end)
+      |> Enum.unzip()
+
+    # Every Generation III species (national id up to 386) learns a move by level up in Emerald;
+    # none means a renamed version group. Later babies in the chains (Budew) have no Emerald rows.
+    empty = for {s, {id, []}} <- Enum.zip(species, learnsets), id <= 386, do: s["name"]
+    if empty != [], do: Mix.raise("no Emerald learnset for #{Enum.join(empty, ", ")}")
+    learnsets = Enum.flat_map(learnsets, &elem(&1, 1))
 
     matchups = Enum.flat_map(@types, &(get!(@pokeapi <> "type/" <> &1) |> Parse.gen3_matchups()))
 
@@ -58,6 +68,7 @@ defmodule Mix.Tasks.Maya.FetchData do
     write!(dir, "trainers.json", trainers)
     write!(dir, "species.json", species)
     write!(dir, "type_matchups.json", matchups)
+    write!(dir, "learnsets.json", learnsets)
     Mix.shell().info("pokeemerald #{@pokeemerald_sha}: wrote #{dir}")
   end
 

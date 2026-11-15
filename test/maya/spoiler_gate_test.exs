@@ -97,6 +97,45 @@ defmodule Maya.SpoilerGateTest do
     end
   end
 
+  # The system and tool messages, which are Maya's own words; the user message is the player's.
+  defp sent(bodies) do
+    for body <- bodies,
+        %{"role" => role, "content" => content} <- body["messages"],
+        role in ["system", "tool"],
+        do: content
+  end
+
+  test "the move probes cover a Fact and two past-horizon species" do
+    assert Enum.map(@probes["move_probes"], & &1["expect"]) == [
+             "fact",
+             "past_horizon",
+             "past_horizon"
+           ]
+
+    assert "Foresight" in hd(@probes["move_probes"])["forbidden"]
+  end
+
+  for probe <- @probes["move_probes"] do
+    @probe probe
+    test "no move past the level horizon reaches the model: #{probe["question"]}" do
+      stub(@probe)
+      assert {:ok, _} = Maya.Agent.answer(@probe["question"], [], guest_id: @guest)
+
+      assert_received {:request, first}
+      assert_received {:request, second}
+      assert [%{"content" => result}] = for(%{"role" => "tool"} = m <- second["messages"], do: m)
+
+      case @probe["expect"] do
+        "fact" -> assert %{"fact" => %{"moves" => [_ | _]}} = Jason.decode!(result)
+        "past_horizon" -> assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
+      end
+
+      forbidden = @probes["forbidden"] ++ @probe["forbidden"]
+      leaked = for text <- sent([first, second]), name <- forbidden, word?(text, name), do: name
+      assert leaked == []
+    end
+  end
+
   for probe <- @probes["probes"] do
     @probe probe
     test "past the horizon, no forbidden name reaches the model: #{probe["question"]}" do
@@ -109,14 +148,7 @@ defmodule Maya.SpoilerGateTest do
       assert [%{"content" => result}] = for(%{"role" => "tool"} = m <- second["messages"], do: m)
       assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
 
-      # The user message is the player's own words; Maya's system and tool messages must be clean.
-      sent =
-        for body <- [first, second],
-            %{"role" => role, "content" => content} <- body["messages"],
-            role in ["system", "tool"],
-            do: content
-
-      assert Enum.flat_map(sent, &leaks/1) == []
+      assert [first, second] |> sent() |> Enum.flat_map(&leaks/1) == []
     end
   end
 end

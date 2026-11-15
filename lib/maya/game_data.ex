@@ -11,7 +11,7 @@ defmodule Maya.GameData do
   alias Maya.Voice.Vocabulary
 
   # Children before parents, so deletes never trip the trainer_pokemon foreign key.
-  @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations)
+  @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations learnsets)
 
   @doc """
   Replaces the game data tables from `priv/data/` in one transaction. Progress is
@@ -45,6 +45,7 @@ defmodule Maya.GameData do
         )
 
         insert!("locations", data.("locations"), ~w(name map badges_required))
+        insert!("learnsets", data.("learnsets"), ~w(species move method level))
       end)
 
     # Bias names are cached from these tables.
@@ -108,6 +109,16 @@ defmodule Maya.GameData do
       from s in "species",
         where: s.name == ^name,
         select: %{name: s.name, types: s.types, evolutions: s.evolutions}
+    )
+  end
+
+  @doc "A species' Emerald moves (`move`, `level`, `method`) in level order, then file order."
+  def learnset(species) do
+    Repo.all(
+      from l in "learnsets",
+        where: l.species == ^species,
+        order_by: [l.level, l.id],
+        select: %{move: l.move, level: l.level, method: l.method}
     )
   end
 
