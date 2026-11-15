@@ -1,7 +1,7 @@
 defmodule Maya.Events do
   @moduledoc """
   Events: what the Guest tells Maya about their game, written with the Progress it produces
-  (ADR-006). `change/4` is pure and validates against Maya's own data (ADR-004); `log/3`
+  (ADR-006). `change/4` is pure over the lookups it is given and validates against Maya's own data (ADR-004); `log/3`
   writes the Event and the Progress in one transaction, and `undo` restores the snapshot the
   Guest's last Event kept. Lines name only what the Guest said and the data confirms.
   """
