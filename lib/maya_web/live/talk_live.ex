@@ -38,6 +38,8 @@ defmodule MayaWeb.TalkLive do
 
   # How a hold can end (#76); lostpointercapture is only a flag, it never ends a hold.
   @hold_ends ~w(pointerup pointercancel)
+  # Recording kept after release so a clipped last word is heard (#94); costs as much on upload.
+  @post_roll_ms 150
 
   def poke_facts, do: @poke_facts
 
@@ -62,7 +64,8 @@ defmodule MayaWeb.TalkLive do
        voice_down: false,
        confirm_fresh: false,
        fresh_form: to_form(%{}),
-       sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate]
+       sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate],
+       post_roll_ms: @post_roll_ms
      )
      |> allow_upload(:question,
        accept: ~w(.wav .webm .mp4),
@@ -154,18 +157,19 @@ defmodule MayaWeb.TalkLive do
 
   def handle_event("talk_state", _params, socket), do: {:noreply, socket}
 
-  # Evidence for #76 and #79: how each hold ended, how long it was and press to live mic
-  # time, never audio or text. The mic time is "none" when the hold ended before it was live.
-  def handle_event("hold_ended", %{"ended_by" => by, "hold_ms" => ms} = params, socket)
-      when by in @hold_ends and is_integer(ms) and ms >= 0 do
-    mic =
-      case params["mic_open_ms"] do
-        open when is_integer(open) and open >= 0 -> "#{open} ms"
-        _ -> "none"
-      end
-
+  # Evidence for #76, #79 and #94: how each hold ended, how long it was, press to live mic
+  # time, whether the mic was already warm and the recorded tail after release, never audio or
+  # text. A time is "none" when it is missing (the mic time when the hold ended before it was live).
+  def handle_event(
+        "hold_ended",
+        %{"ended_by" => by, "hold_ms" => ms, "warm" => warm} = params,
+        socket
+      )
+      when by in @hold_ends and is_integer(ms) and ms >= 0 and is_boolean(warm) do
     Logger.info(
-      "hold ended by #{by} after #{ms} ms, lost capture: #{params["lost_capture"] == true}, mic open: #{mic}"
+      "hold ended by #{by} after #{ms} ms, lost capture: #{params["lost_capture"] == true}, " <>
+        "mic open: #{ms_or_none(params["mic_open_ms"])}, warm: #{warm}, " <>
+        "post roll: #{ms_or_none(params["post_roll_ms"])}"
     )
 
     {:noreply, socket}
@@ -195,6 +199,9 @@ defmodule MayaWeb.TalkLive do
     on_turn? = match?(%Turn{voice_down: true}, List.last(socket.assigns.turns))
     {:noreply, socket |> assign(voice_down: not on_turn?) |> push_event("voice_down", %{})}
   end
+
+  defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
+  defp ms_or_none(_missing), do: "none"
 
   defp status("idle"), do: "Ready when you are"
   defp status("recording"), do: "Listening to you…"
@@ -332,6 +339,7 @@ defmodule MayaWeb.TalkLive do
             phx-update="ignore"
             data-state="idle"
             data-sample-rate={@sample_rate}
+            data-post-roll-ms={@post_roll_ms}
           >
             <span class="talk-label">
               <svg
