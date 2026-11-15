@@ -263,7 +263,7 @@ defmodule Maya.Conversation do
         %{current: %{relay: {_relay, mon}} = c} = state
       )
       when reason != :normal,
-      do: noreply(realtime_failed(state, %{c | relay: nil}, {:exit, reason}))
+      do: noreply(realtime_failed(state, %{c | relay: nil}, {:exit, crash_kind(reason)}))
 
   def handle_info({:stage_ms, ref, stage, ms}, %{current: %{ref: ref, turn: turn} = c} = state) do
     noreply(%{state | current: %{c | turn: Map.put(turn, stage, ms)}})
@@ -342,6 +342,11 @@ defmodule Maya.Conversation do
   end
 
   defp close_relay(c), do: c
+
+  # A crashed relay's exit carries its state (queued audio) in the stacktrace: log the kind only.
+  defp crash_kind({%{__exception__: true, __struct__: kind}, _stack}), do: kind
+  defp crash_kind(reason) when is_atom(reason), do: reason
+  defp crash_kind(_reason), do: :crashed
 
   # A streamed Question: release to final transcript (spec, Realtime latency). It replaces the
   # batch Task's own span, which misses any wait for realtime before the fallback.

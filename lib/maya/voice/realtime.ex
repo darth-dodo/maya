@@ -110,7 +110,14 @@ defmodule Maya.Voice.Realtime do
 
   defp response(_other, s), do: s
 
-  defp incoming({:text, json}, s), do: event(Jason.decode!(json), s)
+  # A bad frame fails with an atom: its bytes may hold transcript text, so they are never logged.
+  defp incoming({:text, json}, s) do
+    case Jason.decode(json) do
+      {:ok, event} -> event(event, s)
+      {:error, _} -> fail(s, :bad_json)
+    end
+  end
+
   defp incoming({:ping, data}, s), do: frame(s, {:pong, data})
   defp incoming({:close, code, _reason}, s), do: fail(s, {:closed, code})
   defp incoming({:error, reason}, s), do: fail(s, reason)

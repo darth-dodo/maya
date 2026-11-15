@@ -24,7 +24,9 @@ defmodule Maya.Voice.WER do
   def name_accuracy([], _transcript), do: 1.0
   def name_accuracy(names, transcript), do: names_found(names, transcript) / length(names)
 
-  def names_found(names, transcript), do: Enum.count(names, &String.contains?(transcript, &1))
+  # Whole words only, so "Raltsy" does not count as "Ralts"; a possessive still does.
+  def names_found(names, transcript),
+    do: Enum.count(names, &Regex.match?(~r/\b#{Regex.escape(&1)}\b/u, transcript))
 
   defp words(text) do
     text |> String.downcase() |> String.replace(~r/[^\p{L}\p{N}\s]/u, "") |> String.split()

@@ -351,7 +351,7 @@ defmodule MayaWeb.TalkLiveTest do
   } do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/talk")
-    refute has_element?(view, "input[type=file]")
+    refute has_element?(view, "#question-form")
 
     ask(view)
     assert_push_event(view, "audio_done", %{})

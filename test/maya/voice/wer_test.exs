@@ -13,6 +13,11 @@ defmodule Maya.Voice.WERTest do
     assert WER.name_accuracy(["Roxanne"], "How do I earn Roxanne's badge?") == 1.0
   end
 
+  test "a name counts only as a whole word, multi-word names included" do
+    assert WER.name_accuracy(["Ralts"], "where do I catch Raltsy") == 0.0
+    assert WER.name_accuracy(["Petalburg Woods", "Taillow"], "Taillow in Petalburg Woods?") == 1.0
+  end
+
   test "insertions and deletions count as edits over the reference words" do
     assert WER.edits("is zigzagoon on route 101", "is zigzagoon on route") == {1, 5}
     assert WER.edits("what type is nosepass", "what what type is nosepass") == {1, 4}

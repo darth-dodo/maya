@@ -18,6 +18,8 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY # agent loop (tool calling); missing means the spoken agent error line
         sync: false
+      - key: MAYA_STT_REALTIME # "true" turns on the Voxtral realtime relay and live preview (ADR-009); unset means batch STT only
+        sync: false
       - key: SMOKE_TOKEN # header token for POST /health/ask (hourly post-deploy Question); missing turns it off
         sync: false
       - key: POOL_SIZE

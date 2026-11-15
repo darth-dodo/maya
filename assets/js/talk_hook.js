@@ -296,8 +296,11 @@ export const TalkHook = {
   // The last, shorter chunk, then the end; the server answers "heard".
   endStream() {
     this.recording = false
-    if (this.pending.length > 0) this.pushEvent("audio_chunk", {audio: int16Base64(this.pending)})
+    const rest = this.pending
     this.pending = new Float32Array(0)
+    // Voice went down during the tail: the turn is over, so cancel the hold instead of asking.
+    if (this.state !== "uploading") return this.pushEvent("barge_in", {})
+    if (rest.length > 0) this.pushEvent("audio_chunk", {audio: int16Base64(rest)})
     this.pushEvent("stream_end", {})
   },
 

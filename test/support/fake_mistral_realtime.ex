@@ -3,32 +3,10 @@ defmodule Maya.FakeMistralRealtime do
   A test-only Voxtral realtime endpoint on Bandit (design.md, Testing the relay). It sends
   `session.created`, reports every client message to the test process and answers by `mode`:
   `:ok` sends one delta per audio message and `transcription.done` on end of audio, `:error`
-  sends an error event, `:close` closes the socket, `:stall` never finishes.
+  sends an error event, `:close` closes the socket, `:garbage` sends a frame that is not JSON,
+  `:stall` never finishes. `Maya.FakeMistralRealtimePlug` does the upgrade.
   """
   @behaviour WebSock
-
-  defmodule Plug do
-    @moduledoc false
-    def init(opts), do: opts
-
-    def call(conn, %{mode: :unauthorized}), do: Elixir.Plug.Conn.send_resp(conn, 401, "")
-
-    def call(conn, opts) do
-      conn = Elixir.Plug.Conn.fetch_query_params(conn)
-
-      request = %{
-        path: conn.request_path,
-        model: conn.query_params["model"],
-        auth: Elixir.Plug.Conn.get_req_header(conn, "authorization")
-      }
-
-      send(opts.test, {:fake_request, request})
-
-      conn
-      |> WebSockAdapter.upgrade(Maya.FakeMistralRealtime, opts, [])
-      |> Elixir.Plug.Conn.halt()
-    end
-  end
 
   @doc "Starts the fake on a free port and points the relay at it; returns the port."
   def serve(mode, deltas \\ ["where do", " I catch", " Ralts"]) do
@@ -36,7 +14,8 @@ defmodule Maya.FakeMistralRealtime do
 
     pid =
       ExUnit.Callbacks.start_supervised!(
-        {Bandit, plug: {__MODULE__.Plug, opts}, port: 0, ip: :loopback, startup_log: false}
+        {Bandit,
+         plug: {Maya.FakeMistralRealtimePlug, opts}, port: 0, ip: :loopback, startup_log: false}
       )
 
     {:ok, {_ip, port}} = ThousandIsland.listener_info(pid)
@@ -77,6 +56,9 @@ defmodule Maya.FakeMistralRealtime do
     do: {:push, text(%{type: "error", error: %{message: "bad audio", code: 3001}}), state}
 
   defp answer("input_audio.append", %{mode: :close} = state), do: {:stop, :normal, 1011, state}
+
+  defp answer("input_audio.append", %{mode: :garbage} = state),
+    do: {:push, {:text, "where do I catch {"}, state}
 
   defp answer("input_audio.end", %{mode: :ok} = state) do
     done = %{type: "transcription.done", text: "where do I catch Ralts", segments: []}

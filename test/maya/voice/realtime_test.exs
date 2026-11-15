@@ -61,6 +61,14 @@ defmodule Maya.Voice.RealtimeTest do
     assert_receive {:realtime_failed, ^ref, {:closed, 1011}}
   end
 
+  test "a frame that is not JSON fails with an atom, never its bytes" do
+    FakeMistralRealtime.serve(:garbage)
+    {relay, ref} = start_relay()
+    send(relay, {:audio, "AAA="})
+
+    assert_receive {:realtime_failed, ^ref, :bad_json}
+  end
+
   test "a refused upgrade is reported with its HTTP status" do
     FakeMistralRealtime.serve(:unauthorized)
     {_relay, ref} = start_relay()

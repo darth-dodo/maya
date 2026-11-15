@@ -12,15 +12,15 @@
 
 - [x] 2.1 Unit tests: `Maya.Voice.WER` (the spec's 0.2 and 0.0 example, punctuation, empty), the WAV header builder; verify they fail first
 - [x] 2.2 Relay tests against a test-only Bandit WebSocket endpoint: settings message shape, chunks in order, deltas, done, error, close, done timeout; verify they fail first
-- [ ] 2.3 Conversation and LiveView tests: chunk validation (bad base64, over 16 KB, over 1 MB), partial text in `#live-question`, fallback to batch with the logged reason, `stt_final: :batch` path, one Question per hold, `stt_source` stored; verify they fail first
-  - Builder (#75): written (`test/maya/conversation_stream_test.exs`, `talk_live_test.exs`); no local Postgres (Docker hung), so they run only in CI on the PR.
+- [x] 2.3 Conversation and LiveView tests: chunk validation (bad base64, over 16 KB, over 1 MB), partial text in `#live-question`, fallback to batch with the logged reason, `stt_final: :batch` path, one Question per hold, `stt_source` stored; verify they fail first
+  - Builder (#75): written (`test/maya/conversation_stream_test.exs`, `talk_live_test.exs`); no local Postgres (Docker hung), so they ran in CI on PR #109: 256 of 256 green.
 
 ## 3. Build
 
 - [x] 3.1 Add `{:mint_web_socket, "~> 1.0"}` (locks 1.0.6); `Maya.Voice.WER` and the WAV builder; verify 2.1 passes
 - [x] 3.2 Realtime relay Task with Mint.WebSocket (connect, upgrade, settings, queue until `session.updated`, ping and close handling, done timeout), config for URL, model, delay and timeout; verify 2.2 passes
   - Builder (#75): audio queues until `session.created`, then `session.update` goes first on the same socket (documented lifecycle); a first frame in the same packet as the 101 is kept and decoded after the upgrade.
-- [ ] 3.3 Conversation: `stream_start`, `chunk`, `stream_end`, buffer, partials, fallback, `:stt_final`, migration for `turns.stt_source`; remove the upload path; verify 2.3 passes
+- [x] 3.3 Conversation: `stream_start`, `chunk`, `stream_end`, buffer, partials, fallback, `:stt_final`, migration for `turns.stt_source`; remove the upload path; verify 2.3 passes
 - [x] 3.4 TalkHook and TalkLive: chunked int16 sends while held (pre-roll first), `stream_end` on release, `#live-question`; verify `mix assets.build` and a node check of the int16 conversion and chunk sizes
 - [ ] 3.5 `mix maya.stt_eval` (batch and realtime, `--delay`), not run in CI; run it, record WER and name accuracy for both, set `:stt_final` and the delay from the numbers
   - Builder (#75): the task is built and tested against fakes; running it needs the key. `:stt_final` stays `:batch` and realtime is off (`MAYA_STT_REALTIME`) until the numbers exist.
