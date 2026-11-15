@@ -155,6 +155,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | GitHub Actions secrets, local `.env` |
 | `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` | Render env, local `.env`. Both are read in `config/runtime.exs`. Missing `MISTRAL_API_KEY` means "voice is down"; missing `OPENROUTER_API_KEY` means the spoken agent error line |
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
+| `SMOKE_TOKEN` | Render env and GitHub Actions secret (same value), local `.env`. Read in `config/runtime.exs`; gates `POST /health/ask`, the hourly post-deploy Question. Missing on Render turns the endpoint off (404); missing in Actions skips the Question |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |
 | `RENDER_EXTERNAL_HOSTNAME`, `RENDER_GIT_COMMIT` | Set by Render on every deploy (not secret); read in `config/runtime.exs` |

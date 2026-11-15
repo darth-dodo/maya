@@ -18,21 +18,27 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 - When a branch conflicts with `main`, `git merge origin/main` and keep both sides, because force push is denied and rebasing a pushed branch needs it (#21). Merge main into every open builder branch right after a convention PR merges, because #25 conflicted on CLAUDE.md after #23 landed (#25).
 - Run a format or API spike with a real key before writing the decode path, because #48 assumed int16 PCM and needed a float32 fix after it ran against Voxtral (#48).
 - Run one plain command per tool call and keep temp files inside the worktree, because compound commands and paths outside it were the builders' denied calls (#47, #48).
+- Send provider defaults explicitly when the product needs one value (STT language `en`), because Voxtral guessed Hindi per clip on English Questions until #59 sent the language (#59).
+- Log the reason of every failed stage (an atom, status or exception message, never transcripts, Answers or keys), because #55's Conversation logged nothing and its root cause needed a Render trace (#60).
+- Answer an infrastructure flake with the tool's documented fallback setting, not a retry, because #42's Hex outage maps to setup-beam's `hexpm-mirrors` and #52 fixed it in one line (#52).
 
 ## Verify
 - Run every gate on its own and judge it by its exit code, never through `| tail` or `| grep`, because a pipe reports the last command's status and hides a red gate (#15).
 - Tick a `tasks.md` box only after its own verification ran, because a ticked task with missing work became a blocking review finding (#22).
 - Prove a new gate can fail (one red run, local or in CI, then green) before trusting it, because a gate that never fails proves nothing (#22).
+- Make optional external reporters non-blocking and prove their failure path in CI before relying on them, because #53's Codecov upload failed without a token and CI stayed green as designed (#53).
 - Give every `curl` in a workflow `--max-time`, because a hung request runs into `timeout-minutes`, ends as cancelled and skips `if: failure()` steps (#22).
 
 ## Review
 - Check each Issue "done when" against the skill and doc files too, not only the code, because review found a skill that never named the new checks (#22).
-- Show visual options as screenshots or a page before review, because the welcome page design changed twice after review (#24).
+- Show visual and copy options (screenshots, a page, 2 or 3 taglines) before review, because the welcome page changed twice after review (#24) and #54 took three post-review commits to settle its lines (#24, #54).
 - Post the `factory:review` comment before the PR is merged, because #47 merged with no review comment (#47).
 
 ## Ship
 - Add a changelog fragment `changelog.d/<branch-with-dashes>.md`, never a line in `CHANGELOG.md`, because a file every PR appends to made nearly every parallel PR conflict (#23).
 - Run any check that waits for the deploy on a schedule, never as a check on the commit Render is waiting for, because a push-triggered smoke check deadlocked `checksPass` and blocked every deploy (#22, #28).
 - Make every check on the head commit finish fast and exit 0 unless the code is broken, because Render's `checksPass` waits on pending checks and refuses failed ones (#28).
+- Make the deploy step leave production able to run (migrate, then seed the data the app reads), never a manual import, because #55 shipped to an empty Progress table and every Answer failed until #60 seeded on deploy (#55, #60).
+- Check after each deploy that one real Question works against production data, not only that CI passed on fixtures, because #55 was green in CI and failed every Question in production; the hourly smoke Question does this (#55, E3).
 - Cut a release only after its queued PRs merge, because #33's changelog fragment missed v0.1.0 by 38 seconds (#33, #34).
 

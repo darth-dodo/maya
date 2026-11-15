@@ -16,8 +16,9 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | `config/runtime.exs` | Prod config read at boot: DB URL and SSL, host, port, secret |
 | `priv/certs/supabase-root-2021-ca.crt` | Supabase public root CA for DB SSL, valid until 2031-04-26 |
 | `lib/maya_web/controllers/health_controller.ex` | `/health` (Render's health check) and `/health/version` (deployed commit, from `RENDER_GIT_COMMIT`) |
+| `lib/maya_web/controllers/smoke_controller.ex` | `POST /health/ask`: one text Question to the agent, gated by the `x-smoke-token` header (`SMOKE_TOKEN`); 404 when unset, no STT, TTS or stored turn |
 | `.github/workflows/ci.yml` | Jobs format, credo, test (coverage floor), security, docker (boots the release with no DB) behind the required `ci-success` check |
-| `.github/workflows/post-deploy.yml`, `scripts/smoke_check.sh` | Every 15 minutes and on dispatch, never on push (a push-triggered check that waits for the deploy deadlocks `checksPass`): compares `/health/version` with the head of main, checks `/` and `/health` when live, opens one open `bug` Issue per commit on a problem, always exits 0. Test: `scripts/smoke_check_test.sh` |
+| `.github/workflows/post-deploy.yml`, `scripts/smoke_check.sh` | Every 15 minutes and on dispatch, never on push (a push-triggered check that waits for the deploy deadlocks `checksPass`): compares `/health/version` with the head of main, checks `/` and `/health` when live, opens one open `bug` Issue per commit on a problem, always exits 0. The hourly run (cron `7 * * * *`) and dispatch also ask `POST /health/ask` one Question and fail on a non-200, an empty Answer or the agent error line (needs the `SMOKE_TOKEN` secret on Render and in Actions; each Question spends OpenRouter credit). Test: `scripts/smoke_check_test.sh` |
 
 ## Rules
 
@@ -29,6 +30,7 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 - `SECRET_KEY_BASE` comes from `mix phx.gen.secret`. `generateValue` is too short for Phoenix (needs 64 bytes).
 - Keep `/health` cheap and DB free. A paused Supabase project must not restart the app.
 - New env var: add it to `render.yaml` (with `sync: false` if secret), `config/runtime.exs`, and the secrets table in `FACTORY.md`.
+- `SMOKE_TOKEN` must hold the same value in the Render env and the GitHub Actions secrets, or the hourly Question answers 401 and opens a `bug` Issue.
 
 ## Before opening a deploy PR
 

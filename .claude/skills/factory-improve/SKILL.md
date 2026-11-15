@@ -33,6 +33,7 @@ Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to
 | `review_blockers` | lower |
 | `permission_prompts` | lower |
 | `denied_calls` | lower |
+| `escaped_defects` (sum over the 5 rows, not median) | lower |
 
 `issue`, `pr`, `merged_at` and `estimate_h` are context (an experiment may still cite `estimate_h`); they are not scored. Skip a metric that is blank in more than 2 of the rows used (today `permission_prompts` is always blank, so it competes only once retros can fill it). The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal.
 
