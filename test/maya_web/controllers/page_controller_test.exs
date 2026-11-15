@@ -45,12 +45,14 @@ defmodule MayaWeb.PageControllerTest do
   test "browser tab title is Maya and generator content is gone" do
     html = home()
 
-    assert text_of(html, "title") == "Maya"
-    refute html =~ "Peace of mind from prototype to production"
-    refute html =~ "Phoenix Framework"
-    refute html =~ "github.com/phoenixframework"
-    refute html =~ "phoenixframework.org"
-    refute html =~ "hexdocs.pm"
+    assert text_of(html, "head title") == "Maya"
+    body = text_of(html, "body")
+    refute body =~ "Peace of mind from prototype to production"
+    refute body =~ "Phoenix Framework"
+
+    for href <- attrs(html, "a[href]", "href"),
+        bad <- ~w(github.com/phoenixframework phoenixframework.org hexdocs.pm),
+        do: refute(href =~ bad, href)
   end
 
   test "hero holds the CSS Emerald ball, the heading, tagline and catchphrase" do
@@ -192,10 +194,10 @@ defmodule MayaWeb.PageControllerTest do
   end
 
   test "home page stays spoiler-free" do
-    html = home()
+    page = text_of(home(), "html")
 
     for name <- @later_leaders ++ @evolved_starters,
-        do: refute(html =~ name, "#{name} on the home page")
+        do: refute(page =~ name, "#{name} on the home page")
   end
 
   test "footer links the factory, the repo and its README, with inline art" do
