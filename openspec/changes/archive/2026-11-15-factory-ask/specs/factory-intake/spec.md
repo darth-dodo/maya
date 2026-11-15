@@ -84,7 +84,7 @@ A request that needs something outside the frozen stack, a paid service or a new
 
 ### Requirement: Ask only routing questions
 
-The skill SHALL ask only questions whose answer changes the route: build now or later, paid or stack change approved, which block or milestone, which metric. It SHALL ask at most two, using AskUserQuestion with options when the answers are a short list. It SHALL NOT interview for requirements (that is `grill-with-docs` and `openspec-propose`).
+The skill SHALL ask only questions whose answer changes the route: build now or later, paid or stack change approved, which block or milestone, which metric, or evidence for a Bug. It SHALL ask at most two, using AskUserQuestion with options when the answers are a short list. It SHALL NOT interview for requirements (that is `grill-with-docs` and `openspec-propose`).
 
 #### Scenario: Ambiguous request
 - **WHEN** Abhishek runs `factory:ask "Mudkip facts on the homepage"`
@@ -92,7 +92,7 @@ The skill SHALL ask only questions whose answer changes the route: build now or 
 
 ### Requirement: Decision recorded with date and words
 
-Every route that creates something SHALL record the date and Abhishek's words: in the Issue body (Bug), in a comment on the Issue once `factory:plan` creates it (Feature, Gated), in the PHASE_2.md line (Later), or in the Candidates row (Experiment). Every repo edit SHALL follow the factory conventions (branch, conventional commit, changelog fragment, PR) and the skill SHALL never merge.
+Every route that creates something SHALL record the date and Abhishek's words: in the Issue body (Bug), in a comment on the Issue once `factory:plan` creates it (Feature, Gated), in the PHASE_2.md line (Later), or in the Candidates row (Experiment). Every repo edit SHALL follow the factory conventions (branch, conventional commit, changelog fragment, PR) and the skill SHALL never merge. A PR that only adds a PHASE_2.md line or a Candidates row SHALL need no Issue and SHALL ride along in the next related open PR where one exists (Abhishek, 2026-11-15, #106).
 
 #### Scenario: Feature decision on the Issue
 - **WHEN** `factory:plan` creates Issue #N for a request routed by `factory:ask`

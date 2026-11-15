@@ -14,8 +14,10 @@ Before creating any file, Issue, line or comment, print three lines:
 ```
 Route: <Bug | Feature | Later | Experiment | Question | Gated | Ambiguous>
 Why: <one line>
-Next: <the next command, e.g. factory:build #N, factory:plan <change-id>>
+Next: <the next command, e.g. factory:plan <change-id>, or for Bug "file the bug Issue, then factory:build #<new>">
 ```
+
+The Bug route prints the real `factory:build #N` once the Issue exists.
 
 Pick exactly one route from the table. A request that fits two routes, or none, is Ambiguous.
 
@@ -61,7 +63,7 @@ Every route that creates something records the date (today, `YYYY-MM-DD`) and Ab
 | Route | Where |
 |---|---|
 | Bug | The Issue body: `Routed by factory:ask on <date>: "<words>"` |
-| Feature, Gated | Passed to `factory:plan`; once it creates Issue #N, comment on #N: `Routed by factory:ask on <date>: "<words>"` (Gated adds the yes, e.g. `"yes, plan it"`, and the plan includes the ADR task) |
+| Feature, Gated | Pass the date and the words in the `factory:plan` hand-off; once it creates Issue #N, comment on #N: `Routed by factory:ask on <date>: "<words>"` (Gated adds the yes, e.g. `"yes, plan it"`, and the plan includes the ADR task) |
 | Later | The PHASE_2.md line: `- <Idea> (<date>: "<words>")` |
 | Experiment | The Candidates row: `\| <date> \| <change> \| <metric> \| <hypothesis> \| "<words>" \|` |
 
@@ -69,7 +71,7 @@ Question and Ambiguous (before the answer) record nothing.
 
 ## 5. Repo edits
 
-A PHASE_2.md line or Candidates row is a repo change: branch `docs/intake-<yyyy-mm-dd>` from `origin/main` (reuse it while its PR is open the same day), conventional commit (`docs: ...`), changelog fragment in `changelog.d/`, PR. Decided by Abhishek on 2026-11-15 (#106): such PRs need no Issue, and the line rides along in the next related PR where one is open. Never edit `CHANGELOG.md`, never push to `main`, never merge.
+A PHASE_2.md line or Candidates row is a repo change. Decided by Abhishek on 2026-11-15 (#106): it needs no Issue, and it rides along in the next related open PR where one exists. Only when none exists: branch `docs/intake-<yyyy-mm-dd>` from `origin/main` (reuse it while its PR is open the same day), conventional commit (`docs: ...`), changelog fragment in `changelog.d/`, PR. Never edit `CHANGELOG.md`, never push to `main`, never merge.
 
 ## 6. Writing rules
 
