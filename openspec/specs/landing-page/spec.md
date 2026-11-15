@@ -7,15 +7,15 @@ What a visitor sees at the site root before any Maya feature exists: Maya's name
 ## Requirements
 
 ### Requirement: Maya identity on the home page
-The home page SHALL show the heading "Maya" in the element with id `maya-heading` and the tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion." in the element with id `tagline`.
+The home page SHALL show the heading "Maya" in the element with id `maya-heading` and the tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokémon Emerald companion." in the element with id `tagline`.
 
 #### Scenario: Visitor opens the home page
 - **WHEN** a visitor requests `/`
 - **THEN** the response is HTTP 200
 - **AND** the page contains a top-level heading with the text "Maya"
-- **AND** the page contains the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
+- **AND** the page contains the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokémon Emerald companion."
 - **AND** the element `#maya-heading` has the text "Maya"
-- **AND** the element `#tagline` has the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
+- **AND** the element `#tagline` has the text "Maps, Answers, Yaps, Advice. Your spoiler-free Pokémon Emerald companion."
 
 ### Requirement: No framework marketing on the home page
 The home page, including the app layout around it, SHALL NOT show web framework generator content: marketing copy, framework documentation or repository links, framework logos or version numbers, or framework names in the page title.
@@ -31,10 +31,10 @@ The home page, including the app layout around it, SHALL NOT show web framework 
 - **WHEN** a visitor requests `/`
 - **THEN** the HTML title is "Maya"
 
-### Requirement: Poke Ball themed hero
-The home page SHALL show an Emerald edition Poke Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside a hero with id `maya-hero` whose background is the calm tide backdrop served from `/images/backdrops/tide.jpg`.
+### Requirement: Poké Ball themed hero
+The home page SHALL show an Emerald edition Poké Ball (green, white and black) drawn in CSS without images, in an element with id `pokeball` and class `pokeball-emerald`, inside a hero with id `maya-hero` whose background is the calm tide backdrop served from `/images/backdrops/tide.jpg`.
 
-#### Scenario: Poke Ball is present
+#### Scenario: Poké Ball is present
 - **WHEN** a visitor requests `/`
 - **THEN** the element `#pokeball` exists
 - **AND** it contains no `img` element
@@ -45,7 +45,7 @@ The home page SHALL show an Emerald edition Poke Ball (green, white and black) d
 - **AND** `#maya-hero` has `data-backdrop="tide"`
 
 ### Requirement: Backdrop images
-Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokemon, people, text or logos.
+Maya SHALL serve three backdrop images (tide, dusk, night) from its own origin under `/images/backdrops/`. They are original scenery generated with Gemini and contain no Pokémon, people, text or logos.
 
 #### Scenario: Backdrops are served
 - **WHEN** a visitor requests `/images/backdrops/tide.jpg`, `/images/backdrops/dusk.jpg` or `/images/backdrops/night.jpg`
@@ -84,8 +84,8 @@ The home page SHALL NOT load images, fonts, stylesheets or scripts from any host
 - **THEN** every `src` and stylesheet `href` on the page is a relative path
 - **AND** the page contains no `img` element
 
-### Requirement: Rotating Poke facts
-While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokemon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
+### Requirement: Rotating Poké facts
+While the Conversation is empty, the home page SHALL show a list `#poke-facts` of 10 to 14 spoiler-free `.poke-fact` items in the server-rendered HTML, naming only the Hoenn starters and wild Pokémon before the first gym, never an evolved starter. The rotation SHALL be CSS only, with no script in the page content and no animation under reduced motion. Once the Conversation has a turn, the facts are not shown.
 
 #### Scenario: Facts are listed
 - **WHEN** a visitor requests `/` and the Conversation is empty

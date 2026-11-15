@@ -5,7 +5,7 @@ defmodule MayaWeb.LandingPageTest do
 
   # Scenarios from openspec/specs/landing-page/spec.md, on the Talk screen's first (dead) render.
 
-  @tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion."
+  @tagline "Maps, Answers, Yaps, Advice. Your spoiler-free Pokémon Emerald companion."
   @leaders ~w(Roxanne Brawly Wattson Flannery Norman Winona Tate Liza Juan)
   @badges ~w(Stone Knuckle Dynamo Heat Balance Feather Mind Rain)
 
@@ -50,7 +50,7 @@ defmodule MayaWeb.LandingPageTest do
     assert conn |> home() |> text_of("title") == "Maya"
   end
 
-  test "Poke Ball is present and drawn without images", %{conn: conn} do
+  test "Poké Ball is present and drawn without images", %{conn: conn} do
     html = home(conn)
 
     assert count(html, "#pokeball") == 1
@@ -94,7 +94,7 @@ defmodule MayaWeb.LandingPageTest do
     for name <- @badges, do: refute(html =~ "#{name} Badge", "#{name} Badge on the page")
   end
 
-  test "Poke facts: 10 to 14 non-empty facts", %{conn: conn} do
+  test "Poké facts: 10 to 14 non-empty facts", %{conn: conn} do
     facts = conn |> home() |> doc() |> LazyHTML.query("#poke-facts .poke-fact")
 
     assert Enum.count(facts) in 10..14
@@ -103,13 +103,13 @@ defmodule MayaWeb.LandingPageTest do
         do: assert(fact |> LazyHTML.text() |> String.trim() != "", "empty .poke-fact")
   end
 
-  test "Poke facts never name an evolved Hoenn starter", %{conn: conn} do
+  test "Poké facts never name an evolved Hoenn starter", %{conn: conn} do
     facts = conn |> home() |> text_of("#poke-facts")
 
     assert facts =~ "Mudkip"
 
     for name <- ~w(Grovyle Sceptile Combusken Blaziken Marshtomp Swampert),
-        do: refute(facts =~ name, "#{name} in the Poke facts")
+        do: refute(facts =~ name, "#{name} in the Poké facts")
   end
 
   test "no script in the page content", %{conn: conn} do
@@ -128,7 +128,7 @@ defmodule MayaWeb.LandingPageTest do
     assert count(html, "img") == 0
   end
 
-  test "badge case and Poke facts hide once the Conversation has a turn", %{conn: conn} do
+  test "badge case and Poké facts hide once the Conversation has a turn", %{conn: conn} do
     {:ok, _} = Turn.insert(%Turn{question: "Where is Ralts", answer: "Route 102"})
     html = home(conn)
 

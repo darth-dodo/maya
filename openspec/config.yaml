@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Maya: push-to-talk, spoiler-free Pokemon Emerald companion. Frozen stack in CLAUDE.md and the settled-architecture skill.
+  Maya: push-to-talk, spoiler-free Pokémon Emerald companion. Frozen stack in CLAUDE.md and the settled-architecture skill.
   Voice answers are 2 to 3 sentences. Spoilers are 0: never reveal content past the player's current badges.
   Latency budget: answer audible within 5 seconds of mic release, measured per stage (mic release, STT, agent, TTS first byte, playback start).
   Build with Superpowers (plan, TDD). Never use openspec-apply-change; it is denied in .claude/settings.json.

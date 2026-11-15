@@ -11,7 +11,7 @@ The fetch task SHALL download pokeemerald data from one pinned commit and PokeAP
 
 #### Scenario: Trainer parties parsed from the C source
 - **WHEN** the trainer parties parser reads a fixture with Roxanne's first party
-- **THEN** it returns the trainer `Roxanne1` tagged with badge 1 and three Pokemon: Geodude level 12, Geodude level 12, Nosepass level 15, with their moves
+- **THEN** it returns the trainer `Roxanne1` tagged with badge 1 and three Pokémon: Geodude level 12, Geodude level 12, Nosepass level 15, with their moves
 
 #### Scenario: Encounter rates summed per species
 - **WHEN** the encounter parser reads a fixture with Route 102 land slots

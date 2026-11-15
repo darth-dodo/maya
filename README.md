@@ -2,7 +2,7 @@
   <img src="docs/assets/hero.svg" alt="Maya: Maps, Answers, Yaps, Advice. Ask out loud, hear a spoiler-free answer. An Emerald green ball with a gem button floats above soft tide waves at sunrise." width="100%">
 </p>
 
-<p align="center"><b>Maya</b> is a talking, spoiler-free Pokemon Emerald companion on a phone.</p>
+<p align="center"><b>Maya</b> is a talking, spoiler-free Pokémon Emerald companion on a phone.</p>
 
 <p align="center">
   <a href="ARCHITECTURE.md">Architecture</a>
@@ -36,7 +36,7 @@ flowchart LR
   Conv --> TTS["Mistral Voxtral TTS<br/>(streamed PCM)"]
 ```
 
-The phone records one Question and sends it up the LiveView socket. A single Conversation process transcribes it, runs a hand-written agent loop whose tools read Pokemon data filtered by the Spoiler horizon, and streams the spoken Answer back as PCM on the same socket. One Phoenix app on Render (Frankfurt) and one Postgres on Supabase (Ireland), no other services. The full design is in [ARCHITECTURE.md](ARCHITECTURE.md).
+The phone records one Question and sends it up the LiveView socket. A single Conversation process transcribes it, runs a hand-written agent loop whose tools read Pokémon data filtered by the Spoiler horizon, and streams the spoken Answer back as PCM on the same socket. One Phoenix app on Render (Frankfurt) and one Postgres on Supabase (Ireland), no other services. The full design is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **How we know it works:** 92 ExUnit tests run on every pull request with a coverage floor of 89% (89.41% measured), reported to [Codecov](https://codecov.io/gh/darth-dodo/maya). Every turn stores per-stage milliseconds (mic release, STT, TTS first byte, playback start) and `mix maya.latency` prints p50 and p95 per stage against a budget of p50 at most 5 s and p95 at most 8 s; latency numbers are pending the phone check. A 20-question spoiler probe set lands with the Sunday proof (#40). Factory gates on every PR: compile with warnings as errors, format, credo, tests with the coverage floor, sobelow, `mix deps.audit`, and a release image that must boot and answer `/health`.
 

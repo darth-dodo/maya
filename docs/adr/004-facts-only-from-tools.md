@@ -5,7 +5,7 @@
 
 ## Why
 
-- Language models know a lot of Pokemon, including everything past the player's Spoiler horizon, and they misremember details (levels, locations, moves). A confident wrong fact or an accidental spoiler breaks Maya's one promise.
+- Language models know a lot of Pokémon, including everything past the player's Spoiler horizon, and they misremember details (levels, locations, moves). A confident wrong fact or an accidental spoiler breaks Maya's one promise.
 - The Spoiler horizon can only be enforced on data Maya controls.
 
 ## What

@@ -10,7 +10,7 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 ## Who and where
 
-- One player: Abhishek, playing Pokemon Emerald on a GBA or DS, with Maya on a phone beside it. The phone is a dedicated Maya device.
+- One player: Abhishek, playing Pokémon Emerald on a GBA or DS, with Maya on a phone beside it. The phone is a dedicated Maya device.
 - English only.
 - One login (`Plug.BasicAuth`). No accounts, no other players.
 
@@ -33,14 +33,14 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 ## Spoilers
 
-- The **Spoiler horizon** is the **Next gym**: Maya may talk about everything up to and including it (routes, wild Pokemon, trainers, items, story) and nothing past it.
+- The **Spoiler horizon** is the **Next gym**: Maya may talk about everything up to and including it (routes, wild Pokémon, trainers, items, story) and nothing past it.
 - Asking directly never unlocks past the horizon. The **Spoilers dial** is fixed at 0.
 
 ## What Maya can answer in the MVP
 
 1. **Gym counters:** "How do I earn Roxanne's badge with my team?"
 2. **Where to catch:** "Where do I find a Ralts?" (within the horizon)
-3. **Pokemon facts:** "What's Geodude weak to?" (types, weaknesses, evolution level)
+3. **Pokémon facts:** "What's Geodude weak to?" (types, weaknesses, evolution level)
 4. **Where to go next:** "I'm stuck, where now?" (from Walkthrough notes)
 5. **Humor dial:** "Maya, humor 60 percent" changes it live, TARS style, and she confirms out loud.
 

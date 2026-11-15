@@ -6,7 +6,7 @@ The screen at `/` the player talks to Maya on: the Talk button and its state mac
 ## Requirements
 
 ### Requirement: Talk screen at the root
-The page at `/` SHALL be the Talk screen: a Talk button with id `talk-button`, a Conversation list with id `conversation` showing recent turns (Question and Answer text) in order, and a top panel holding the Emerald Poke Ball, the tide hero, the heading, the tagline and the Mudkip hype line. It SHALL keep the strict Content-Security-Policy unchanged: audio travels over the existing LiveView socket only.
+The page at `/` SHALL be the Talk screen: a Talk button with id `talk-button`, a Conversation list with id `conversation` showing recent turns (Question and Answer text) in order, and a top panel holding the Emerald Poké Ball, the tide hero, the heading, the tagline and the Mudkip hype line. It SHALL keep the strict Content-Security-Policy unchanged: audio travels over the existing LiveView socket only.
 
 #### Scenario: Empty Conversation
 - **WHEN** a visitor opens `/` and no turns are stored

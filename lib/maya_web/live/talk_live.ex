@@ -116,7 +116,7 @@ defmodule MayaWeb.TalkLive do
           </div>
           <h1 id="maya-heading" class="mt-3 text-2xl font-semibold">Maya</h1>
           <p id="tagline" class="mt-2 text-sm">
-            Maps, Answers, Yaps, Advice. Your spoiler-free Pokemon Emerald companion.
+            Maps, Answers, Yaps, Advice. Your spoiler-free Pokémon Emerald companion.
           </p>
           <p id="mudkip-hype" class="mt-2 text-sm font-semibold">
             Mudkip hype: 100. Best starter, no debate.
@@ -153,8 +153,8 @@ defmodule MayaWeb.TalkLive do
 
       <div :if={@turns == []}>
         <section class="mt-8">
-          <h2 class="text-lg font-semibold">Poke facts</h2>
-          <ul id="poke-facts" class="poke-facts mt-4 rounded-2xl" aria-label="Poke facts">
+          <h2 class="text-lg font-semibold">Poké facts</h2>
+          <ul id="poke-facts" class="poke-facts mt-4 rounded-2xl" aria-label="Poké facts">
             <li :for={fact <- poke_facts()} class="poke-fact">{fact}</li>
           </ul>
         </section>

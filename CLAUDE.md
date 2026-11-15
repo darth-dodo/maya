@@ -11,7 +11,7 @@ Read this first, then FACTORY.md, then AGENTS.md (Phoenix generator guidelines).
 - Scope creep guard: new ideas go to PHASE_2.md, never into the MVP.
 
 ## What we are building
-Maya = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokemon Emerald companion on a phone.
+Maya = Maps, Answers, Yaps, Advice. A talking, spoiler-free Pokémon Emerald companion on a phone.
 Push to talk, ask out loud, hear a short answer based on current badges and team.
 
 ## Two goals this weekend

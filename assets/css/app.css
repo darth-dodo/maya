@@ -105,7 +105,7 @@
 /* This file is for your main application CSS */
 
 /* Emerald edition hero, scoped so the daisyUI themes stay intact.
-   Backdrop: original scenery generated with Gemini (no Pokemon, people or text), served from /images/backdrops/ */
+   Backdrop: original scenery generated with Gemini (no Pokémon, people or text), served from /images/backdrops/ */
 .maya-hero,
 .poke-facts {
   --ball-green: #1d9a5b;
@@ -173,7 +173,7 @@
   background: radial-gradient(circle at 40% 35%, #d4f8e4, var(--ball-green-light) 60%, var(--ball-green-dark));
 }
 
-/* Poke facts: CSS only rotation. All facts share one grid cell, so the card is as tall as the
+/* Poké facts: CSS only rotation. All facts share one grid cell, so the card is as tall as the
    longest fact. Hidden facts use opacity only, so screen readers still read the whole list.
    Timing: 12 facts x 8s = 96s; one fact is visible for 1/12 (8.33%) of the cycle. */
 .poke-facts {
