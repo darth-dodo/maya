@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Maya: an Emerald green ball with a gem button on a soft tide green square">
+  <title>Maya</title>
+  <defs>
+    <linearGradient id="tide" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8F4F0"/>
+      <stop offset="0.6" stop-color="#CFE7E0"/>
+      <stop offset="1" stop-color="#A9D6CA"/>
+    </linearGradient>
+    <radialGradient id="gem" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#D4F8E4"/>
+      <stop offset="0.6" stop-color="#3FC283"/>
+      <stop offset="1" stop-color="#0F6B3D"/>
+    </radialGradient>
+    <clipPath id="ballTop"><path d="M810 190 A120 120 0 0 1 1050 190 Z"/></clipPath>
+  </defs>
+  <rect class="bg" width="512" height="512" rx="112" fill="url(#tide)"/>
+  <!-- The ball from docs/assets/hero.svg, scaled to radius 170 so it stays inside the maskable safe zone -->
+  <g transform="translate(256 256) scale(1.4167) translate(-930 -190)">
+    <circle cx="930" cy="190" r="120" fill="#F8F8F8"/>
+    <g clip-path="url(#ballTop)">
+      <path d="M930 130 L793 506 L554 -7 Z" fill="#1D9A5B"/>
+      <path d="M930 130 L554 -7 L1067 -246 Z" fill="#0F6B3D"/>
+      <path d="M930 130 L1067 -246 L1306 267 Z" fill="#1D9A5B"/>
+      <path d="M930 130 L1306 267 L793 506 Z" fill="#3FC283"/>
+    </g>
+    <rect x="810" y="183" width="240" height="14" fill="#1A1A1A"/>
+    <circle cx="930" cy="190" r="120" fill="none" stroke="#1A1A1A" stroke-width="16"/>
+    <circle cx="930" cy="190" r="34" fill="#F8F8F8" stroke="#1A1A1A" stroke-width="13"/>
+    <circle cx="930" cy="190" r="19" fill="url(#gem)"/>
+  </g>
+</svg>

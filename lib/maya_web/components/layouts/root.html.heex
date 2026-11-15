@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title default="Maya" phx-no-format>{assigns[:page_title]}</.live_title>
+    <meta
+      name="description"
+      content="Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
+    />
+    <%!-- Hidden from search until the login lands (#49): then drop this and robots.txt's Disallow. --%>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1d9a5b" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f6b3d" />
+    <link rel="icon" href={~p"/favicon.ico"} sizes="32x32" type="image/x-icon" />
+    <link rel="icon" href={~p"/images/favicon-32.png"} sizes="32x32" type="image/png" />
+    <link rel="icon" href={~p"/images/favicon-16.png"} sizes="16x16" type="image/png" />
+    <link rel="apple-touch-icon" href={~p"/images/apple-touch-icon.png"} sizes="180x180" />
+    <link rel="manifest" href={~p"/manifest.webmanifest"} />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Maya" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Maya" />
+    <meta property="og:title" content="Maya" />
+    <meta
+      property="og:description"
+      content="Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
+    />
+    <meta property="og:url" content={url(~p"/")} />
+    <meta property="og:image" content={url(~p"/images/og-image.png")} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Maya: an Emerald green ball floating above soft tide waves at sunrise."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Maya" />
+    <meta
+      name="twitter:description"
+      content="Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion."
+    />
+    <meta name="twitter:image" content={url(~p"/images/og-image.png")} />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>

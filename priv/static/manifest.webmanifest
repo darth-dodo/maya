@@ -1,0 +1,21 @@
+{
+  "name": "Maya",
+  "short_name": "Maya",
+  "description": "Maps, Answers, Yaps, Advice. A spoiler-free Pokémon Emerald companion.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1d9a5b",
+  "background_color": "#e8f4f0",
+  "icons": [
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/images/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
