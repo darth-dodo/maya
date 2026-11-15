@@ -81,8 +81,9 @@ defmodule Maya.Agent.Facts do
   end
 
   @doc """
-  Types, evolutions and wild places inside the horizon. A species seen only past the horizon
-  is `past_horizon`; one with no wild places at all (a starter) is a Fact with no places.
+  Types, evolutions and wild places inside the horizon. A species with no wild place inside the
+  horizon (seen only past it, or a gift, legendary or fossil with no wild places) is
+  `past_horizon` unless it is on the Team: a Team member is a Fact, with no places if none.
   """
   def find_pokemon(nil, _encounters, _locations, _progress), do: {:error, :not_found}
 
@@ -100,7 +101,9 @@ defmodule Maya.Agent.Facts do
         }
       end
 
-    if encounters != [] and places == [] do
+    on_team? = Enum.any?(progress.team, &(&1["species"] == species.name))
+
+    if places == [] and not on_team? do
       {:error, :past_horizon}
     else
       {:ok,
