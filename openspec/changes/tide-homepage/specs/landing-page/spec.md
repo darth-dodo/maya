@@ -85,7 +85,8 @@ The home page SHALL have a section `#real-turn` showing one real turn from Maya 
 
 #### Scenario: Real turn shown
 - **WHEN** a visitor requests `/`
-- **THEN** `#real-turn-question` and `#real-turn-answer` have non-empty text and `#real-turn-answer` contains no element with a background or border
+- **THEN** `#real-turn-question` reads "Where do I go next?" and `#real-turn-answer` reads "Head north to Rustboro City for Roxanne. Mudkip's Water moves make it a short fight."
+- **AND** `#real-turn-answer` contains no element with a background or border
 - **AND** `#real-turn-latency` reads "Median Answer time 4.95 s over 145 turns"
 
 #### Scenario: Caption follows the recorded value
@@ -118,12 +119,12 @@ The home page SHALL have a section `#meet-maya` headed "Meet Maya. She has opini
 - **THEN** every value is the same
 
 ### Requirement: Things she says
-`#meet-maya` SHALL show a list `#sayings` of exactly 3 `.saying` bubbles, each a line Maya really says: it appears word for word in her agent prompt or in her Event confirm and refused lines.
+`#meet-maya` SHALL show a list `#sayings` of exactly 3 `.saying` bubbles in this order: "Mudkip would approve." and "Further ahead, no spoilers.", both lines from Maya's agent prompt, and "Mudkip is a pure Water type, and Maya is not biased at all.", her Mudkip hype line approved by Abhishek on 2026-11-15.
 
 #### Scenario: Three real lines
 - **WHEN** a visitor requests `/`
-- **THEN** `#sayings` has 3 `.saying` elements with non-empty text
-- **AND** each `.saying` text appears word for word in `lib/maya/agent/prompt.ex` or `lib/maya/events.ex`
+- **THEN** `#sayings` has 3 `.saying` elements reading "Mudkip would approve.", "Further ahead, no spoilers." and "Mudkip is a pure Water type, and Maya is not biased at all." in that order
+- **AND** the first two appear word for word in `lib/maya/agent/prompt.ex`
 
 ## REMOVED Requirements
 

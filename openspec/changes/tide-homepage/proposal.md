@@ -10,7 +10,7 @@ Homepage `/`, in this order:
 
 1. **Hero** (about 560px tall on a phone): the tide backdrop full bleed, or the night backdrop at night, fading into `--maya-bg`. The header reads "Maya" with an "Open Talk" link. Then the eyebrow "A Pokémon Emerald companion", the Fraunces headline "Ask out loud. No spoilers.", one line of body copy, the "Talk to Maya" pill and the mic note.
 2. **A real turn, Route 104**: one real Question (small, right aligned, muted) and Maya's real Answer as large unboxed text, with a caption giving the median Answer time (4.95 s over 145 turns). The value is kept in one place so it is easy to update.
-3. **Meet Maya. She has opinions.** The ball as her avatar with the speech bubble "So I hear you like Mudkip. Good. Correct choice.", her Dials as read-only bars that describe her (humor 75, honesty 90, sass 40, Mudkip hype 100, spoilers 0 locked), and "Things she says": 3 real lines from her prompt and Events as bubbles.
+3. **Meet Maya. She has opinions.** The ball as her avatar with the speech bubble "So I hear you like Mudkip. Good. Correct choice.", her Dials as read-only bars that describe her (humor 75, honesty 90, sass 40, Mudkip hype 100, spoilers 0 locked), and "Things she says": 3 lines as bubbles, two from her prompt and her Mudkip hype line.
 4. **How a turn works**: the 4 voice loop steps as numbered, ruled lines with no boxed cards.
 5. **Spoiler promise band** on `--maya-sea`: "Further ahead, no spoilers." in Fraunces, plus the CI spoiler gate sentence.
 6. **Footer**: unchanged links (How Maya is built, GitHub, README).
