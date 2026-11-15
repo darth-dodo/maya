@@ -9,11 +9,11 @@
 ## 2. Voice loop (tests first)
 
 - [x] 2.1 `STT.transcribe/3` sends one `context_bias` field per term; verify the multipart test asserts the fields and their size
-- [ ] 2.2 Conversation reads Progress in the STT stage, corrects the transcript and passes Progress to the agent; verify the Conversation test that stores the corrected Question
+- [x] 2.2 Conversation reads Progress in the STT stage, corrects the transcript and passes Progress to the agent; verify the Conversation test that stores the corrected Question
 
 ## 3. Gates
 
-- [ ] 3.1 Run `factory:test`; verify every gate is green and the coverage floor is not lowered
+- [x] 3.1 Run `factory:test`; verify every gate is green and the coverage floor is not lowered
 
 ## Workflow follow-up
 
