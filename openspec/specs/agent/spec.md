@@ -38,16 +38,16 @@ Maya SHALL answer a Question with a hand-written loop over OpenRouter chat compl
 - **WHEN** Progress has 0 badges and `gym_counter` is called for "Brawly"
 - **THEN** it returns `past_horizon` and no part of Brawly's team
 
-#### Scenario: Unknown leader or Pokemon
+#### Scenario: Unknown leader or Pokémon
 - **WHEN** `gym_counter` is called for "Professor Oak" or `find_pokemon` for "Agumon"
 - **THEN** it returns `not_found`
 
-#### Scenario: Pokemon inside the horizon
+#### Scenario: Pokémon inside the horizon
 - **WHEN** Progress has 0 badges and `find_pokemon` is called for "Ralts"
 - **THEN** the Fact has type psychic, evolution into Kirlia at level 20, and Route 102 land at 4 percent
 - **AND** no place outside the horizon is listed
 
-#### Scenario: Pokemon found only past the horizon
+#### Scenario: Pokémon found only past the horizon
 - **WHEN** Progress has 0 badges and `find_pokemon` is called for a species whose wild places are all past the horizon
 - **THEN** it returns `past_horizon`
 

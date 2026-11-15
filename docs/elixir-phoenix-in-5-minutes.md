@@ -150,7 +150,7 @@ HTML with Elixir inside. `{...}` prints a value, `:for` repeats an element:
 
 ```heex
 <%!-- lib/maya_web/controllers/page_html/home.html.heex --%>
-<ul id="poke-facts" class="poke-facts mt-4 rounded-2xl" aria-label="Poke facts">
+<ul id="poke-facts" class="poke-facts mt-4 rounded-2xl" aria-label="Poké facts">
   <li :for={fact <- poke_facts()} class="poke-fact">{fact}</li>
 </ul>
 
@@ -227,7 +227,7 @@ Coming from habla-hermano (`docs/fastapi-langgraph-in-5-minutes.md`):
 
 ## Try it (pick one)
 
-1. **Add a Poke fact.** Add a 13th sentence to `@poke_facts` in `lib/maya_web/controllers/page_html.ex`, then read the comment above it: the CSS rotation in `assets/css/app.css` is timed for 12, so update both. Run `mix test test/maya_web/controllers/page_controller_test.exs`. Keep it before the first gym and say "earn a badge", never "beat".
+1. **Add a Poké fact.** Add a 13th sentence to `@poke_facts` in `lib/maya_web/controllers/page_html.ex`, then read the comment above it: the CSS rotation in `assets/css/app.css` is timed for 12, so update both. Run `mix test test/maya_web/controllers/page_controller_test.exs`. Keep it before the first gym and say "earn a badge", never "beat".
 2. **Add a route.** Add `get "/health/time", HealthController, :time` next to `/health`, write `def time(conn, _params), do: text(conn, DateTime.utc_now() |> DateTime.to_iso8601())`, and add a test in `test/maya_web/controllers/` that asserts a 200.
 3. **Look at the processes.** Run `iex -S mix`, then `Supervisor.which_children(Maya.Supervisor)` to see the tree from `application.ex`, and `:observer.start()` for a live view of every process (needs Erlang built with wx).
 

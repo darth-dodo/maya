@@ -26,10 +26,10 @@ defmodule Maya.Agent.Tools do
       function: %{
         name: "find_pokemon",
         description:
-          "A Pokemon's types, evolutions and the wild places (with rates) where it can be caught.",
+          "A Pokémon's types, evolutions and the wild places (with rates) where it can be caught.",
         parameters: %{
           type: "object",
-          properties: %{name: %{type: "string", description: "Pokemon name, e.g. Ralts"}},
+          properties: %{name: %{type: "string", description: "Pokémon name, e.g. Ralts"}},
           required: ["name"]
         }
       }
