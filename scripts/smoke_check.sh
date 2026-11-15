@@ -3,11 +3,14 @@
 # Compares the live /health/version with the head of main and opens one bug Issue per broken commit.
 # Always exits 0: Render's checksPass waits on every check, so this must never fail or block a deploy.
 # Env: SITE, REPO, HEAD_SHA and HEAD_TIME (ISO 8601 UTC) override the defaults; DRY_RUN=1 prints instead of creating.
+# ASK=1 with SMOKE_TOKEN also asks POST /health/ask one Question and fails on an empty Answer or the error line.
 set -u
 
 SITE="${SITE:-https://maya-j56u.onrender.com}"
 REPO="${REPO:-darth-dodo/maya}"
 LIMIT_SECONDS=1200
+QUESTION="How do I beat Roxanne?"
+LOST="Lost my train of thought, ask again?" # the agent error line in lib/maya/conversation.ex
 
 to_epoch() { date -u -d "$1" +%s 2>/dev/null || date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%s 2>/dev/null; }
 
@@ -31,6 +34,25 @@ if [ "$live" = "$HEAD_SHA" ]; then
     echo "$path -> $status"
     if [ "$status" != "200" ]; then problem="$SITE$path answered $status"; break; fi
   done
+  # One real Question against production data (E3, #55): hourly only, each one spends OpenRouter credit.
+  if [ -z "$problem" ] && [ "${ASK:-}" = "1" ]; then
+    if [ -z "${SMOKE_TOKEN:-}" ]; then
+      echo "skip Question: SMOKE_TOKEN is not set"
+    else
+      # "<json> <status>"; ASK_RESPONSE replaces the request in scripts/smoke_check_test.sh.
+      resp="${ASK_RESPONSE:-$(curl -s --max-time 30 -w ' %{http_code}' -H "x-smoke-token: $SMOKE_TOKEN" \
+        -H 'content-type: application/json' --data "{\"question\":\"$QUESTION\"}" "$SITE/health/ask")}"
+      code="${resp##* }"
+      json="${resp% *}"
+      answer="$(printf '%s' "$json" | jq -r '.answer // empty' 2>/dev/null)"
+      echo "Question -> $code: ${answer:-$json}"
+      if [ "$code" != "200" ]; then
+        problem="the Question \"$QUESTION\" answered $code: $json"
+      elif [ -z "$answer" ] || [ "$answer" = "$LOST" ]; then
+        problem="the Question \"$QUESTION\" got no real Answer: ${answer:-empty}"
+      fi
+    fi
+  fi
 else
   t="$(to_epoch "$HEAD_TIME")" || { echo "skip: cannot parse HEAD_TIME '$HEAD_TIME'"; exit 0; }
   age=$(( $(date -u +%s) - t ))
@@ -54,7 +76,8 @@ body="Commit: $HEAD_SHA
 Failure: $problem
 Run: $run
 
-If the deploy never went live, check the Render events for this commit."
+If the deploy never went live, check the Render events for this commit.
+If the Question failed, check the Render logs for \"agent failed\"."
 
 open="$(gh issue list --repo "$REPO" --state open --search "$short in:title" --json number --jq length 2>/dev/null || echo unknown)"
 if [ "$open" = "unknown" ]; then

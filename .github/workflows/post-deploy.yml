@@ -5,6 +5,8 @@ name: Post-deploy smoke check
 on:
   schedule:
     - cron: "*/15 * * * *"
+    # Hourly run that also asks one real Question (E3); each one spends OpenRouter credit.
+    - cron: "7 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -30,4 +32,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          ASK: ${{ (github.event.schedule == '7 * * * *' || github.event_name == 'workflow_dispatch') && '1' || '' }}
+          SMOKE_TOKEN: ${{ secrets.SMOKE_TOKEN }}
         run: scripts/smoke_check.sh

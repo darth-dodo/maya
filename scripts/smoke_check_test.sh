@@ -36,5 +36,20 @@ check "old head not live opens an Issue" "not live after 20 minutes" "" \
 check "new head not live is in progress" "deploy in progress" "would open" \
   HEAD_SHA=deadbeef HEAD_TIME="$(iso "$now")"
 
+# The Question check (E3). ASK_RESPONSE stands in for POST /health/ask, so no credit is spent.
+fresh=(HEAD_SHA="$live" HEAD_TIME="$(iso "$now")" ASK=1 SMOKE_TOKEN=test)
+check "real Answer is ok" "ok:" "would open" "${fresh[@]}" \
+  ASK_RESPONSE='{"answer":"Lead with Mudkip, rocks fear water."} 200'
+check "error line opens an Issue" "got no real Answer: Lost my train of thought" "" "${fresh[@]}" \
+  ASK_RESPONSE='{"answer":"Lost my train of thought, ask again?"} 200'
+check "empty Answer opens an Issue" "got no real Answer: empty" "" "${fresh[@]}" \
+  ASK_RESPONSE='{"answer":""} 200'
+check "agent failure opens an Issue" 'answered 503: {"error":"no_progress"}' "" "${fresh[@]}" \
+  ASK_RESPONSE='{"error":"no_progress"} 503'
+check "no token skips the Question" "skip Question" "would open" \
+  HEAD_SHA="$live" HEAD_TIME="$(iso "$now")" ASK=1 SMOKE_TOKEN= ASK_RESPONSE='{"answer":""} 200'
+check "no ASK skips the Question" "ok:" "Question" \
+  HEAD_SHA="$live" HEAD_TIME="$(iso "$now")" SMOKE_TOKEN=test ASK_RESPONSE='{"answer":""} 200'
+
 [ "$fails" -eq 0 ] && echo "all passed" || echo "$fails failed"
 [ "$fails" -eq 0 ]

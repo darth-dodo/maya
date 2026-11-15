@@ -27,6 +27,7 @@ defmodule MayaWeb.Router do
   scope "/", MayaWeb do
     get "/health", HealthController, :show
     get "/health/version", HealthController, :version
+    post "/health/ask", SmokeController, :ask
   end
 
   scope "/", MayaWeb do
