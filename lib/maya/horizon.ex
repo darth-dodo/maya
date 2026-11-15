@@ -9,14 +9,56 @@ defmodule Maya.Horizon do
 
   # The one place the gym order lives; `party` is the leader's first party label in pokeemerald.
   @gyms [
-    %{badge: 1, leader: "Roxanne", city: "Rustboro City", party: "Roxanne1"},
-    %{badge: 2, leader: "Brawly", city: "Dewford Town", party: "Brawly1"},
-    %{badge: 3, leader: "Wattson", city: "Mauville City", party: "Wattson1"},
-    %{badge: 4, leader: "Flannery", city: "Lavaridge Town", party: "Flannery1"},
-    %{badge: 5, leader: "Norman", city: "Petalburg City", party: "Norman1"},
-    %{badge: 6, leader: "Winona", city: "Fortree City", party: "Winona1"},
-    %{badge: 7, leader: "Tate and Liza", city: "Mossdeep City", party: "TateAndLiza1"},
-    %{badge: 8, leader: "Juan", city: "Sootopolis City", party: "Juan1"}
+    %{
+      badge: 1,
+      leader: "Roxanne",
+      badge_name: "Stone Badge",
+      city: "Rustboro City",
+      party: "Roxanne1"
+    },
+    %{
+      badge: 2,
+      leader: "Brawly",
+      badge_name: "Knuckle Badge",
+      city: "Dewford Town",
+      party: "Brawly1"
+    },
+    %{
+      badge: 3,
+      leader: "Wattson",
+      badge_name: "Dynamo Badge",
+      city: "Mauville City",
+      party: "Wattson1"
+    },
+    %{
+      badge: 4,
+      leader: "Flannery",
+      badge_name: "Heat Badge",
+      city: "Lavaridge Town",
+      party: "Flannery1"
+    },
+    %{
+      badge: 5,
+      leader: "Norman",
+      badge_name: "Balance Badge",
+      city: "Petalburg City",
+      party: "Norman1"
+    },
+    %{
+      badge: 6,
+      leader: "Winona",
+      badge_name: "Feather Badge",
+      city: "Fortree City",
+      party: "Winona1"
+    },
+    %{
+      badge: 7,
+      leader: "Tate and Liza",
+      badge_name: "Mind Badge",
+      city: "Mossdeep City",
+      party: "TateAndLiza1"
+    },
+    %{badge: 8, leader: "Juan", badge_name: "Rain Badge", city: "Sootopolis City", party: "Juan1"}
   ]
 
   @doc "All 8 gyms in badge order."

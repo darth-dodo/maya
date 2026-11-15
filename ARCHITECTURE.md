@@ -117,7 +117,7 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 | `gym_counter` | `leader` | The leader's team and levels, the player's **Team** with type matchups, a suggested lead | Only the **Next gym** or earlier gyms; later leaders return `past_horizon` |
 | `find_pokemon` | `name` | Types, evolution level, encounter places with rates | Only places inside the horizon; none left returns `past_horizon` |
 | `search_guide` | `location` (optional) | **Walkthrough notes** for the named or current location | SQL filter on `badges_required` |
-| `log_event` | `kind` (`badge_earned`, `caught`, `evolved`, `moved`, `undo`), `details` | The confirm line | Writes the **Event** and updates **Progress** in one transaction; `undo` reverts the last Event |
+| `log_event` | `kind` (`badge_earned`, `caught`, `evolved`, `level_up`, `moved`, `undo`), `details` | The confirm line, or a refused line | Validated against game data: only the **Next gym**'s badge (a later or unknown gym gets one refusal naming only the Next gym), species in game data, levels 1 to 100, Team of at most 6, places inside the horizon. Writes the **Event** and updates **Progress** in one transaction; `undo` restores the Progress from before the last Event |
 | `set_setting` | `name` (`humor` only in the MVP), `value` 0 to 100 | The confirm line | n/a |
 
 ## 4. Data
@@ -127,7 +127,7 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 | `species`, `moves`, `type_matchups` | PokeAPI (Emerald version group) | Types as in Emerald (no Fairy) |
 | `encounters` | pokeemerald `src/data/wild_encounters.json` | Land, water and fishing with rates |
 | `trainers`, `trainer_pokemon` | pokeemerald `src/data/trainer_parties.h` | Gym leaders tagged with their badge number |
-| `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro for Sunday. A location not in the table counts as past the horizon (fail closed). |
+| `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro City at 0 and through Dewford Town at 1 (sources in the `events-progress` design). A location not in the table counts as past the horizon (fail closed). |
 | `walkthrough_notes` | Written by Claude from the game data | Location, `badges_required`, text. SQL search in the MVP; pgvector embeddings later, first in the cut order. |
 | `progress`, `events` | Seed `priv/progress.json` on a Guest's first read, then `log_event` | One row per `guest_id` (unique). Badges, Team, location, Humor dial. Survives deploys (ADR-006, ADR-008). |
 | `turns` | The Conversation | `guest_id` (indexed), Question text, Answer text, cut flag, per-stage milliseconds |

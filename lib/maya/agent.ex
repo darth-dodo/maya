@@ -56,7 +56,8 @@ defmodule Maya.Agent do
   defp loop({req, deadline} = client, model, messages, progress, round) do
     case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
-        results = Enum.map(calls, &tool_message(&1, progress))
+        # A logged Event changes Progress, so later calls and rounds see the new Progress.
+        {results, progress} = Enum.map_reduce(calls, progress, &tool_message/2)
         loop(client, model, messages ++ [message | results], progress, round + 1)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
@@ -70,21 +71,26 @@ defmodule Maya.Agent do
     end
   end
 
-  @doc "One tool call as its `role: \"tool\"` reply. Malformed arguments are a tool error."
+  @doc """
+  One tool call as its `role: \"tool\"` reply and the Progress after it (changed only by a
+  logged Event). Malformed arguments are a tool error.
+  """
   def tool_message(call, progress) do
-    content =
+    {content, progress} =
       case decode(get_in(call, ["function", "arguments"])) do
         {:ok, args} ->
-          get_in(call, ["function", "name"])
-          |> Tools.call(args, progress)
-          |> Tools.encode(progress)
+          result = Tools.call(get_in(call, ["function", "name"]), args, progress)
+          {Tools.encode(result, progress), after_call(result, progress)}
 
         :error ->
-          Jason.encode!(%{error: "malformed_arguments"})
+          {Jason.encode!(%{error: "malformed_arguments"}), progress}
       end
 
-    %{role: "tool", tool_call_id: call["id"], content: content}
+    {%{role: "tool", tool_call_id: call["id"], content: content}, progress}
   end
+
+  defp after_call({:logged, _line, new_progress}, _progress), do: new_progress
+  defp after_call(_result, progress), do: progress
 
   defp decode(json) when is_binary(json) do
     case Jason.decode(json) do
