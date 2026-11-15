@@ -15,6 +15,7 @@ defmodule Maya.Conversation do
   alias Maya.Agent
   alias Maya.Voice.{STT, Turn, TTS}
 
+  @nothing_heard "(nothing heard)"
   @not_heard "I did not catch that."
   @lost "Lost my train of thought, ask again?"
   @idle :timer.minutes(30)
@@ -52,6 +53,9 @@ defmodule Maya.Conversation do
 
   @doc "The screen's timings for the latest turn: `mic_release_ms` and `playback_start_ms`."
   def playback_started(id, timings), do: GenServer.cast(via(id), {:timings, timings})
+
+  @doc "The Question stored when STT heard nothing; the Talk screen shows it as a friendly line."
+  def nothing_heard, do: @nothing_heard
 
   defp via(id), do: {:via, Registry, {Maya.ConversationRegistry, {:conversation, id}}}
 
@@ -150,7 +154,7 @@ defmodule Maya.Conversation do
 
   ## Turn steps
 
-  defp finished(:stt, {:ok, ""}, state), do: speak(state, "(nothing heard)", @not_heard)
+  defp finished(:stt, {:ok, ""}, state), do: speak(state, @nothing_heard, @not_heard)
 
   defp finished(:stt, {:ok, question}, %{current: c} = state) do
     me = self()

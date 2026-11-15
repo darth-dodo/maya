@@ -232,13 +232,18 @@ defmodule MayaWeb.TalkLive do
         <section id="turns" class="turns" aria-label="Last few chats">
           <ol id="conversation" aria-live="polite" aria-label="Conversation">
             <li
-              :for={{turn, i} <- @turns |> Enum.take(-3) |> Enum.with_index(1)}
-              class={["turn", i == min(length(@turns), 3) && "now"]}
+              :for={turn <- Enum.take(@turns, -3)}
+              class={["turn", turn == List.last(@turns) && "now"]}
             >
-              <p :if={turn.question == "(nothing heard)"} class="question you nothing-heard">
+              <p
+                :if={turn.question == Conversation.nothing_heard()}
+                class="question you nothing-heard"
+              >
                 Maya did not hear anything that time
               </p>
-              <p :if={turn.question != "(nothing heard)"} class="question you">{turn.question}</p>
+              <p :if={turn.question != Conversation.nothing_heard()} class="question you">
+                {turn.question}
+              </p>
               <p class="answer maya">{turn.answer}</p>
               <p :if={turn.cut} class="cut">cut short</p>
               <p :if={turn.voice_down} class="voice-down">voice is down</p>

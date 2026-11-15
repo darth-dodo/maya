@@ -351,7 +351,7 @@
   position: fixed;
   z-index: 10;
   left: 50%;
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   width: min(42rem, calc(100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
   transform: translateX(-50%);
 }
@@ -394,9 +394,10 @@
 .talk-button[data-state="speaking"] [data-show~="speaking"] { display: inline; }
 
 @media (prefers-reduced-motion: reduce) {
+  /* !important: the per-state ring rules above are more specific */
   .ball-ring,
   .wave i,
-  .poke-fact { animation: none; }
+  .poke-fact { animation: none !important; }
   .wave i { height: 10px; }
   .poke-fact:first-child { opacity: 1; }
   .trainer-card,

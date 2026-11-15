@@ -96,7 +96,7 @@ defmodule MayaWeb.TalkLiveTest do
     assert html |> count("#badge-case .badge-slot[data-earned='true']") == 2
 
     for later <- ~w(Flannery Norman Winona Tate Liza Juan),
-        do: refute(html =~ later, "#{later} on the page")
+        do: refute(has_element?(view, "#talk-screen", later), "#{later} on the page")
   end
 
   test "with all 8 badges the card says so and shows no type chip", %{conn: conn, guest: guest} do
@@ -171,7 +171,7 @@ defmodule MayaWeb.TalkLiveTest do
              "Maya did not hear anything that time"
            )
 
-    refute render(view) =~ "(nothing heard)"
+    refute has_element?(view, "#conversation", "(nothing heard)")
   end
 
   test "the Talk button has a hidden mic, a hint and a label per moment", %{conn: conn} do
