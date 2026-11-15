@@ -64,6 +64,7 @@ defmodule MayaWeb.Layouts do
   def site_footer(assigns) do
     ~H"""
     <footer id="site-footer" class="site-footer">
+      <%!-- legacy-colours:start footer-art (design-apply moves these onto tokens) --%>
       <svg
         class="footer-art"
         viewBox="0 0 1200 160"
@@ -104,6 +105,7 @@ defmodule MayaWeb.Layouts do
           </g>
         </g>
       </svg>
+      <%!-- legacy-colours:end --%>
       <nav aria-label="About Maya" class="footer-links">
         <a href="/">Home</a>
         <a href="/factory">How Maya is built</a>

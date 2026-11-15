@@ -18,37 +18,144 @@
   themes: false;
 }
 
-/* daisyUI theme plugin.
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+/* Maya design tokens (docs/design-system.md). Calm Emerald by day, Emerald night.
+   Every colour literal in the app lives between the two token markers below; the colour gate
+   test (test/maya_web/colour_gate_test.exs) fails on a literal anywhere else. */
+/* tokens:start */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Day (Calm Emerald) is the default; the scales and the ball are the same in both themes */
+:root {
+  --maya-bg: #f6f1e7;
+  --maya-sea: #e7f3ee;
+  --maya-surface: #ffffff;
+  --maya-ink: #13261f;
+  --maya-muted: #3f6b5b;
+  --maya-action: #0f5a3a;
+  --maya-action-ink: #ffffff;
+  --maya-line: rgb(15 58 40 / 0.12);
+  --maya-hairline: transparent;
+  --maya-accent: #3f6b5b;
+  --maya-listen: #c24a2e;
+  --maya-wait: #9a7420;
+  --maya-success: #1d7a4a;
+  --maya-error: #b3261e;
+  --maya-glow: none;
+  --maya-shadow-1: 0 14px 26px -20px rgb(15 58 40 / 0.6);
+  --maya-shadow-2: 0 12px 20px -12px rgb(15 58 40 / 0.7);
+
+  --maya-ball-green: #1d9a5b;
+  --maya-ball-green-dark: #0f6b3d;
+  --maya-ball-green-light: #3fc283;
+  --maya-ball-white: #f8f8f8;
+  --maya-ball-black: #1a1a1a;
+
+  --maya-font-head: "Fraunces", Georgia, serif;
+  --maya-font-body: "Inter", system-ui, sans-serif;
+  --maya-text-xs: 0.75rem;
+  --maya-text-sm: 0.875rem;
+  --maya-text-base: 1rem;
+  --maya-text-lg: 1.25rem;
+  --maya-text-xl: 1.563rem;
+  --maya-text-2xl: 1.953rem;
+  --maya-text-3xl: 2.441rem;
+  --maya-radius-sm: 0.5rem;
+  --maya-radius-md: 1rem;
+  --maya-radius-lg: 1.5rem;
+  --maya-radius-pill: 999px;
+  --maya-duration: 200ms;
+  --maya-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Night (Emerald night): the same values twice, for the theme script and for no-JS dark */
+:root[data-theme="dark"] {
+  --maya-bg: #08181a;
+  --maya-sea: #0c2620;
+  --maya-surface: #102d24;
+  --maya-ink: #e8f3ed;
+  --maya-muted: #a6c3b6;
+  --maya-action: #157a48;
+  --maya-action-ink: #ffffff;
+  --maya-line: rgb(255 255 255 / 0.08);
+  --maya-hairline: #b58a2a;
+  --maya-accent: #c9a24a;
+  --maya-listen: #ef7a5a;
+  --maya-wait: #b58a2a;
+  --maya-success: #3fc283;
+  --maya-error: #f2b8b5;
+  --maya-glow: 0 0 22px 2px rgb(63 194 131 / 0.35);
+  --maya-shadow-1: inset 0 1px 1px rgb(255 255 255 / 0.06), 0 18px 30px -22px #000000;
+  --maya-shadow-2: 0 0 24px -6px rgb(63 194 131 / 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --maya-bg: #08181a;
+    --maya-sea: #0c2620;
+    --maya-surface: #102d24;
+    --maya-ink: #e8f3ed;
+    --maya-muted: #a6c3b6;
+    --maya-action: #157a48;
+    --maya-action-ink: #ffffff;
+    --maya-line: rgb(255 255 255 / 0.08);
+    --maya-hairline: #b58a2a;
+    --maya-accent: #c9a24a;
+    --maya-listen: #ef7a5a;
+    --maya-wait: #b58a2a;
+    --maya-success: #3fc283;
+    --maya-error: #f2b8b5;
+    --maya-glow: 0 0 22px 2px rgb(63 194 131 / 0.35);
+    --maya-shadow-1: inset 0 1px 1px rgb(255 255 255 / 0.06), 0 18px 30px -22px #000000;
+    --maya-shadow-2: 0 0 24px -6px rgb(63 194 131 / 0.6);
+  }
+}
+
+/* daisyUI themes on the tokens: names kept so data-theme keeps working. Each var() resolves
+   on <html>, where data-theme picks the day or night token values. */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
+  --color-base-100: var(--maya-bg);
+  --color-base-200: var(--maya-sea);
+  --color-base-300: var(--maya-surface);
+  --color-base-content: var(--maya-ink);
+  --color-primary: var(--maya-action);
+  --color-primary-content: var(--maya-action-ink);
+  --color-secondary: var(--maya-muted);
+  --color-secondary-content: var(--maya-bg);
+  --color-accent: var(--maya-accent);
+  --color-accent-content: var(--maya-bg);
+  --color-neutral: var(--maya-ink);
+  --color-neutral-content: var(--maya-bg);
+  --color-info: var(--maya-action);
+  --color-info-content: var(--maya-action-ink);
+  --color-success: var(--maya-success);
+  --color-success-content: var(--maya-bg);
+  --color-warning: var(--maya-wait);
+  --color-warning-content: var(--maya-bg);
+  --color-error: var(--maya-error);
+  --color-error-content: var(--maya-bg);
+  --radius-selector: var(--maya-radius-sm);
+  --radius-field: var(--maya-radius-sm);
+  --radius-box: var(--maya-radius-sm);
   --size-selector: 0.21875rem;
   --size-field: 0.21875rem;
   --border: 1.5px;
@@ -61,34 +168,41 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
+  --color-base-100: var(--maya-bg);
+  --color-base-200: var(--maya-sea);
+  --color-base-300: var(--maya-surface);
+  --color-base-content: var(--maya-ink);
+  --color-primary: var(--maya-action);
+  --color-primary-content: var(--maya-action-ink);
+  --color-secondary: var(--maya-muted);
+  --color-secondary-content: var(--maya-bg);
+  --color-accent: var(--maya-accent);
+  --color-accent-content: var(--maya-bg);
+  --color-neutral: var(--maya-ink);
+  --color-neutral-content: var(--maya-bg);
+  --color-info: var(--maya-action);
+  --color-info-content: var(--maya-action-ink);
+  --color-success: var(--maya-success);
+  --color-success-content: var(--maya-bg);
+  --color-warning: var(--maya-wait);
+  --color-warning-content: var(--maya-action-ink);
+  --color-error: var(--maya-error);
+  --color-error-content: var(--maya-action-ink);
+  --radius-selector: var(--maya-radius-sm);
+  --radius-field: var(--maya-radius-sm);
+  --radius-box: var(--maya-radius-sm);
   --size-selector: 0.21875rem;
   --size-field: 0.21875rem;
   --border: 1.5px;
   --depth: 1;
   --noise: 0;
+}
+/* tokens:end */
+
+/* Fraunces for headings, Inter for everything else */
+@layer base {
+  body { font-family: var(--maya-font-body); }
+  h1, h2, h3, h4 { font-family: var(--maya-font-head); }
 }
 
 /* Add variants based on LiveView classes */
@@ -102,6 +216,7 @@
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
+/* legacy-colours:start talk-screen (design-apply moves these onto tokens) */
 /* Talk screen, layout B3 "rich trainer card" (#66). A fixed light scene in both themes, so
    every text colour below is checked once against it (each at least 4.5:1).
    The moment lives in #talk-screen[data-state] (server copy of the TalkHook state) and in
@@ -142,7 +257,7 @@
   border-radius: 1rem;
   border: 2px solid var(--ball-black);
   background: rgb(255 255 255 / 0.96);
-  transition: padding 0.25s ease, gap 0.25s ease;
+  transition: padding var(--maya-duration) var(--maya-ease), gap var(--maya-duration) var(--maya-ease);
   /* Sticky HUD (#78): stays under the phone's status bar while the chat scrolls beneath it.
      Its size only changes after release (uploading, waiting), never under the finger (#76). */
   position: sticky;
@@ -244,7 +359,7 @@
       )
       top / 100% 50% no-repeat,
     var(--ball-white);
-  transition: width 0.25s ease, height 0.25s ease;
+  transition: width var(--maya-duration) var(--maya-ease), height var(--maya-duration) var(--maya-ease);
 }
 
 .pokeball-button {
@@ -272,7 +387,7 @@
 
 @keyframes ring-pulse { from { transform: scale(0.9); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
 @keyframes ring-spin { to { transform: rotate(1turn); } }
-@keyframes ring-glow { 50% { box-shadow: 0 0 0 6px rgb(63 194 131 / 0.25); } }
+@keyframes ring-glow { 50% { box-shadow: 0 0 4px 6px rgb(63 194 131 / 0.25); } }
 
 /* Focus: the card shrinks to a slim strip while the Guest waits. Never while recording: a
    layout shift under a held finger can make WebKit cancel the touch (#76). */
@@ -404,16 +519,20 @@
 .talk-button[data-state="waiting"] [data-show~="waiting"],
 .talk-button[data-state="speaking"] [data-show~="speaking"] { display: inline; }
 
+/* legacy-colours:end */
+
+/* Reduced motion: the shared duration drops to 0ms and nothing animates. !important: the
+   per-state ring rules above are more specific. */
 @media (prefers-reduced-motion: reduce) {
-  /* !important: the per-state ring rules above are more specific */
-  .ball-ring,
-  .wave i,
-  .poke-fact { animation: none !important; }
+  :root { --maya-duration: 0ms; }
+  *,
+  ::before,
+  ::after { animation: none !important; transition-duration: 0ms !important; }
   .wave i { height: 10px; }
   .poke-fact:first-child { opacity: 1; }
-  .trainer-card,
-  .pokeball { transition: none; }
 }
+
+/* legacy-colours:start home (design-apply moves these onto tokens) */
 
 /* Public home page at / (#91). The hero is a fixed light scene in both themes, like the Talk
    screen, so its text colours are checked once against it (each at least 4.5:1). The other
@@ -544,7 +663,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-
+/* legacy-colours:end */
 
 /* Public factory page (#92): the experiments table scrolls inside its own focusable region on a
    phone, so the page never scrolls sideways and the table keeps its semantics. */
