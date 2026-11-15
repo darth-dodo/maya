@@ -1,4 +1,4 @@
-# The home page is for everyone. The Talk screen and Start fresh stay out of search (#91).
+# The home and factory pages are for everyone. The Talk screen and Start fresh stay out of search (#91).
 User-agent: *
 Disallow: /talk
 Disallow: /fresh
