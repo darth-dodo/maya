@@ -9,7 +9,7 @@ set -u
 SITE="${SITE:-https://maya-j56u.onrender.com}"
 REPO="${REPO:-darth-dodo/maya}"
 LIMIT_SECONDS=1200
-QUESTION="How do I beat Roxanne?"
+QUESTION="How do I earn Roxanne's badge?"
 LOST="Lost my train of thought, ask again?" # the agent error line in lib/maya/conversation.ex
 
 to_epoch() { date -u -d "$1" +%s 2>/dev/null || date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$1" +%s 2>/dev/null; }

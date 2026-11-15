@@ -19,7 +19,7 @@ defmodule MayaWeb.SmokeController do
         conn |> put_status(401) |> json(%{error: "unauthorized"})
 
       true ->
-        case Maya.Agent.answer(to_string(params["question"]), []) do
+        case Maya.Agent.answer(to_string(params["question"]), [], guest_id: "smoke") do
           {:ok, answer} -> json(conn, %{answer: answer})
           # Only the reason, like Conversation's log line: never a transcript or a key.
           {:error, reason} -> conn |> put_status(503) |> json(%{error: reason_text(reason)})
