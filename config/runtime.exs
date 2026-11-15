@@ -36,6 +36,11 @@ if config_env() != :test do
 end
 
 if config_env() == :dev do
+  # The one shared login. Dev-only default so `mix phx.server` works without a .env.
+  config :maya, :basic_auth,
+    username: System.get_env("BASIC_AUTH_USERNAME", "maya"),
+    password: System.get_env("BASIC_AUTH_PASSWORD", "dev-only-password")
+
   # Reload browser tabs when matching files change.
   config :maya, MayaWeb.Endpoint,
     live_reload: [
@@ -88,6 +93,19 @@ if config_env() == :prod do
   if byte_size(secret_key_base) < 64 do
     raise "SECRET_KEY_BASE is #{byte_size(secret_key_base)} bytes, needs at least 64. Generate one with: mix phx.gen.secret"
   end
+
+  # The one shared login for the Talk screen. Failing at boot keeps Render on the last good
+  # deploy instead of going live with the Talk screen open to anyone. Never print the values.
+  basic_auth =
+    for var <- ~w(BASIC_AUTH_USERNAME BASIC_AUTH_PASSWORD) do
+      case System.get_env(var) do
+        value when value in [nil, ""] -> raise "environment variable #{var} is missing or empty"
+        value -> value
+      end
+    end
+
+  [username, password] = basic_auth
+  config :maya, :basic_auth, username: username, password: password
 
   # LiveView only accepts sockets from this host, so fall back to the hostname Render sets.
   host = System.get_env("PHX_HOST") || System.get_env("RENDER_EXTERNAL_HOSTNAME") || "example.com"

@@ -32,6 +32,9 @@ config :maya, :openrouter,
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.OpenRouter}, retry: false]
 
+# The one login for tests (ConnCase signs in with it, MayaWeb.BasicAuthTest removes it).
+config :maya, :basic_auth, username: "maya", password: "test-only-password"
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

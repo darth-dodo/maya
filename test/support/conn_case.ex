@@ -33,6 +33,16 @@ defmodule MayaWeb.ConnCase do
 
   setup tags do
     Maya.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    # Every test signs in with the test login from config/test.exs; login tests remove it.
+    creds = Application.fetch_env!(:maya, :basic_auth)
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> Plug.Conn.put_req_header(
+        "authorization",
+        Plug.BasicAuth.encode_basic_auth(creds[:username], creds[:password])
+      )
+
+    {:ok, conn: conn}
   end
 end

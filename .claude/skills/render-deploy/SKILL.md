@@ -18,7 +18,7 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 | `lib/maya_web/controllers/health_controller.ex` | `/health` (Render's health check) and `/health/version` (deployed commit, from `RENDER_GIT_COMMIT`) |
 | `lib/maya_web/controllers/smoke_controller.ex` | `POST /health/ask`: one text Question to the agent, gated by the `x-smoke-token` header (`SMOKE_TOKEN`); 404 when unset, no STT, TTS or stored turn |
 | `.github/workflows/ci.yml` | Jobs format, credo, test (coverage floor), security, docker (boots the release with no DB) behind the required `ci-success` check |
-| `.github/workflows/post-deploy.yml`, `scripts/smoke_check.sh` | Every 15 minutes and on dispatch, never on push (a push-triggered check that waits for the deploy deadlocks `checksPass`): compares `/health/version` with the head of main, checks `/` and `/health` when live, opens one open `bug` Issue per commit on a problem, always exits 0. The hourly run (cron `7 * * * *`) and dispatch also ask `POST /health/ask` one Question and fail on a non-200, an empty Answer or the agent error line (needs the `SMOKE_TOKEN` secret on Render and in Actions; each Question spends OpenRouter credit). Test: `scripts/smoke_check_test.sh` |
+| `.github/workflows/post-deploy.yml`, `scripts/smoke_check.sh` | Every 15 minutes and on dispatch, never on push (a push-triggered check that waits for the deploy deadlocks `checksPass`): compares `/health/version` with the head of main, checks `/` answers 401 (the login is on) and `/health` 200 when live, opens one open `bug` Issue per commit on a problem, always exits 0. The hourly run (cron `7 * * * *`) and dispatch also ask `POST /health/ask` one Question and fail on a non-200, an empty Answer or the agent error line (needs the `SMOKE_TOKEN` secret on Render and in Actions; each Question spends OpenRouter credit). Test: `scripts/smoke_check_test.sh` |
 
 ## Rules
 
@@ -30,13 +30,14 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 - `SECRET_KEY_BASE` comes from `mix phx.gen.secret`. `generateValue` is too short for Phoenix (needs 64 bytes).
 - Keep `/health` cheap and DB free. A paused Supabase project must not restart the app.
 - New env var: add it to `render.yaml` (with `sync: false` if secret), `config/runtime.exs`, and the secrets table in `FACTORY.md`.
+- `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` are the one shared login for the Talk screen and `POST /fresh`. The release refuses to boot without them, so a deploy that misses them fails and the old version keeps serving. `/health*` and static files stay public.
 - `SMOKE_TOKEN` must hold the same value in the Render env and the GitHub Actions secrets, or the hourly Question answers 401 and opens a `bug` Issue.
 
 ## Before opening a deploy PR
 
 1. `mix precommit` and `mix credo` green.
 2. `docker build -t maya:local .` succeeds.
-3. Smoke test the image: `docker run --rm -p 4001:4001 -e PORT=4001 -e DATABASE_URL=ecto://postgres:postgres@host.docker.internal/maya_dev -e SECRET_KEY_BASE=$(mix phx.gen.secret) maya:local`, then `curl -fsS localhost:4001/health` prints `ok`. Local Postgres has no SSL, so DB errors in the log are expected; `/health` must still answer.
+3. Smoke test the image: `docker run --rm -p 4001:4001 -e PORT=4001 -e DATABASE_URL=ecto://postgres:postgres@host.docker.internal/maya_dev -e SECRET_KEY_BASE=$(mix phx.gen.secret) -e BASIC_AUTH_USERNAME=maya -e BASIC_AUTH_PASSWORD=local-only maya:local`, then `curl -fsS localhost:4001/health` prints `ok` and `curl -s -o /dev/null -w '%{http_code}' localhost:4001/` prints `401`. Local Postgres has no SSL, so DB errors in the log are expected; `/health` must still answer.
 
 ## Test `DATABASE_URL` locally (before touching Render)
 
@@ -54,7 +55,7 @@ Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRE
 2. Run the smoke check now instead of waiting for the schedule: `gh workflow run post-deploy.yml`, then `gh run view --log` of that run prints `ok: <sha> is live and healthy` (or locally, `DRY_RUN=1 scripts/smoke_check.sh`, needs gh auth). "deploy in progress" means the commit is under 20 minutes old: wait and rerun. The run is always green; the result is in its log or a `bug` Issue.
 3. If it is not live, the Render dashboard shows the deploy state for that commit.
 4. `curl -fsS https://<service>.onrender.com/health/version` prints the merged commit SHA.
-5. The home page loads over HTTPS and the LiveView socket connects (no reconnect loop or CSP errors in the browser console).
+5. The home page asks for the login, then loads over HTTPS and the LiveView socket connects (no reconnect loop or CSP errors in the browser console).
 
 ## When it breaks
 
@@ -62,6 +63,7 @@ Then reproduce the pre-deploy exactly: `docker run --rm --env-file .env -e SECRE
 |---|---|
 | Deploy fails with `SECRET_KEY_BASE is N bytes, needs at least 64` | Key empty or truncated. Regenerate with `mix phx.gen.secret` and paste the whole value |
 | Health check fails, deploy never goes live | App not listening on `$PORT`, or boot crash: read the deploy log for `environment variable ... is missing` |
+| Deploy fails with `environment variable BASIC_AUTH_... is missing or empty` | Set `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` in the Render env |
 | Pre-deploy fails | Wrong `DATABASE_URL`, or Supabase project paused. Test it locally first (below) |
 | `Ecto.InvalidURLError ... path should be a database name` | `DATABASE_URL` is the `https://<ref>.supabase.co` API URL. Use the session pooler URI |
 | `nxdomain` for `db.<ref>.supabase.co` | Direct host, IPv6 only. Use the pooler host `aws-0-<region>.pooler.supabase.com` |

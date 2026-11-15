@@ -155,7 +155,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 |---|---|
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | GitHub Actions secrets, local `.env` |
 | `OPENROUTER_API_KEY`, `MISTRAL_API_KEY` | Render env, local `.env`. Both are read in `config/runtime.exs`. Missing `MISTRAL_API_KEY` means "voice is down"; missing `OPENROUTER_API_KEY` means the spoken agent error line |
-| `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
+| `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD` | Render env, local `.env`. The one shared login for the Talk screen and `POST /fresh`, read in `config/runtime.exs`. The release refuses to boot without them (Render keeps the last good deploy); dev falls back to `maya` / `dev-only-password` |
 | `SMOKE_TOKEN` | Render env and GitHub Actions secret (same value), local `.env`. Read in `config/runtime.exs`; gates `POST /health/ask`, the hourly post-deploy Question. Missing on Render turns the endpoint off (404); missing in Actions skips the Question |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |

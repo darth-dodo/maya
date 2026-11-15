@@ -61,7 +61,7 @@ git clone https://github.com/darth-dodo/maya.git && cd maya
 docker compose -p maya up -d --wait db   # Postgres 17 with pgvector
 mix setup                                # deps, database, assets
 cp .env.template .env                    # set MISTRAL_API_KEY for voice
-set -a; source .env; set +a; mix phx.server   # http://localhost:4000
+set -a; source .env; set +a; mix phx.server   # http://localhost:4000, login maya / dev-only-password
 ```
 
 Needs Elixir 1.17 or later (developed on 1.20 with OTP 29) and Docker. Without `MISTRAL_API_KEY` the app shows Answers as text. The browser mic needs HTTPS, so test voice on the phone against a deploy.

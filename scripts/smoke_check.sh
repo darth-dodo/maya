@@ -29,10 +29,12 @@ live="$(curl -sS --max-time 10 "$SITE/health/version" 2>/dev/null | tr -d '[:spa
 problem=""
 
 if [ "$live" = "$HEAD_SHA" ]; then
-  for path in / /health; do
+  # path:expected status. The Talk screen at / sits behind the login (#49), so 401 proves it is on.
+  for check in /:401 /health:200; do
+    path="${check%%:*}" want="${check##*:}"
     status="$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$SITE$path")"
     echo "$path -> $status"
-    if [ "$status" != "200" ]; then problem="$SITE$path answered $status"; break; fi
+    if [ "$status" != "$want" ]; then problem="$SITE$path answered $status, wanted $want"; break; fi
   done
   # One real Question against production data (E3, #55): hourly only, each one spends OpenRouter credit.
   if [ -z "$problem" ] && [ "${ASK:-}" = "1" ]; then

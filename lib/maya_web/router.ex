@@ -20,6 +20,12 @@ defmodule MayaWeb.Router do
     }
   end
 
+  # The one shared login, for routes that spend API credit. The LiveView socket needs no
+  # check of its own: it only mounts from a page that passed this, with its signed session.
+  pipeline :require_login do
+    plug :basic_login
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -31,7 +37,7 @@ defmodule MayaWeb.Router do
   end
 
   scope "/", MayaWeb do
-    pipe_through :browser
+    pipe_through [:browser, :require_login]
 
     live "/", TalkLive
     post "/fresh", FreshController, :create
@@ -57,4 +63,8 @@ defmodule MayaWeb.Router do
       live_dashboard "/dashboard", metrics: MayaWeb.Telemetry
     end
   end
+
+  # Read per request so config/runtime.exs owns the values; compares with secure_compare.
+  defp basic_login(conn, _opts),
+    do: Plug.BasicAuth.basic_auth(conn, Application.fetch_env!(:maya, :basic_auth))
 end

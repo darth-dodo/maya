@@ -20,5 +20,9 @@ services:
         sync: false
       - key: SMOKE_TOKEN # header token for POST /health/ask (hourly post-deploy Question); missing turns it off
         sync: false
+      - key: BASIC_AUTH_USERNAME # the one shared login for the Talk screen; boot fails without it
+        sync: false
+      - key: BASIC_AUTH_PASSWORD # boot fails without it, so a deploy that misses it keeps the last good version
+        sync: false
       - key: POOL_SIZE
         value: "5"
