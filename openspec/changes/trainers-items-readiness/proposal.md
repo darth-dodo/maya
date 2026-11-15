@@ -32,4 +32,4 @@ None.
 - Code: `lib/mix/tasks/maya.fetch_data.ex`, `lib/maya/game_data/parse.ex`, `lib/maya/game_data.ex`, `lib/maya/agent/facts.ex`, `lib/maya/agent/tools.ex`, `lib/maya/agent/prompt.ex`, a migration, new `priv/data/` files.
 - Voice loop: three more tool definitions per request; agent-stage latency measured before and after.
 - Depends on `move-learnset` for the level horizon used by `team_check`, and on `sunday-goal` (#40) for the probe file.
-- Issue: see the spec PR.
+- Issue: #121.

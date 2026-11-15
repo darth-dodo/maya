@@ -33,4 +33,4 @@ None.
 - Tests: parse fixture, import, Facts, Tools, prompt, probe cases in `test/fixtures/spoiler_probes.json`.
 - Voice loop: one more tool definition per agent request; agent-stage latency measured before and after.
 - Depends on `sunday-goal` (#40) for the probe file and the shared "inside the horizon" species rule; if #40 has not merged, this change adds the rule itself.
-- Issue: see the spec PR.
+- Issue: #120.
