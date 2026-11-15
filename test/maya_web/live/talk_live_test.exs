@@ -212,19 +212,25 @@ defmodule MayaWeb.TalkLiveTest do
                "hold ended by pointerup after 60 ms, lost capture: false, mic open: none, warm: false, post roll: 0 ms"
     end
 
-    test "with an unknown ending, a bad length or a bad warm is ignored", %{conn: conn} do
+    test "with an unknown ending, a bad length, warm or post roll is ignored", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/talk")
+
+      good = %{"ended_by" => "pointerup", "hold_ms" => 10, "warm" => true, "post_roll_ms" => 0}
 
       log =
         capture_log([level: :info], fn ->
-          for params <- [
-                %{"ended_by" => "<script>", "hold_ms" => 10, "warm" => false},
-                %{"ended_by" => "pointerup", "hold_ms" => -1, "warm" => false},
-                %{"ended_by" => "pointerup", "hold_ms" => "5000", "warm" => false},
-                %{"ended_by" => "pointerup", "hold_ms" => 10, "warm" => "true"},
-                %{"ended_by" => "pointerup", "hold_ms" => 10},
-                %{}
+          for bad <- [
+                %{"ended_by" => "<script>"},
+                %{"hold_ms" => -1},
+                %{"hold_ms" => "5000"},
+                %{"warm" => "true"},
+                %{"post_roll_ms" => -5},
+                %{"post_roll_ms" => "150"}
               ] do
+            view |> element("#talk-button") |> render_hook("hold_ended", Map.merge(good, bad))
+          end
+
+          for params <- [Map.delete(good, "warm"), Map.delete(good, "post_roll_ms"), %{}] do
             view |> element("#talk-button") |> render_hook("hold_ended", params)
           end
         end)

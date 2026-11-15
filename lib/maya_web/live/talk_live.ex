@@ -159,17 +159,17 @@ defmodule MayaWeb.TalkLive do
 
   # Evidence for #76, #79 and #94: how each hold ended, how long it was, press to live mic
   # time, whether the mic was already warm and the recorded tail after release, never audio or
-  # text. A time is "none" when it is missing (the mic time when the hold ended before it was live).
+  # text. The mic time is "none" when the hold ended before it was live.
   def handle_event(
         "hold_ended",
-        %{"ended_by" => by, "hold_ms" => ms, "warm" => warm} = params,
+        %{"ended_by" => by, "hold_ms" => ms, "warm" => warm, "post_roll_ms" => tail} = params,
         socket
       )
-      when by in @hold_ends and is_integer(ms) and ms >= 0 and is_boolean(warm) do
+      when by in @hold_ends and is_integer(ms) and ms >= 0 and is_boolean(warm) and
+             is_integer(tail) and tail >= 0 do
     Logger.info(
       "hold ended by #{by} after #{ms} ms, lost capture: #{params["lost_capture"] == true}, " <>
-        "mic open: #{ms_or_none(params["mic_open_ms"])}, warm: #{warm}, " <>
-        "post roll: #{ms_or_none(params["post_roll_ms"])}"
+        "mic open: #{ms_or_none(params["mic_open_ms"])}, warm: #{warm}, post roll: #{tail} ms"
     )
 
     {:noreply, socket}

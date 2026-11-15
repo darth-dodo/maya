@@ -286,6 +286,7 @@ export const TalkHook = {
     this.recording = false
     const samples = this.samples
     this.samples = []
+    if (this.state !== "uploading") return // voice went down during the tail: the turn is over
     if (samples.length === 0) return this.set("idle")
     const wav = encodeWav(downsample(concat(samples), this.ctx.sampleRate, STT_RATE), STT_RATE)
     this.upload("question", [new File([wav], "question.wav", {type: "audio/wav"})])

@@ -48,7 +48,7 @@ The first `pointerup` or `pointercancel` SHALL end a hold and any later one SHAL
 - **THEN** the server logs "hold ended by pointerup after 60 ms, lost capture: false, mic open: none, warm: false, post roll: 0 ms"
 
 #### Scenario: Bad hold end report ignored
-- **WHEN** the Talk button reports a hold with an unknown ending, a length that is not a non-negative integer, or a `warm` that is not a boolean
+- **WHEN** the Talk button reports a hold with an unknown ending, a length that is not a non-negative integer, a `warm` that is not a boolean, or a `post_roll_ms` that is not a non-negative integer
 - **THEN** nothing is logged and the screen is unchanged
 
 #### Scenario: Server moment does not drive the button
