@@ -1,7 +1,7 @@
 // Pure helpers of the Talk hook. Run with `node --test test/js/*_test.mjs` (built in, no dependencies).
 import {test} from "node:test"
 import assert from "node:assert/strict"
-import {micCloseDelay, audioCanSleep, setAudioSession} from "../../assets/js/talk_hook.js"
+import {micCloseDelay, audioCanSleep, setAudioSession, holdEndedBy} from "../../assets/js/talk_hook.js"
 
 test("micCloseDelay: hidden closes at once, idle waits, a turn in flight never closes", () => {
   assert.equal(micCloseDelay("speaking", false, true, 4000), 0)
@@ -29,4 +29,15 @@ test("setAudioSession sets the type where the W3C Audio Session API exists", () 
 
 test("setAudioSession does nothing without the API", () => {
   assert.doesNotThrow(() => setAudioSession({}, "auto"))
+})
+
+test("holdEndedBy: the pressing pointer's lift or cancel ends the hold anywhere on the page (#83)", () => {
+  // Capture lost, finger lifts over another element: still the pressing pointer, still ends it.
+  assert.equal(holdEndedBy(7, {type: "pointerup", pointerId: 7}), "pointerup")
+  assert.equal(holdEndedBy(7, {type: "pointercancel", pointerId: 7}), "pointercancel")
+  // Another finger, or no hold, never ends it.
+  assert.equal(holdEndedBy(7, {type: "pointerup", pointerId: 8}), null)
+  assert.equal(holdEndedBy(null, {type: "pointerup", pointerId: 7}), null)
+  // A lost capture alone never ends a hold (talk-screen spec, Hold end).
+  assert.equal(holdEndedBy(7, {type: "lostpointercapture", pointerId: 7}), null)
 })
