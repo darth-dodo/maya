@@ -596,6 +596,11 @@
 .theme-toggle > span { display: inline-flex; }
 :root[data-theme="dark"] .theme-to-night { display: none; }
 :root:not([data-theme="dark"]) .theme-to-day { display: none; }
+/* No data-theme means no JS: a dark phone still shows the sun, matching the night colours. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-to-night { display: none; }
+  :root:not([data-theme]) .theme-to-day { display: inline-flex; }
+}
 
 /* Public home page at / (#91), on the design system: it follows the theme like every page. */
 .home {

@@ -9,7 +9,8 @@ defmodule MayaWeb.SiteHeaderTest do
 
   @endpoint MayaWeb.Endpoint
 
-  # Scenarios from openspec/changes/tide-header/specs/site-header/spec.md
+  # Scenarios from openspec/specs/site-header/spec.md. The theme script's behaviour
+  # (phone setting, stored choice, tap, blocked storage) is in test/js/theme_script_test.mjs.
 
   defp page(path), do: build_conn() |> get(path) |> html_response(200)
 
@@ -27,11 +28,6 @@ defmodule MayaWeb.SiteHeaderTest do
     css = File.read!("assets/css/app.css")
     [_, body] = Regex.run(~r/(?:^|\n)#{Regex.escape(selector)} \{([^}]*)\}/, css)
     body
-  end
-
-  defp theme_script do
-    [script] = page(~p"/") |> query("head script:not([src])") |> Enum.map(&LazyHTML.text/1)
-    script
   end
 
   describe "one shared header" do
@@ -82,7 +78,7 @@ defmodule MayaWeb.SiteHeaderTest do
         assert count(html, "#theme-toggle .theme-to-night .hero-moon[aria-hidden='true']") == 1
         assert count(html, "#theme-toggle .theme-to-day .hero-sun[aria-hidden='true']") == 1
         assert count(html, "[data-phx-theme]") == 0
-        refute html |> query("#site-header") |> LazyHTML.to_html() =~ ~r/system/i
+        refute text_of(html, "#site-header") =~ ~r/system/i
       end
     end
 
@@ -99,26 +95,12 @@ defmodule MayaWeb.SiteHeaderTest do
     end
   end
 
-  describe "theme choice and first paint" do
-    test "head script follows the phone, stores a tap and needs no socket" do
-      script = theme_script()
-
-      # One storage key, so visitors who chose before keep their choice.
-      assert script =~ ~s("phx:theme")
-      # Only light or dark count as a choice: a stored "system" is a first visit.
-      assert script =~ ~s(t === "light" || t === "dark")
-      assert script =~ "prefers-color-scheme: dark"
-      assert script =~ ~S|addEventListener("storage"|
-      # A plain delegated click listener, so / and /factory (no LiveView socket) work.
-      assert script =~ ~S|document.addEventListener("click"|
-      assert script =~ ~S|closest("#theme-toggle")|
-      refute script =~ "phx:set-theme"
-    end
-
-    test "theme script runs in head before body" do
-      html = page(~p"/")
-      [head, _body] = String.split(html, "<body", parts: 2)
-      assert head =~ ~s("phx:theme")
+  describe "first paint" do
+    test "the theme script is the one inline script, in head, on every page" do
+      for path <- [~p"/", ~p"/factory"] do
+        assert count(page(path), "head script:not([src])") == 1
+        assert count(page(path), "body script:not([src])") == 0
+      end
     end
   end
 end
