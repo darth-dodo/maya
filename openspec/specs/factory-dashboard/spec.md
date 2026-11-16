@@ -51,7 +51,7 @@ The page SHALL be published as a private claude.ai page from the Data Artifact t
 
 ### Requirement: Never includes secrets or private data
 
-The page SHALL NOT include secret values, `.env` contents, transcripts, Answers, Guest ids or cookies. A missing secret SHALL appear only as the name of the CI step that needed it and its outcome.
+The page SHALL NOT include secret values, `.env` contents, transcripts, Answers, Guest ids or cookies. A missing secret SHALL appear only as its name, the CI step that needed it and the run link.
 
 #### Scenario: Missing smoke token
 - **WHEN** the latest post-deploy run skipped or failed the smoke step for lack of `SMOKE_TOKEN`
