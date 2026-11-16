@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Maya.SttEvalTest do
     out = Enum.join(lines(), "\n")
 
     assert out =~ "spoken: 3200 bytes, 100 ms of audio"
-    assert out =~ "events: session.created, 1 transcription.text.delta, transcription.done"
+    assert out =~ "events: session.created, 3 transcription.text.delta, transcription.done"
     assert out =~ "transcript: where do I catch Ralts"
     assert out =~ ~r/input_audio.end to transcription.done: \d+ ms/
   end
