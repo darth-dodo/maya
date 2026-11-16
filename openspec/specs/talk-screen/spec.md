@@ -76,6 +76,11 @@ The Talk button SHALL open the mic on a press when it is closed and enter `recor
 - **THEN** the mic tracks are stopped within 4 seconds of the button returning to `idle`, and the phone's mic indicator turns off within about 5 seconds
 - **AND** the next press opens the mic again as a cold press
 
+#### Scenario: Phone audio handed back after the mic closes
+- **WHEN** the mic closes (idle delay, hidden page or destroyed) while the button is `idle` and no Answer audio is playing
+- **THEN** the hook suspends its AudioContext and, where `navigator.audioSession` exists, sets its type back to `"auto"` (it is `"play-and-record"` while the mic is open), so music another app was playing can resume
+- **AND** the next press resumes the AudioContext inside the gesture, before the mic opens
+
 #### Scenario: Cold press
 - **WHEN** the mic is closed and a Guest presses
 - **THEN** the button enters `recording` only once the stream is live and the clip has no pre-roll

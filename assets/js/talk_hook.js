@@ -108,8 +108,21 @@ export function micCloseDelay(state, pressed, hidden, idleMs) {
   return state === "idle" && !pressed ? idleMs : null
 }
 
+// The AudioContext may sleep (suspend) only with the mic closed, the button idle and nothing
+// playing: a running context keeps the phone's audio session, so Spotify and the like never get
+// it back (#141). A suspended context is not audible (https://w3c.github.io/audio-session/ 6).
+export function audioCanSleep(micOpen, state, playing) {
+  return !micOpen && state === "idle" && playing === 0
+}
+
+// W3C Audio Session (Safari 16.4+): "play-and-record" while the mic is open, "auto" after, so
+// the browser picks no exclusive type once the page is silent. Feature detected.
+export function setAudioSession(nav, type) {
+  if (nav.audioSession) nav.audioSession.type = type
+}
+
 // Stops every track and unhooks the capture nodes, so the phone's mic indicator goes off (#79).
-// The playback AudioContext stays: iOS only unlocks it inside a gesture.
+// The AudioContext is kept (iOS only unlocks it inside a gesture) and suspended by the hook.
 export function closeMic(mic) {
   if (!mic) return
   mic.stream.getTracks().forEach(t => t.stop())
@@ -162,13 +175,29 @@ export const TalkHook = {
   dropMic() {
     clearTimeout(this.micTimer)
     closeMic(this.mic)
+    if (this.mic) setAudioSession(navigator, "auto")
     this.mic = null
     this.preRoll = []
+    this.maybeSleep()
+  },
+
+  // A cold press that got no mic (denied, or released first): back to "auto" unless a newer
+  // press is opening one.
+  micNotOpened() {
+    if (!this.mic && !this.pressed) setAudioSession(navigator, "auto")
+  },
+
+  // Hands the phone's audio back once Maya is silent and the mic is closed (#141). The next
+  // press resumes the context inside the gesture.
+  maybeSleep() {
+    if (this.ctx?.state === "running" && audioCanSleep(!!this.mic, this.state, this.sources.length)) {
+      this.ctx.suspend()
+    }
   },
 
   scheduleMicClose() {
     clearTimeout(this.micTimer)
-    if (!this.mic) return
+    if (!this.mic) return this.maybeSleep()
     const delay = micCloseDelay(this.state, this.pressed, document.hidden, MIC_IDLE_MS)
     if (delay === 0) this.dropMic()
     else if (delay != null) this.micTimer = setTimeout(() => this.dropMic(), delay)
@@ -205,7 +234,8 @@ export const TalkHook = {
       this.set("idle")
     }
     this.el.setPointerCapture?.(e.pointerId)
-    // Created and resumed inside the gesture, or iOS keeps it suspended.
+    // Created and resumed inside the gesture, or iOS keeps it suspended. Also wakes it after
+    // maybeSleep; on a warm press it is already running, so this costs nothing.
     this.ctx ||= new (window.AudioContext || window.webkitAudioContext)()
     this.ctx.resume()
     const hold = (this.hold = {})
@@ -226,10 +256,13 @@ export const TalkHook = {
       mic = await this.openMic()
     } catch (_err) {
       if (this.hold === hold) this.pressed = false
-      return
+      return this.micNotOpened()
     }
     // Released (or pressed again) while the mic was opening: drop this mic at once.
-    if (this.hold !== hold || !this.pressed) return closeMic(mic)
+    if (this.hold !== hold || !this.pressed) {
+      closeMic(mic)
+      return this.micNotOpened()
+    }
     this.mic = mic
     this.preRoll = []
     this.micLiveAt = performance.now()
@@ -256,6 +289,7 @@ export const TalkHook = {
 
   // Opened on a cold press; stays open for the turn and closes MIC_IDLE_MS after idle (#79, #94).
   async openMic() {
+    setAudioSession(navigator, "play-and-record")
     const stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}})
     const source = this.ctx.createMediaStreamSource(stream)
     // shortcut: ScriptProcessorNode is deprecated; move to an AudioWorklet if it glitches on a phone.
