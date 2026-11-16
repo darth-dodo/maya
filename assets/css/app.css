@@ -679,6 +679,100 @@
 }
 .promises strong { display: block; }
 
+/* Tide homepage (tide-homepage): backdrop hero, a real turn, Meet Maya, ruled loop, sea band.
+   Scoped to .home-tide so /factory keeps the shared .home rules above. */
+.home-tide { gap: 2.5rem; }
+.home-tide .home-hero {
+  --hero-art: url("/images/backdrops/tide.jpg");
+  min-height: 35rem;
+  margin-inline: -1rem;
+  align-content: end;
+  justify-items: start;
+  gap: 0.75rem;
+  padding: 7rem 1.25rem 1.5rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: left;
+  /* The art fades into the page background above the top padding, so text sits on --maya-bg */
+  background: linear-gradient(transparent 0, var(--maya-bg) 6.5rem) no-repeat, var(--hero-art) center top / cover no-repeat, var(--maya-bg);
+}
+:root[data-theme="dark"] .home-tide .home-hero { --hero-art: url("/images/backdrops/night.jpg"); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .home-tide .home-hero { --hero-art: url("/images/backdrops/night.jpg"); }
+}
+.home-tide .home-heading { font-size: clamp(3rem, 17vw, 4rem); line-height: 1; }
+.home-tide .home-eyebrow {
+  font-family: var(--maya-font-body);
+  font-size: var(--maya-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--maya-accent);
+}
+.home-tide .home-lead { margin-top: 0; }
+.home-tide .home-cta { margin-top: 0.25rem; }
+.header-talk-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.home-tide .real-turn-question { justify-self: end; text-align: right; font-size: var(--maya-text-sm); color: var(--maya-muted); }
+.home-tide .real-turn-answer { font-family: var(--maya-font-body); font-size: 1.5rem; font-weight: 500; line-height: 1.3; }
+.home-tide #real-turn-latency { color: var(--maya-muted); }
+
+.home-tide .home-sub { margin-top: 0.5rem; font-size: var(--maya-text-lg); font-weight: 600; color: var(--maya-heading); }
+.home-tide .meet-intro { display: flex; align-items: center; gap: 1rem; }
+.home-tide .meet-intro .pokeball { --size: 4.5rem; flex: none; }
+.home-tide .bubble {
+  padding: 0.75rem 1rem;
+  border-radius: var(--maya-radius-md);
+  border-bottom-left-radius: 0.25rem;
+  background: var(--maya-sea);
+  color: var(--maya-ink);
+  line-height: 1.45;
+}
+.home-tide .dials { display: grid; gap: 0.75rem; }
+.home-tide .dial { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; }
+.home-tide .dial-name { font-weight: 600; }
+.home-tide .dial-value { color: var(--maya-muted); font-variant-numeric: tabular-nums; }
+.home-tide .dial-bar {
+  grid-column: 1 / -1;
+  height: 0.5rem;
+  border-radius: var(--maya-radius-pill);
+  background: linear-gradient(to right, var(--maya-action) var(--dial), var(--maya-line) var(--dial));
+}
+.home-tide .sayings { display: grid; gap: 0.5rem; justify-items: start; }
+
+/* How a turn works: numbered lines between hairline rules, no cards */
+.home-tide .loop { gap: 0; }
+.home-tide .loop li {
+  padding: 0.875rem 0 0.875rem 2.75rem;
+  border: 0;
+  border-top: 1px solid var(--maya-line);
+  border-radius: 0;
+  background: transparent;
+}
+.home-tide .loop li:last-child { border-bottom: 1px solid var(--maya-line); }
+.home-tide .loop li::before { left: 0; top: 0.875rem; }
+.home-tide .loop li + li::after { content: none; }
+
+.promise-band {
+  display: grid;
+  gap: 0.75rem;
+  padding: 2rem 1.25rem;
+  border-radius: var(--maya-radius-lg);
+  border: 1px solid var(--maya-hairline);
+  background: var(--maya-sea);
+}
+.promise-band h2 { font-size: var(--maya-text-2xl); font-weight: 700; line-height: 1.1; color: var(--maya-heading); }
+.promise-band p { line-height: 1.5; }
+
 /* Site footer: the art from docs/assets/footer.svg, drawn with token colours so it follows the theme */
 .site-footer { display: grid; gap: 0.75rem; margin-top: 1rem; }
 .footer-art { width: 100%; height: auto; min-height: 6rem; border-radius: var(--maya-radius-lg); }

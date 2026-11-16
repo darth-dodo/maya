@@ -1,7 +1,6 @@
 defmodule MayaWeb.PageControllerTest do
   # No database: the home page reads none, so this runs without the SQL sandbox.
-  # Not async: the clip tests add a fixture clip under priv/static that every request to / sees.
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   import Plug.Conn
   import Phoenix.ConnTest
@@ -13,23 +12,33 @@ defmodule MayaWeb.PageControllerTest do
 
   @later_leaders ~w(Brawly Wattson Flannery Norman Winona Tate Liza Juan)
   @evolved_starters ~w(Grovyle Sceptile Combusken Blaziken Marshtomp Swampert)
-  @videos Path.join(:code.priv_dir(:maya), "static/videos")
 
   defp home, do: build_conn() |> get(~p"/") |> html_response(200)
 
   defp doc(html), do: LazyHTML.from_document(html)
   defp query(html, selector), do: html |> doc() |> LazyHTML.query(selector)
-  defp text_of(html, selector), do: html |> query(selector) |> LazyHTML.text() |> String.trim()
+  defp text_of(html, selector), do: html |> query(selector) |> LazyHTML.text() |> squish()
+  defp texts(html, selector), do: html |> query(selector) |> Enum.map(&squish(LazyHTML.text(&1)))
   defp count(html, selector), do: html |> query(selector) |> Enum.count()
   defp attrs(html, selector, name), do: html |> query(selector) |> LazyHTML.attribute(name)
+  defp squish(text), do: text |> String.split() |> Enum.join(" ")
+
+  # The homepage block of app.css: from its opening comment to the factory page block.
+  defp home_css do
+    css = File.read!("assets/css/app.css")
+    [_, rest] = String.split(css, "/* Public home page at /", parts: 2)
+    [block, _] = String.split(rest, "/* Public factory page", parts: 2)
+    block
+  end
 
   test "visitor without a login opens the home page" do
     conn = get(build_conn(), ~p"/")
     html = html_response(conn, 200)
 
     assert text_of(html, "header a[href='/']") == "Maya"
+    assert text_of(html, "header a#header-talk-link[href='/talk']") == "Open Talk"
     assert count(html, "h1") == 1
-    assert text_of(html, "h1#home-heading") == "Maya"
+    assert text_of(html, "h1#home-heading") == "Ask out loud. No spoilers."
     assert text_of(html, "#home-tagline") == "Maps, Answers, Yaps, Advice."
 
     assert text_of(html, "#home-catchphrase") ==
@@ -38,8 +47,15 @@ defmodule MayaWeb.PageControllerTest do
     for id <- ~w(#talk-screen #talk-heading #talk-button), do: assert(count(html, id) == 0, id)
   end
 
+  test "Open Talk is in the header of / only, not /factory" do
+    factory = build_conn() |> get(~p"/factory") |> html_response(200)
+    assert count(factory, "#header-talk-link") == 0
+  end
+
   test "way in for friends links to the Talk screen" do
-    assert attrs(home(), "#talk-link", "href") == ["/talk"]
+    html = home()
+    assert attrs(html, "#talk-link", "href") == ["/talk"]
+    assert text_of(html, "#talk-link") == "Talk to Maya"
   end
 
   test "browser tab title is Maya and generator content is gone" do
@@ -55,13 +71,18 @@ defmodule MayaWeb.PageControllerTest do
         do: refute(href =~ bad, href)
   end
 
-  test "hero holds the CSS Emerald ball, the heading, tagline and catchphrase" do
+  test "hero parts: eyebrow, heading, call to action and mic note, no image or ball" do
     html = home()
 
-    for id <- ~w(#pokeball.pokeball-emerald #home-heading #home-tagline #home-catchphrase),
+    assert text_of(html, "#home-hero #home-eyebrow") == "A Pokémon Emerald companion"
+
+    for id <- ~w(#home-heading #talk-link #mic-note),
         do: assert(count(html, "#home-hero #{id}") == 1, id)
 
-    assert count(html, "#pokeball img") == 0
+    assert text_of(html, "#mic-note") ==
+             "The mic is on while you hold, and off a few seconds after."
+
+    assert count(html, "#home-hero img, #home-hero #pokeball") == 0
   end
 
   test "static page: no LiveView and no Conversation" do
@@ -73,7 +94,7 @@ defmodule MayaWeb.PageControllerTest do
     assert Registry.lookup(Maya.ConversationRegistry, {:conversation, guest}) == []
   end
 
-  test "only own assets, no frames, every img a captioned screenshot of Maya" do
+  test "only own assets, no frames, no video and no img" do
     html = home()
 
     refs =
@@ -85,101 +106,106 @@ defmodule MayaWeb.PageControllerTest do
     for ref <- refs,
         do: assert(String.starts_with?(ref, "/") and not String.starts_with?(ref, "//"), ref)
 
-    assert count(html, "iframe, embed") == 0
-
-    for img <- query(html, "img") do
-      assert [src] = LazyHTML.attribute(img, "src")
-      assert String.starts_with?(src, "/images/demo/")
-      assert [alt] = LazyHTML.attribute(img, "alt")
-      assert String.trim(alt) != ""
-    end
+    assert count(html, "iframe, embed, video, img") == 0
   end
 
-  # shortcut: assumes the clip is absent, delete this test in the PR that adds the clip.
-  test "screenshots before the clip: 1 to 4 real ones, no video" do
-    refute File.exists?(Path.join(@videos, "maya-demo.mp4"))
+  test "backdrops from own origin: every url() in the homepage block" do
+    urls = Regex.scan(~r/url\(\s*["']?([^"')]+)/, home_css(), capture: :all_but_first)
+    assert urls != []
+
+    for [url] <- urls,
+        do: assert(String.starts_with?(url, ["/images/backdrops/", "/fonts/"]), url)
+  end
+
+  test "a real turn: Question, Answer and the recorded median" do
     html = home()
 
-    srcs = attrs(html, "#demo img", "src")
-    assert length(srcs) in 1..4
-    assert count(html, "#demo video") == 0
+    assert text_of(html, "#real-turn #real-turn-question") == "Where do I go next?"
 
-    for src <- srcs do
-      path = Path.join(:code.priv_dir(:maya), "static" <> src)
-      assert File.exists?(path), "missing #{src}"
-      assert File.stat!(path).size < 300_000, "#{src} over 300 KB"
-    end
+    assert text_of(html, "#real-turn #real-turn-answer") ==
+             "Head north to Rustboro City for Roxanne. Mudkip's Water moves make it a short fight."
+
+    assert count(html, "#real-turn-answer *") == 0
+    assert text_of(html, "#real-turn-latency") == "Median Answer time 4.95 s over 145 turns"
   end
 
-  describe "with the clip" do
-    setup do
-      clip = Path.join(@videos, "maya-demo.mp4")
+  test "the real turn caption follows the recorded value" do
+    assert MayaWeb.PageHTML.real_turn_caption(%{median_s: 4.2, turns: 200}) ==
+             "Median Answer time 4.20 s over 200 turns"
+  end
 
-      # Until the real clip lands: a tiny stand-in clip and transcript, removed again even
-      # when the test fails. Once it lands these tests check the real files.
-      unless File.exists?(clip) do
-        File.mkdir_p!(@videos)
-        transcript = Path.join(@videos, "maya-demo.txt")
-        File.write!(clip, "not really a video")
-        File.write!(transcript, "Maya answers a Question on the Talk screen.")
+  test "Meet Maya: heading, CSS ball, catchphrase bubble and tagline" do
+    html = home()
 
-        on_exit(fn ->
-          File.rm(clip)
-          File.rm(transcript)
-          File.rmdir(@videos)
-        end)
+    assert text_of(html, "#meet-maya h2") == "Meet Maya. She has opinions."
+
+    for id <- ~w(#pokeball.pokeball-emerald #home-catchphrase #home-tagline),
+        do: assert(count(html, "#meet-maya #{id}") == 1, id)
+
+    assert count(html, "#pokeball img") == 0
+  end
+
+  test "five Dials, read only" do
+    html = home()
+
+    assert texts(html, "#meet-maya #dials .dial") ==
+             ["Humor 75", "Honesty 90", "Sass 40", "Mudkip hype 100", "Spoilers 0, locked"]
+
+    assert count(html, "#dials :is(input, button, select, form, [role=slider])") == 0
+    meet = text_of(html, "#meet-maya") |> String.downcase()
+    refute meet =~ "change"
+    refute meet =~ "ask her"
+  end
+
+  test "Dial values match her prompt and the seed humor" do
+    prompt = "lib/maya/agent/prompt.ex" |> File.read!() |> String.downcase()
+    seed = "priv/progress.json" |> File.read!() |> Jason.decode!()
+
+    for {name, value, locked?} <- MayaWeb.PageHTML.dials() do
+      case name do
+        "Humor" ->
+          assert value == seed["humor"]
+          assert prompt =~ "humor \#{progress.humor}"
+
+        name ->
+          label = String.downcase(name) <> " #{value}" <> if(locked?, do: " (locked)", else: "")
+          assert prompt =~ label, label
       end
-
-      %{clip: clip}
-    end
-
-    test "clip present: muted inline video with poster, captions and a transcript" do
-      html = home()
-
-      assert count(html, "#demo img") == 0
-      video = query(html, "#demo video#demo-video")
-      assert Enum.count(video) == 1
-
-      for name <- ~w(muted playsinline controls),
-          do: assert(LazyHTML.attribute(video, name) != [], name)
-
-      assert LazyHTML.attribute(video, "autoplay") == []
-      assert [poster] = LazyHTML.attribute(video, "poster")
-      assert String.starts_with?(poster, "/")
-
-      assert attrs(html, "#demo-video source[type='video/mp4']", "src") == [
-               "/videos/maya-demo.mp4"
-             ]
-
-      assert [vtt] = attrs(html, "#demo-video track[kind=captions]", "src")
-      assert String.starts_with?(vtt, "/") and String.ends_with?(vtt, ".vtt")
-      assert text_of(html, "#demo-transcript") != ""
-    end
-
-    test "size budget: under 5 MB and served as video/mp4", %{clip: clip} do
-      assert File.stat!(clip).size < 5_000_000
-
-      conn = get(build_conn(), "/videos/maya-demo.mp4")
-      assert conn.status == 200
-      assert get_resp_header(conn, "content-type") |> hd() =~ "video/mp4"
     end
   end
 
-  test "voice loop: four steps in order and no invented latency" do
+  test "things she says: three real lines in order" do
+    html = home()
+    prompt = File.read!("lib/maya/agent/prompt.ex")
+
+    sayings = [
+      "Mudkip would approve.",
+      "Further ahead, no spoilers.",
+      "Mudkip is a pure Water type, and Maya is not biased at all."
+    ]
+
+    assert texts(html, "#meet-maya #sayings .saying") == sayings
+    for line <- Enum.take(sayings, 2), do: assert(prompt =~ line, line)
+  end
+
+  test "voice loop: four ruled steps in order and no invented latency" do
     html = home()
 
-    assert html |> query("#voice-loop ol .loop-step") |> Enum.map(&String.trim(LazyHTML.text(&1))) ==
+    assert text_of(html, "#voice-loop h2") == "How a turn works"
+
+    assert texts(html, "#voice-loop ol .loop-step") ==
              ["Hold", "Transcribe", "Agent with tools", "Speak"]
 
     assert count(html, "#latency-pending") == 1
     refute text_of(html, "#voice-loop") =~ ~r/\d+(\.\d+)?\s?(ms|s)\b/
   end
 
-  test "spoiler promise: three promises, each with text" do
+  test "spoiler promise band: heading and the CI gate item only" do
     html = home()
 
-    for id <- ~w(#promise-facts #promise-horizon #promise-ci-gate),
-        do: assert(text_of(html, "#spoiler-promise #{id}") != "", id)
+    assert text_of(html, "#spoiler-promise h2") == "Further ahead, no spoilers."
+    assert text_of(html, "#spoiler-promise #promise-ci-gate") != ""
+    assert count(html, "#promise-facts, #promise-horizon") == 0
   end
 
   test "gate wording stays honest while CI has no spoiler job" do
@@ -198,6 +224,12 @@ defmodule MayaWeb.PageControllerTest do
 
     for name <- @later_leaders ++ @evolved_starters,
         do: refute(page =~ name, "#{name} on the home page")
+  end
+
+  test "no demo slot, clip or demo images left" do
+    html = home()
+    assert count(html, "#demo, #demo-video, #demo-transcript") == 0
+    refute File.exists?(Path.join([:code.priv_dir(:maya), "static", "images", "demo"]))
   end
 
   test "footer links the factory, the repo and its README, with inline art" do

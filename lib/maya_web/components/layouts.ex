@@ -34,6 +34,10 @@ defmodule MayaWeb.Layouts do
   # The default bottom padding keeps content clear of the Talk screen's pinned Talk button.
   attr :main_class, :string, default: "px-4 pt-2 pb-36 sm:px-6 lg:px-8"
 
+  attr :talk_link, :boolean,
+    default: false,
+    doc: "show the header Open Talk link (home page only)"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -42,7 +46,10 @@ defmodule MayaWeb.Layouts do
       <div class="flex-1">
         <a href="/" class="text-xl font-bold tracking-tight">Maya</a>
       </div>
-      <div class="flex-none">
+      <div class="flex-none flex items-center gap-2">
+        <a :if={@talk_link} id="header-talk-link" href="/talk" class="header-talk-link">
+          Open Talk
+        </a>
         <.theme_toggle />
       </div>
     </header>
