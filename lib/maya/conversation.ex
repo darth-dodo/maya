@@ -384,13 +384,18 @@ defmodule Maya.Conversation do
     %{state | current: nil}
   end
 
-  defp finished(:agent, {:ok, answer}, state),
-    do: speak(state, state.current.turn.question, answer)
+  defp finished(:agent, {:ok, answer}, state) do
+    state = speak(state, state.current.turn.question, answer)
+    progress_news(state)
+    state
+  end
 
   # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
   defp finished(:agent, {:error, reason}, state) do
     warn(:agent, reason)
-    speak(state, state.current.turn.question, @lost)
+    state = speak(state, state.current.turn.question, @lost)
+    progress_news(state)
+    state
   end
 
   defp finished(:tts, :ok, state) do
@@ -403,6 +408,14 @@ defmodule Maya.Conversation do
     state = store(state, %{state.current.turn | voice_down: true})
     broadcast(state, :voice_down)
     state
+  end
+
+  # The agent may have logged or undone Events, so the screen redraws its card (#89). Read once TTS
+  # is already streaming, off the path to first sound; a failed read keeps the turn going.
+  defp progress_news(state) do
+    broadcast(state, {:progress, GameData.progress(state.id)})
+  rescue
+    e -> warn(:progress, e)
   end
 
   # Starts streaming the Answer; the turn shows on screen from here.
@@ -438,8 +451,16 @@ defmodule Maya.Conversation do
     end
 
     case c.stage do
-      :tts -> store(state, %{c.turn | cut: true})
-      _hold_stt_or_agent -> %{state | current: nil}
+      :tts ->
+        store(state, %{c.turn | cut: true})
+
+      # A cut agent may have logged Events already.
+      :agent ->
+        progress_news(state)
+        %{state | current: nil}
+
+      _hold_or_stt ->
+        %{state | current: nil}
     end
   end
 
