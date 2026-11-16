@@ -1,0 +1,1 @@
+Added: OpenSpec changes `tide-header` (one shared header with a Fraunces wordmark and a one-button theme toggle) and `tide-cohesion` (Talk screen without containers in the tide art band, homepage headline "Your Pokédex has a voice now.", #135 and #136 review fixes)
