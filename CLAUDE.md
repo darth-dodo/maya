@@ -90,7 +90,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 ## Factory conventions
 - Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
 - Every PR adds a changelog fragment `changelog.d/<branch-with-dashes>.md` (lines like `Added: ...`, no PR number). Never edit `CHANGELOG.md` in a feature PR; `release-manager` folds fragments in.
-- Factory entry points: `factory:ask` (intake router), `factory:plan`, `factory:build`, `factory:test`, `factory:review`, plus `factory:pause`, `factory:resume`, `factory:cleanup`, and the flywheel `factory:retro`, `factory:improve`, `factory:recap` (FACTORY.md "Skills by station", "Flywheel").
+- Factory entry points: `factory:ask` (intake router), `factory:plan`, `factory:build`, `factory:test`, `factory:review`, plus `factory:pause`, `factory:resume`, `factory:cleanup`, and the flywheel `factory:retro`, `factory:improve`, `factory:recap`, and `factory:dashboard` (the visual recap) (FACTORY.md "Skills by station", "Flywheel").
 - Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes), `herdr` (optional, only inside a Herdr pane), `quiz-me` (5 question spaced-repetition quiz on the codebase; log in `~/coding-tutor-tutorials/maya/`).
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).
