@@ -133,8 +133,8 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 | `learnsets` | PokeAPI `pokemon` moves, `emerald` version group | `species`, `move`, `method`, `level`; level-up only for now (the `method` column is ready for TM and HM moves). No `moves` table with type and power yet. |
 | `encounters` | pokeemerald `src/data/wild_encounters.json` | Land, water and fishing with rates |
 | `trainers`, `trainer_pokemon` | pokeemerald `src/data/trainer_parties.h` | Gym leaders tagged with their badge number |
-| `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro City at 0 and through Dewford Town at 1 (sources in the `events-progress` design). A location not in the table counts as past the horizon (fail closed). |
-| `walkthrough_notes` | Written by Claude from the game data | Location, `badges_required`, text. SQL search in the MVP; pgvector embeddings later, first in the cut order. |
+| `locations` | Hand-written | `badges_required` per location, Littleroot to Rustboro City at 0, through Dewford Town, Granite Cave (first floor), Route 109 and Slateport City at 1, and Routes 107, 108, 110 and Mauville City at 2 (sources in the `events-progress` and `guide-and-humor` designs). A location not in the table counts as past the horizon (fail closed). |
+| `walkthrough_notes` | Written by Claude from the game data | `priv/data/walkthrough_notes.json`: one note per listed location, Littleroot Town to Mauville City, tagged with its `badges_required`; the import fails closed on an unlisted location, a lower tag or a name past the note's horizon. SQL search in the MVP; pgvector embeddings later, first in the cut order. |
 | `progress`, `events` | Seed `priv/progress.json` on a Guest's first read, then `log_event` | One row per `guest_id` (unique). Badges, Team, location, Humor dial. Survives deploys (ADR-006, ADR-008). |
 | `turns` | The Conversation | `guest_id` (indexed), Question text, Answer text, cut flag, per-stage milliseconds |
 
@@ -160,7 +160,7 @@ Each block becomes one OpenSpec change and one GitHub Issue. Blocks 1 to 4 reach
 | 2 | Voice spine | Format spike recorded; on the phone, a hold is transcribed and spoken back (echo, no agent) with all five stage timings on the turn row; barge-in stops speech; voice outage shows text | 2h | `voice-spine` |
 | 3 | Agent | "How do I earn Roxanne's badge?" out loud returns 2 to 3 sentences naming a counter from the Team and Roxanne's ace; model choice ADR with numbers | 2h | `agent-loop` |
 | 4 | Sunday proof | Ralts Question in the same Conversation; 20-question spoiler probe set passes; 10 holds in a row make 10 Questions; Answer time under 8 s | 1h | `sunday-proof` |
-| 5 | After Sunday | `log_event` with undo, Humor dial by voice, `search_guide` with Walkthrough notes Littleroot to Dewford | 2h | `events-dials-guide` |
+| 5 | After Sunday | `log_event` with undo, Humor dial by voice, `search_guide` with Walkthrough notes Littleroot to Mauville City | 2h | `events-dials-guide` |
 
 Cut order if time runs out: embeddings (already out of the MVP), the Events log beyond Progress (the "journal"), then Dials.
 

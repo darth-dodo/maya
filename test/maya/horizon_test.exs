@@ -42,8 +42,8 @@ defmodule Maya.HorizonTest do
     test "an unlisted location is never allowed (fail closed)" do
       refute Horizon.allowed?(nil, @no_badges)
       refute Horizon.allowed?(nil, @one_badge)
-      refute Horizon.allowed?("Route 110", @one_badge)
-      refute Horizon.allowed?(%{name: "Route 110"}, @one_badge)
+      refute Horizon.allowed?("Route 111", @one_badge)
+      refute Horizon.allowed?(%{name: "Route 111"}, @one_badge)
     end
   end
 

@@ -209,6 +209,32 @@ defmodule Maya.Agent.FactsTest do
     end
   end
 
+  describe "guide_location/2 and search_guide/3" do
+    @rustboro %{name: "Rustboro City", badges_required: 0}
+    @mauville %{name: "Mauville City", badges_required: 2}
+
+    test "a place name matches trimmed, in any case, with a leading the dropped" do
+      for name <- ["Rustboro City", "  rustboro city ", "the Rustboro City"] do
+        assert Facts.guide_location(name, [@rustboro, @mauville]) == @rustboro
+      end
+
+      assert Facts.guide_location("Rustboro", [@rustboro]) == nil
+    end
+
+    test "a place inside the horizon with a note is a Fact" do
+      assert Facts.search_guide(@rustboro, "Roxanne's gym.", @progress) ==
+               {:ok, %{location: "Rustboro City", note: "Roxanne's gym."}}
+    end
+
+    test "past the horizon and unlisted are both past_horizon; no note is not_found" do
+      assert Facts.search_guide(@mauville, nil, %{@progress | badges: [1]}) ==
+               {:error, :past_horizon}
+
+      assert Facts.search_guide(nil, nil, @progress) == {:error, :past_horizon}
+      assert Facts.search_guide(@rustboro, nil, @progress) == {:error, :not_found}
+    end
+  end
+
   test "species names are normalized to PokeAPI names" do
     assert Facts.species_name("  Mr Mime ") == "mr-mime"
     assert Facts.species_name("Ralts") == "ralts"

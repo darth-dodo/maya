@@ -50,6 +50,7 @@ Dials: humor 75, honesty 90, sass 40, spoilers 0 (locked), Mudkip hype 100.
 - ARCHITECTURE.md: done (F3, grilling on 2026-11-14; ADR-005 voice transport, ADR-006 state in Postgres). Next: the 5 block Issues after Abhishek's yes, then factory:plan per block.
 - F1 step 1 done: Phoenix 1.8.16 app generated (Elixir 1.20.5 / OTP 29 via Homebrew).
 - Sunday goal (#40): spoiler gate in CI, nightly spoiler probe, `mix maya.sunday` phone checklist; the phone run is Abhishek's.
+- Guide (#41 part A): 21 locations and Walkthrough notes, Littleroot Town to Mauville City, and `search_guide`. Part B (`set_setting`, Humor dial by voice) is next.
 
 ## Your first task: F1 Factory skeleton (1.5h, kill switch at 3h)
 Do these in order. Stop at each "done when" and report.

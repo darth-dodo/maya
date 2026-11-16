@@ -15,7 +15,63 @@ defmodule Maya.Agent.ToolsTest do
             Tools.definitions(),
           do: n
 
-    assert Enum.sort(names) == ["find_pokemon", "gym_counter", "log_event", "move_learnset"]
+    assert Enum.sort(names) == [
+             "find_pokemon",
+             "gym_counter",
+             "log_event",
+             "move_learnset",
+             "search_guide"
+           ]
+  end
+
+  describe "search_guide" do
+    defp guide(location, badges, progress) do
+      args = if location, do: %{"location" => location}, else: %{}
+      Tools.call("search_guide", args, %{progress | badges: badges})
+    end
+
+    defp note(name), do: Enum.find(notes(), &(&1["location"] == name))["text"]
+
+    defp notes,
+      do: "priv/data/walkthrough_notes.json" |> File.read!() |> Jason.decode!()
+
+    test "with no location it is the current place's note", %{progress: progress} do
+      assert guide(nil, [], progress) ==
+               {:ok, %{location: "Littleroot Town", note: note("Littleroot Town")}}
+    end
+
+    test "a named place inside the horizon, any case", %{progress: progress} do
+      assert {:ok, %{location: "Rustboro City"}} = guide("rustboro city", [], progress)
+    end
+
+    test "Dewford, Granite Cave and Slateport wait for badge 1", %{progress: progress} do
+      for place <- ["Dewford Town", "Granite Cave", "Slateport City"] do
+        assert guide(place, [], progress) == {:error, :past_horizon}
+        assert {:ok, %{location: ^place}} = guide(place, [1], progress)
+      end
+    end
+
+    test "Route 110 and Mauville City wait for badge 2", %{progress: progress} do
+      for place <- ["Route 110", "Mauville City"] do
+        assert guide(place, [1], progress) == {:error, :past_horizon}
+        assert {:ok, %{location: ^place}} = guide(place, [1, 2], progress)
+      end
+    end
+
+    test "unlisted and made-up places are both past_horizon", %{progress: progress} do
+      assert guide("Verdanturf Town", [1, 2], progress) == {:error, :past_horizon}
+      assert guide("Narnia", [1, 2], progress) == {:error, :past_horizon}
+    end
+
+    test "a listed place inside the horizon with no note is not_found", %{progress: progress} do
+      Repo.delete_all(from n in "walkthrough_notes", where: n.location == "Route 101")
+      assert guide("Route 101", [], progress) == {:error, :not_found}
+    end
+
+    test "a location that is not a string is a bad argument", %{progress: progress} do
+      assert Tools.call("search_guide", %{"location" => 7}, progress) == {:error, :bad_arguments}
+      assert Tools.call("search_guide", "Dewford", progress) == {:error, :bad_arguments}
+    end
   end
 
   test "gym_counter for Roxanne from the imported data and the seed Team", %{progress: progress} do

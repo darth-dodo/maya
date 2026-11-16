@@ -1,5 +1,5 @@
 {
-  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). guide_probes (guide-and-humor) run search_guide at 0, 1 and 2 badges from the given location; 0 badge cases also check the forbidden list, the others only their own. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
   "probes": [
     {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
     {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
@@ -27,6 +27,19 @@
      "forbidden": ["Foresight", "Mud Sport", "mud-sport", "Take Down", "take-down", "Whirlpool", "Protect", "Hydro Pump", "hydro-pump", "Endeavor"]},
     {"question": "What moves does Groudon learn?", "tool": "move_learnset", "args": {"species": "Groudon"}, "expect": "past_horizon", "forbidden": []},
     {"question": "What does Marshtomp learn?", "tool": "move_learnset", "args": {"species": "Marshtomp"}, "expect": "past_horizon", "forbidden": []}
+  ],
+  "guide_probes": [
+    {"badges": [], "location": "Rustboro City", "question": "What is in Dewford Town?", "tool": "search_guide", "args": {"location": "Dewford Town"}, "expect": "past_horizon", "forbidden": []},
+    {"badges": [], "location": "Rustboro City", "question": "Where is Mauville City?", "tool": "search_guide", "args": {"location": "Mauville City"}, "expect": "past_horizon", "forbidden": []},
+    {"badges": [], "location": "Rustboro City", "question": "I'm stuck, where now?", "tool": "search_guide", "args": {}, "expect": "fact", "forbidden": []},
+    {"badges": [1], "location": "Dewford Town", "question": "I'm stuck, where now?", "tool": "search_guide", "args": {}, "expect": "fact",
+     "forbidden": ["Mauville", "Route 107", "Route 108", "Route 110", "Wattson", "Dynamo Badge", "Verdanturf", "Lavaridge", "Route 111", "Route 117", "Flannery"]},
+    {"badges": [1], "location": "Dewford Town", "question": "What is in Slateport City?", "tool": "search_guide", "args": {"location": "Slateport City"}, "expect": "fact",
+     "forbidden": ["Mauville", "Route 107", "Route 108", "Route 110", "Wattson", "Dynamo Badge", "Verdanturf", "Lavaridge", "Route 111", "Route 117", "Flannery"]},
+    {"badges": [1], "location": "Dewford Town", "question": "What is in Mauville City?", "tool": "search_guide", "args": {"location": "Mauville City"}, "expect": "past_horizon",
+     "forbidden": ["Mauville", "Route 107", "Route 108", "Route 110", "Wattson", "Dynamo Badge", "Verdanturf", "Lavaridge", "Route 111", "Route 117", "Flannery"]},
+    {"badges": [1, 2], "location": "Mauville City", "question": "What is next?", "tool": "search_guide", "args": {}, "expect": "fact",
+     "forbidden": ["Verdanturf", "Lavaridge", "Fallarbor", "New Mauville", "Route 111", "Route 117", "Flannery", "Heat Badge"]}
   ],
   "forbidden": [
     "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate", "Liza", "Juan",
