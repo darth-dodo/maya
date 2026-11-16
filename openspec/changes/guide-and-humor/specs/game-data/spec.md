@@ -12,7 +12,7 @@
 - **THEN** the import fails and no table is changed
 
 #### Scenario: Note naming a later place
-- **WHEN** the note checker reads a Rustboro City note (0 badges) that says "head to Route 116", or a Dewford Town note (1 badge) that says "sail on to Slateport City"
+- **WHEN** the note checker reads a Rustboro City note (0 badges) that says "head to Route 116", or a Slateport City note (1 badge) that says "head north to Mauville City"
 - **THEN** it reports each note as naming a place past its horizon
 
 ### Requirement: Humor dial written to Progress
@@ -25,7 +25,7 @@ Maya SHALL write a Guest's Humor dial to that Guest's Progress row only, as an i
 ## MODIFIED Requirements
 
 ### Requirement: Hand-written locations
-The `locations` table SHALL list Littleroot Town, Route 101, Oldale Town, Route 103, Route 102, Petalburg City, Route 104, Petalburg Woods and Rustboro City with badges required 0; Route 116, Rusturf Tunnel, Route 105, Route 106, Dewford Town and Granite Cave with badges required 1; and Route 107, Route 108, Route 109, Slateport City, Route 110 and Mauville City with badges required 2. Granite Cave SHALL map to its first floor only. Every other location stays unlisted, so it is past the Spoiler horizon (fail closed). Every deploy reloads the table from the committed file.
+The `locations` table SHALL list Littleroot Town, Route 101, Oldale Town, Route 103, Route 102, Petalburg City, Route 104, Petalburg Woods and Rustboro City with badges required 0; Route 116, Rusturf Tunnel, Route 105, Route 106, Dewford Town, Granite Cave, Route 109 and Slateport City with badges required 1; and Route 107, Route 108, Route 110 and Mauville City with badges required 2. Granite Cave SHALL map to its first floor only. Every other location stays unlisted, so it is past the Spoiler horizon (fail closed). Every deploy reloads the table from the committed file.
 
 #### Scenario: Locations up to Rustboro City
 - **WHEN** the committed data is imported
@@ -37,12 +37,12 @@ The `locations` table SHALL list Littleroot Town, Route 101, Oldale Town, Route 
 
 #### Scenario: Through Dewford after badge 1
 - **WHEN** Progress has badge 1
-- **THEN** Route 104, Dewford Town and Granite Cave are inside the Spoiler horizon and Slateport City, Route 110 and Mauville City are not
+- **THEN** Route 104, Dewford Town, Granite Cave and Slateport City are inside the Spoiler horizon and Route 110 and Mauville City are not
 
 #### Scenario: Dewford waits for badge 1
 - **WHEN** Progress has 0 badges
-- **THEN** Dewford Town, Granite Cave and Route 116 are not inside the Spoiler horizon
+- **THEN** Dewford Town, Granite Cave, Slateport City and Route 116 are not inside the Spoiler horizon
 
 #### Scenario: Mauville after badge 2
 - **WHEN** Progress has badges 1 and 2
-- **THEN** Slateport City, Route 110 and Mauville City are inside the Spoiler horizon and Verdanturf Town and Route 111 are not
+- **THEN** Route 110 and Mauville City are inside the Spoiler horizon and Verdanturf Town and Route 111 are not

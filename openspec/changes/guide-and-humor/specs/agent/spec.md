@@ -16,11 +16,11 @@ The agent SHALL offer a `search_guide` tool with one optional string argument `l
 - **THEN** it returns `past_horizon` with a hint naming Roxanne and no place
 
 #### Scenario: Dewford after badge 1
-- **WHEN** Progress has badge 1 and `search_guide` is called for "Dewford Town" or "Granite Cave"
+- **WHEN** Progress has badge 1 and `search_guide` is called for "Dewford Town", "Granite Cave" or "Slateport City"
 - **THEN** the Fact is that location's note
 
 #### Scenario: Mauville before badge 2
-- **WHEN** Progress has badge 1 and `search_guide` is called for "Slateport City" or "Mauville City"
+- **WHEN** Progress has badge 1 and `search_guide` is called for "Route 110" or "Mauville City"
 - **THEN** both return `past_horizon` with a hint naming Brawly and no place
 
 #### Scenario: Mauville after badge 2
@@ -65,9 +65,9 @@ The spoiler probe set SHALL gain guide and Dial cases beyond the 20 Sunday goal 
 - **AND** no forbidden name appears in any message sent to the model
 
 #### Scenario: Nothing about Mauville at 1 badge
-- **WHEN** Progress has badge 1 and location Dewford Town, and the cases "I'm stuck, where now?" and "What is in Slateport City?" run
-- **THEN** the first is a Fact naming no place past Dewford and the second is `past_horizon`
-- **AND** no message sent to the model names Slateport, Mauville, Route 107, 108, 109, 110 or Wattson
+- **WHEN** Progress has badge 1 and location Dewford Town, and the cases "I'm stuck, where now?", "What is in Slateport City?" and "What is in Mauville City?" run
+- **THEN** the first two are Facts naming no place past Slateport City and the third is `past_horizon`
+- **AND** no message sent to the model names Mauville, Route 107, 108, 110 or Wattson
 
 #### Scenario: Nothing past Mauville at 2 badges
 - **WHEN** Progress has badges 1 and 2 and location Mauville City, and the case "What is next?" runs

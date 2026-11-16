@@ -14,7 +14,7 @@ The listed locations are outdoor maps, Littleroot Town to Mauville City once `gu
 
 ## Decisions
 
-- **Interiors are hand-listed, never inherited.** `MAP_PETALBURG_CITY_GYM` is Norman's gym (badge 5) inside a 0-badge city, and Wally's house gives HM03 Surf after badge 5. Inheriting the city's `badges_required` would leak both. `interiors.json` lists each mart and gym up to Mauville City with its own value (Mauville Gym 2, as its city); anything else, including Petalburg Gym, the lower Granite Cave floors and the Slateport museum and shipyard, is never fetched.
+- **Interiors are hand-listed, never inherited.** `MAP_PETALBURG_CITY_GYM` is Norman's gym (badge 5) inside a 0-badge city, and Wally's house gives HM03 Surf after badge 5. Inheriting the city's `badges_required` would leak both. `interiors.json` lists each mart and gym up to Mauville City with its own value (Slateport mart 1 and Mauville Gym 2, as their cities); anything else, including Petalburg Gym, the lower Granite Cave floors and the Slateport museum and shipyard, is never fetched.
 - **Gifts are hand-written.** `giveitem` sits behind story flags a parser cannot read reliably. `gifts.json` lists HMs and key items given from Littleroot Town to Mauville City (from the map scripts) with a `badges_required` no lower than their map's; an unlisted gift is never returned. A gift the builder cannot find in a script is dropped, not guessed.
 - **First party only.** Map scripts reference `TRAINER_X_1`; rematch parties come from the Match Call table, so trainers are stored only through their map script reference. Calvin on Route 102 is Calvin1 (Poochyena 5), never Calvin2 (Mightyena 27).
 - **`items` from `items.h`** gives `not_found` versus `past_horizon` without naming where a later item is.

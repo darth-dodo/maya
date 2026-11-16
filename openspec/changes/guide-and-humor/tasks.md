@@ -4,14 +4,14 @@ Two build PRs. Part A (sections 1 and 2, 2h) says "Part of #41". Part B (section
 
 ## 1. Locations and Walkthrough notes (part A)
 
-- [ ] 1.1 Add the seven rows to `priv/data/locations.json` (Granite Cave on `MAP_GRANITE_CAVE_1F` at 1; Route 107, Route 108, Route 109, Slateport City, Route 110, Mauville City at 2), each map checked against `encounters.json` or the pinned pokeemerald map list; move the Horizon unlisted test from Route 110 to Route 111. Verify: `jq length priv/data/locations.json` prints 21; locations and Horizon tests green, including the badge 1 and badge 2 scenarios.
+- [ ] 1.1 Add the seven rows to `priv/data/locations.json` (Granite Cave on `MAP_GRANITE_CAVE_1F`, Route 109 and Slateport City at 1; Route 107, Route 108, Route 110, Mauville City at 2), each map checked against `encounters.json` or the pinned pokeemerald map list; move the Horizon unlisted test from Route 110 to Route 111. Verify: `jq length priv/data/locations.json` prints 21; locations and Horizon tests green, including the badge 1 and badge 2 scenarios.
 - [ ] 1.2 Write `priv/data/walkthrough_notes.json`: 21 short original notes, Littleroot Town to Mauville City, from Maya's data files only (encounters, trainers, locations), each with its location's `badges_required`, inclusive language, never copied from a guide site. Verify: `jq length` prints 21.
-- [ ] 1.3 Note checker: no note names a listed location with a higher `badges_required` or a forbidden name. Verify: a test runs it on the committed file (green) and on the Route 116 and Slateport City fixtures (red).
+- [ ] 1.3 Note checker: no note names a listed location with a higher `badges_required` or a forbidden name. Verify: a test runs it on the committed file (green) and on the Route 116 and Mauville City fixtures (red).
 - [ ] 1.4 Migration for `walkthrough_notes`, `GameData.import!/1` loads it and fails on a note for an unlisted location or a lower `badges_required`. Verify: import tests, including the Verdanturf Town fixture and idempotency.
 
 ## 2. search_guide (part A)
 
-- [ ] 2.1 `GameData.walkthrough_note/2` (name, badges earned) filtering on `badges_required` in SQL; `Facts.search_guide/3` mapping to Fact, `past_horizon` or `not_found`. Verify: tests for Littleroot by default, Rustboro, Dewford and Granite Cave at 0 and 1 badges, Slateport and Mauville at 1 and 2 badges, Verdanturf and Narnia.
+- [ ] 2.1 `GameData.walkthrough_note/2` (name, badges earned) filtering on `badges_required` in SQL; `Facts.search_guide/3` mapping to Fact, `past_horizon` or `not_found`. Verify: tests for Littleroot by default, Rustboro, Dewford and Granite Cave at 0 and 1 badges, Slateport City at 0 and 1, Route 110 and Mauville at 1 and 2 badges, Verdanturf and Narnia.
 - [ ] 2.2 Tool definition (`location` optional) and `Tools.call("search_guide", ...)`. Verify: `mix test test/maya/agent/tools_test.exs`.
 
 ## 3. set_setting (part B)
