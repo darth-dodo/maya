@@ -23,6 +23,11 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-elixir
       - run: mix format --check-formatted
+      # The Talk hook's pure helpers (test/js). Node's built-in runner, no npm dependencies.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node --test test/js/*_test.mjs
 
   credo:
     runs-on: ubuntu-latest
