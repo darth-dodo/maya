@@ -121,7 +121,7 @@ WCAG 2.x relative luminance. Text needs 4.5:1, a non-text cue that is the only s
 
 `--maya-line` is decorative (dividers next to text that already has contrast) and is exempt from 3:1. A border that is the only cue for a control uses `--maya-action` or `--maya-muted`.
 
-The Talk header (tide-talk) lays a `--maya-bg` scrim of 85% (`color-mix()`, no literal) over `tide.jpg` by day and `night.jpg` at night, so its text sits on bg, not surface. Worst pixel of the real art at 375px: muted and accent 4.64 by day, muted 7.63 and accent 6.01 at night; rings (non-text) at least 3.29. Never lower the scrim below 85%. The chat is unboxed: older turns are `--maya-muted` on bg, the latest Answer `--maya-ink`, with a `--maya-line` hairline between turns.
+The art band (tide-cohesion) is one fade recipe for the homepage hero and the Talk trainer info, with no panel or card box: `tide.jpg` by day and `night.jpg` at night (`--band-art`), clear down to `--band-clear` and solid `--maya-bg` by `--band-solid` (a `transparent` to `--maya-bg` gradient, no literal). Every text and the ball start below `--band-solid`, so they sit on bg and the bg pairs above hold with no measurement on art. The hero clears 6rem and is solid by 9.5rem; the Talk band clears 1.5rem and is solid by 3.5rem, and stays sticky. Never put text above `--band-solid`. The chat is unboxed: every Question is `--maya-text-sm` and `--maya-muted` like the homepage real turn, older Answers `--maya-muted` on bg, the latest Answer `--maya-ink`, with a `--maya-line` hairline between turns.
 
 The Talk button's state labels use `--maya-surface` as their text colour: white by day, the night card green at night, which keeps every state at 4.5:1 on its state colour. The "Yes, start fresh" button is `btn-error` (it was `btn-warning`, 4.29:1 by day).
 
@@ -136,12 +136,13 @@ The Talk button's state labels use `--maya-surface` as their text colour: white 
 | Headings and big moments (`h1` to `h4`) | `--maya-font-head` | `"Fraunces", Georgia, serif` |
 | Answers, buttons, labels, body | `--maya-font-body` | `"Inter", system-ui, sans-serif` |
 
-Both are self-hosted variable woff2 files, Latin subset (covers the é in Pokémon), with `font-display: swap`. Only Inter is preloaded (one `<link rel="preload">` in `root.html.heex`); Fraunces swaps in. The CSP stays `font-src 'self'`.
+All are self-hosted variable woff2 files, Latin subset (covers the é in Pokémon), with `font-display: swap`. Only Inter is preloaded (one `<link rel="preload">` in `root.html.heex`); Fraunces swaps in. The Fraunces italic has its own `@font-face` (`font-style: italic`), so the homepage headline uses the real italic, not a synthesised slant; only pages with italic Fraunces fetch it. The CSP stays `font-src 'self'`.
 
 | File (`priv/static/fonts/`) | Size | Family and version | Licence | Source |
 |---|---|---|---|---|
 | `inter-latin-wght-normal.woff2` | 48 KB | Inter, `@fontsource-variable/inter` 5.3.0 | SIL Open Font License 1.1, `OFL-Inter.txt` (The Inter Project Authors) | https://registry.npmjs.org/@fontsource-variable/inter/-/inter-5.3.0.tgz |
 | `fraunces-latin-wght-normal.woff2` | 36 KB | Fraunces, `@fontsource-variable/fraunces` 5.3.0 | SIL Open Font License 1.1, `OFL-Fraunces.txt` (The Fraunces Project Authors) | https://registry.npmjs.org/@fontsource-variable/fraunces/-/fraunces-5.3.0.tgz |
+| `fraunces-latin-wght-italic.woff2` | 45 KB | Fraunces italic, `@fontsource-variable/fraunces` 5.3.0 | SIL Open Font License 1.1, `OFL-Fraunces.txt` (The Fraunces Project Authors) | https://registry.npmjs.org/@fontsource-variable/fraunces/-/fraunces-5.3.0.tgz |
 
 Fetched once with `npm pack` (not in `package.json`). Upstream projects: https://github.com/rsms/inter and https://github.com/undercasetype/Fraunces. In production `mix phx.digest` rewrites the `url()` to the digested name with `?vsn=d`, and Plug.Static answers with `cache-control: public, max-age=31536000, immutable`.
 
@@ -166,8 +167,8 @@ A 1.25 ratio from a 1rem base. Body line height 1.5, headings 1.1. No text under
 | Token | Value | Use |
 |---|---|---|
 | `--maya-radius-sm` | 0.5rem | fields, small buttons, daisyUI radii |
-| `--maya-radius-md` | 1rem | cards, the Talk header |
-| `--maya-radius-lg` | 1.5rem | scenes, the hero |
+| `--maya-radius-md` | 1rem | cards |
+| `--maya-radius-lg` | 1.5rem | the factory hero, the promise band |
 | `--maya-radius-pill` | 999px | the Talk button, chips |
 | `--maya-shadow-1` | day `0 14px 26px -20px rgb(15 58 40 / 0.6)`; night `inset 0 1px 1px rgb(255 255 255 / 0.06), 0 18px 30px -22px #000000` | cards |
 | `--maya-shadow-2` | day `0 12px 20px -12px rgb(15 58 40 / 0.7)`; night `0 0 24px -6px rgb(63 194 131 / 0.6)` | the Talk button |

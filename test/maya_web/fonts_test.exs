@@ -8,7 +8,11 @@ defmodule MayaWeb.FontsTest do
 
   # Scenarios from openspec/specs/design-system/spec.md, "Self-hosted fonts"
 
-  @fonts ["fraunces-latin-wght-normal.woff2", "inter-latin-wght-normal.woff2"]
+  @fonts [
+    "fraunces-latin-wght-normal.woff2",
+    "fraunces-latin-wght-italic.woff2",
+    "inter-latin-wght-normal.woff2"
+  ]
 
   test "each font is served from self as font/woff2" do
     for font <- @fonts do
@@ -18,6 +22,13 @@ defmodule MayaWeb.FontsTest do
       assert [type] = Plug.Conn.get_resp_header(conn, "content-type")
       assert type =~ "font/woff2"
     end
+  end
+
+  test "Fraunces italic is its own self-hosted face, not a synthesised slant" do
+    css = File.read!("assets/css/app.css")
+
+    assert css =~
+             ~r/font-family: "Fraunces";\s*font-style: italic;[^}]*url\("\/fonts\/fraunces-latin-wght-italic\.woff2"\)/
   end
 
   test "a versioned font request is cached for a year" do

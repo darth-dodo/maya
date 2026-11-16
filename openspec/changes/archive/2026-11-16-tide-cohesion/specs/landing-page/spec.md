@@ -20,7 +20,7 @@ The home page at `/` SHALL be public. Its header SHALL read "Maya" (a link to `/
 - **THEN** the page has a link `#talk-link` reading "Talk to Maya" to `/talk`
 
 ### Requirement: Hero
-The home page SHALL open with a hero `#home-hero`: the tide backdrop by day and the night backdrop at night, full bleed, shown at full strength at the top and fading into the page background towards the bottom, then the eyebrow "A Pokémon Emerald companion", the heading, one line of body copy, the call to action `#talk-link` as a pill, and the mic note `#mic-note`. The heading SHALL use the heading font in italic, weight 600, at about 52px on a 375px wide screen. The hero SHALL hold no `img` and no ball.
+The home page SHALL open with a hero `#home-hero`: the tide backdrop by day and the night backdrop at night, full bleed, at full strength at the top and fading into the page background below, then the eyebrow "A Pokémon Emerald companion", the heading, one line of body copy, the call to action `#talk-link` as a pill, and the mic note `#mic-note`. The heading SHALL use the heading font in italic, weight 600, at about 52px on a 375px wide screen. The hero SHALL hold no `img` and no ball.
 
 #### Scenario: Hero parts
 - **WHEN** a visitor requests `/`

@@ -30,22 +30,42 @@ defmodule MayaWeb.DesignApplyTest do
     refute pages() =~ "color-scheme: light"
   end
 
-  test "trainer card: gold hairline on its bottom border (transparent by day)" do
-    assert rule(".trainer-card")["border-bottom"] =~ "var(--maya-hairline)"
+  # tide-cohesion: Talk screen without containers
+  test "no scene panel and no card box: no border, radius, shadow or panel art" do
+    for prop <- ~w(border border-bottom border-radius background-image),
+        do: refute(Map.has_key?(rule(".talk-screen"), prop), ".talk-screen #{prop}")
+
+    for prop <- ~w(border border-bottom border-radius box-shadow),
+        do: refute(Map.has_key?(rule(".trainer-card"), prop), ".trainer-card #{prop}")
   end
 
-  # tide-talk: Slim header over tide art
-  test "header art per theme: tide by day, night in both night scopes, under an 85% bg scrim" do
-    card = rule(".trainer-card")
-    assert card["background"] =~ "color-mix(in srgb, var(--maya-bg) 85%, transparent)"
-    assert card["background"] =~ "var(--card-art)"
-    assert card["--card-art"] == ~s|url("/images/backdrops/tide.jpg")|
+  # tide-cohesion: one fade recipe for the hero and the Talk band, tide by day and night at night
+  test "one art band for the hero and the trainer card, no scrim, night art in both night scopes" do
+    band = rule(".home-tide .home-hero, .trainer-card")
+
+    assert band["background"] =~
+             "linear-gradient(transparent 0 var(--band-clear), var(--maya-bg) var(--band-solid))"
+
+    assert band["background"] =~ "var(--band-art)"
+    assert band["--band-art"] == ~s|url("/images/backdrops/tide.jpg")|
+    refute pages() =~ "color-mix(in srgb, var(--maya-bg) 85%"
 
     for scope <- [
-          ~S|:root[data-theme="dark"] .trainer-card|,
-          ~S|:root:not([data-theme="light"]) .trainer-card|
+          ~S|:root[data-theme="dark"] :is(.home-tide .home-hero, .trainer-card)|,
+          ~S|:root:not([data-theme="light"]) :is(.home-tide .home-hero, .trainer-card)|
         ],
-        do: assert(rule(scope)["--card-art"] == ~s|url("/images/backdrops/night.jpg")|)
+        do: assert(rule(scope)["--band-art"] == ~s|url("/images/backdrops/night.jpg")|)
+  end
+
+  test "the Talk band is shorter than the hero: its fade is solid by 3.5rem, the hero's by 9.5rem" do
+    assert rule(".trainer-card")["--band-solid"] == "3.5rem"
+    assert rule(".home-tide .home-hero")["--band-clear"] == "6rem"
+    assert rule(".home-tide .home-hero")["--band-solid"] == "9.5rem"
+  end
+
+  test "eyebrow separator has a plain content line first, for Safari before 17.4" do
+    assert pages() =~
+             ~r/\.card-eyebrow \.badge-count::before\s*\{\s*content: "·";\s*content: "·" \/ "";/
   end
 
   test "header keeps one height in every moment: no per-state layout rule on the card" do
@@ -67,6 +87,12 @@ defmodule MayaWeb.DesignApplyTest do
     end
 
     assert rule(".turn + .turn")["border-top"] == "1px solid var(--maya-line)"
+  end
+
+  test "every Question is small and muted, like the homepage real turn" do
+    assert rule(".turn .you")["font-size"] == "var(--maya-text-sm)"
+    assert rule(".turn .you")["color"] == "var(--maya-muted)"
+    assert rule(".home-tide .real-turn-question")["font-size"] == "var(--maya-text-sm)"
   end
 
   test "older turns are muted at body size; the latest Answer is the largest text" do
@@ -104,6 +130,21 @@ defmodule MayaWeb.DesignApplyTest do
 
   test "sticky card stays compact with a full Team: chips wrap across the card's full width (#117)" do
     assert rule(".card-team")["grid-column"] == "1 / -1"
+  end
+
+  # tide-cohesion: the new headline
+  test "home headline in Fraunces italic 600, about 52px on a phone" do
+    heading = rule(".home-tide .home-heading")
+    assert heading["font-style"] == "italic"
+    assert heading["font-weight"] == "600"
+    assert heading["font-size"] == "clamp(2.75rem, 14vw, 3.5rem)"
+  end
+
+  test "review fixes: no dead demo or catchphrase CSS, the promise band scoped to .home-tide" do
+    refute pages() =~ "demo-"
+    refute pages() =~ ".home-catchphrase"
+    refute pages() =~ ~r/^\.promise-band/m
+    assert rule(".home-tide .promise-band")["background"] == "var(--maya-sea)"
   end
 
   test "every transition uses the shared duration and easing" do

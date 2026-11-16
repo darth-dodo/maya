@@ -38,7 +38,8 @@ defmodule MayaWeb.PageControllerTest do
     assert text_of(html, "header a[href='/']") == "Maya"
     assert text_of(html, "header a#header-talk-link[href='/talk']") == "Talk"
     assert count(html, "h1") == 1
-    assert text_of(html, "h1#home-heading") == "Ask out loud. No spoilers."
+    assert text_of(html, "h1#home-heading") == "Your Pokédex has a voice now."
+    refute html =~ "Ask out loud. No spoilers."
     assert text_of(html, "#home-tagline") == "Maps, Answers, Yaps, Advice."
 
     assert text_of(html, "#home-catchphrase") ==
