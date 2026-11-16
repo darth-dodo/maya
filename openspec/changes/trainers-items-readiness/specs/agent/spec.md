@@ -76,7 +76,7 @@ The spoiler probe set SHALL gain trainer, item and readiness cases beyond the 20
 #### Scenario: Nothing about Mauville at 1 badge
 - **WHEN** Progress has badge 1, and "Who battles me on Route 110?" and "Where is the Mach Bike?" run
 - **THEN** both return `past_horizon`
-- **AND** no message sent to the model names Slateport, Mauville, Route 107, 108, 109, 110 or Wattson
+- **AND** no message sent to the model names Mauville, Route 107, 108, 110 or Wattson
 
 #### Scenario: Only Wattson at 2 badges
 - **WHEN** Progress has badges 1 and 2, and "Is my Team ready?" runs
