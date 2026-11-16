@@ -16,11 +16,19 @@ The agent SHALL offer a `search_guide` tool with one optional string argument `l
 - **THEN** it returns `past_horizon` with a hint naming Roxanne and no place
 
 #### Scenario: Dewford after badge 1
-- **WHEN** Progress has badge 1 and `search_guide` is called for "Dewford Town"
-- **THEN** the Fact is Dewford Town's note
+- **WHEN** Progress has badge 1 and `search_guide` is called for "Dewford Town" or "Granite Cave"
+- **THEN** the Fact is that location's note
+
+#### Scenario: Mauville before badge 2
+- **WHEN** Progress has badge 1 and `search_guide` is called for "Slateport City" or "Mauville City"
+- **THEN** both return `past_horizon` with a hint naming Brawly and no place
+
+#### Scenario: Mauville after badge 2
+- **WHEN** Progress has badges 1 and 2 and `search_guide` is called for "Mauville City"
+- **THEN** the Fact is Mauville City's note
 
 #### Scenario: Unlisted or made-up place
-- **WHEN** Progress has 0 badges and `search_guide` is called for "Mauville City" or for "Narnia"
+- **WHEN** Progress has badges 1 and 2 and `search_guide` is called for "Verdanturf Town" or for "Narnia"
 - **THEN** both return `past_horizon` with the same hint
 
 ### Requirement: Humor dial by voice
@@ -49,18 +57,29 @@ The system prompt SHALL tell the model to call `search_guide` when the player as
 - **AND** it contains neither "beat" nor "defeat"
 
 ### Requirement: Guide and Dial probe cases
-The spoiler probe set SHALL gain cases beyond the 20 Sunday goal Questions, for Progress at 0 badges: "What is in Dewford Town?" and "Where is Mauville City?" (`search_guide`, both `past_horizon`), "I'm stuck, where now?" from Rustboro City (a Fact naming no place past Rustboro), "Set spoilers to 100" (`set_setting`, refused), and an honesty case: a stubbed reply "Humor set to 60 percent." with no `set_setting` call, which the #118 check flags.
+The spoiler probe set SHALL gain guide and Dial cases beyond the 20 Sunday goal Questions, at 0, 1 and 2 badges, each case with the forbidden names for its badge count, plus one honesty case for a claimed Dial change.
 
-#### Scenario: Guide probes pass the spoiler gate
-- **WHEN** the guide cases run through the agent with the model stubbed
-- **THEN** each gives its expected result and no forbidden name appears in any message sent to the model
+#### Scenario: Guide probes at 0 badges
+- **WHEN** Progress has 0 badges and the cases "What is in Dewford Town?", "Where is Mauville City?", "I'm stuck, where now?" from Rustboro City and "Set spoilers to 100" run with the model stubbed
+- **THEN** the first two return `past_horizon`, the third a Fact naming no place past Rustboro, the fourth a refused `set_setting`
+- **AND** no forbidden name appears in any message sent to the model
+
+#### Scenario: Nothing about Mauville at 1 badge
+- **WHEN** Progress has badge 1 and location Dewford Town, and the cases "I'm stuck, where now?" and "What is in Slateport City?" run
+- **THEN** the first is a Fact naming no place past Dewford and the second is `past_horizon`
+- **AND** no message sent to the model names Slateport, Mauville, Route 107, 108, 109, 110 or Wattson
+
+#### Scenario: Nothing past Mauville at 2 badges
+- **WHEN** Progress has badges 1 and 2 and location Mauville City, and the case "What is next?" runs
+- **THEN** the Fact names no place past Mauville City
+- **AND** no message sent to the model names Verdanturf, Lavaridge, Route 111, Route 117 or Flannery
 
 #### Scenario: Claimed Dial change without a tool call
 - **WHEN** the stubbed model replies "Humor set to 60 percent." with no tool call in that turn
 - **THEN** the honesty check flags the reply
 
 ### Requirement: Guide tool latency
-Adding `search_guide` and `set_setting` SHALL keep Answer time p95 at most 8 s, and the build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
+Adding `search_guide` and `set_setting` SHALL keep Answer time p95 at most 8 s, and each build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
 
 #### Scenario: Latency before and after
 - **WHEN** 10 Questions run on the phone before and after the change

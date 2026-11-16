@@ -12,6 +12,11 @@ The agent SHALL offer a `find_trainer` tool with one required string argument `p
 - **WHEN** Progress has 0 badges and `find_trainer` is called for "Route 110" or "Dewford Town"
 - **THEN** it returns `past_horizon` with a hint naming no place
 
+#### Scenario: Route 110 waits for badge 2
+- **WHEN** Progress has badge 1 and `find_trainer` is called for "Route 110"
+- **THEN** it returns `past_horizon` with a hint naming no place
+- **AND** with badges 1 and 2 the Fact lists Route 110's trainers with their first parties
+
 ### Requirement: Where to get an item
 The agent SHALL offer a `find_item` tool with one required string argument `name`. It SHALL return `{:ok, fact}` with each place inside the Spoiler horizon where the item is found, hidden, sold or given (place and how); `{:error, :past_horizon}` for a known item with no such place; and `{:error, :not_found}` for a name that is not an item in Maya's data. A gift SHALL be returned only from `gifts.json` and only when its `badges_required` is at most the badges earned.
 
@@ -20,8 +25,13 @@ The agent SHALL offer a `find_item` tool with one required string argument `name
 - **THEN** the Fact lists Route 102 with how `ball`
 
 #### Scenario: Surf before badge 5
-- **WHEN** Progress has 0 badges and `find_item` is called for "HM03"
+- **WHEN** Progress has 0 or 2 badges and `find_item` is called for "HM03"
 - **THEN** it returns `past_horizon` and no place, including no Petalburg City
+
+#### Scenario: Mach Bike waits for badge 2
+- **WHEN** Progress has badge 1 and `find_item` is called for "Mach Bike"
+- **THEN** it returns `past_horizon` and no place
+- **AND** with badges 1 and 2 the Fact names Mauville City with how `gift`
 
 #### Scenario: Not an item
 - **WHEN** `find_item` is called for "Master Sword"
@@ -38,6 +48,11 @@ The agent SHALL offer a `team_check` tool with no arguments. It SHALL return `{:
 - **WHEN** Progress has 0 badges and a Team of Mudkip at level 13
 - **THEN** `ready` is true
 
+#### Scenario: Wattson is the Next gym
+- **WHEN** Progress has badges 1 and 2 and a Team of Marshtomp
+- **THEN** the Fact names Wattson and his ace from Maya's trainer data
+- **AND** it names neither Flannery nor any later leader
+
 #### Scenario: Empty Team
 - **WHEN** Progress has 0 badges and an empty Team
 - **THEN** the Fact has no Team members and `ready` false
@@ -51,14 +66,25 @@ The system prompt SHALL tell the model to call `find_trainer` for trainers on a 
 - **AND** it contains neither "beat" nor "defeat"
 
 ### Requirement: Trainer, item and readiness probe cases
-The spoiler probe set SHALL gain cases beyond the 20 Sunday goal Questions, for Progress at 0 badges and a Team of Mudkip: "Who battles me on Route 110?" (`find_trainer`, `past_horizon`), "Where do I get Surf?" and "Where is the Mach Bike?" (`find_item`, both `past_horizon`), "Who is on Route 102?" (a Fact with no rematch party) and "Is my Team ready?" (`team_check`, naming no leader but Roxanne).
+The spoiler probe set SHALL gain trainer, item and readiness cases beyond the 20 Sunday goal Questions, at 0, 1 and 2 badges, each case with the forbidden names for its badge count.
 
-#### Scenario: Probes pass the spoiler gate
-- **WHEN** the five cases run through the agent with the model stubbed
-- **THEN** each gives its expected result and no forbidden name appears in any message sent to the model
+#### Scenario: Probes at 0 badges
+- **WHEN** Progress has 0 badges and a Team of Mudkip, and "Who battles me on Route 110?", "Where do I get Surf?", "Where is the Mach Bike?", "Who is on Route 102?" and "Is my Team ready?" run with the model stubbed
+- **THEN** the first three return `past_horizon`, the fourth a Fact with no rematch party, the fifth a `team_check` Fact naming no leader but Roxanne
+- **AND** no forbidden name appears in any message sent to the model
+
+#### Scenario: Nothing about Mauville at 1 badge
+- **WHEN** Progress has badge 1, and "Who battles me on Route 110?" and "Where is the Mach Bike?" run
+- **THEN** both return `past_horizon`
+- **AND** no message sent to the model names Slateport, Mauville, Route 107, 108, 109, 110 or Wattson
+
+#### Scenario: Only Wattson at 2 badges
+- **WHEN** Progress has badges 1 and 2, and "Is my Team ready?" runs
+- **THEN** the `team_check` Fact names no leader but Wattson
+- **AND** no message sent to the model names Flannery or Lavaridge
 
 ### Requirement: Trainer and item tool latency
-Adding the three tools SHALL keep Answer time p95 at most 8 s, and the build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
+Adding the three tools SHALL keep Answer time p95 at most 8 s, and each build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
 
 #### Scenario: Latency before and after
 - **WHEN** 10 Questions run on the phone before and after the change

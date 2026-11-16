@@ -16,6 +16,13 @@ The fetch task SHALL read, at the pinned pokeemerald commit, only the maps of li
 - **THEN** no row in `trainer_places` or `item_places` has a map that is neither a listed location nor in `interiors.json`
 - **AND** `interiors.json` has no Petalburg City gym row with fewer than 5 badges required
 
+### Requirement: Hand-listed interiors up to Mauville City
+`interiors.json` SHALL list each interior's map, its city (a listed location) and its own `badges_required`, covering the marts in Oldale Town, Petalburg City, Rustboro City, Slateport City and Mauville City and the gyms in Rustboro City, Dewford Town and Mauville City. The import SHALL fail when an interior's or a gift's `badges_required` is below its city's.
+
+#### Scenario: Interior below its city
+- **WHEN** the import reads an interiors fixture with the Mauville City mart at 1 badge
+- **THEN** the import fails and no table is changed
+
 #### Scenario: Every hand-listed map exists
 - **WHEN** the committed `gifts.json` and `interiors.json` are checked
 - **THEN** every map in them was fetched without error

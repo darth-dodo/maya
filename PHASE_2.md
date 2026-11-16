@@ -15,3 +15,4 @@ New ideas land here, one line each, with the date added.
 - "Talk slower" setting (2026-11-15): ask Voxtral for slower speech, never Web Audio `playbackRate` (lowers pitch; habla-hermano dccfdd1)
 - Homepage demo clip with sound and captions (2026-11-15: tide-homepage removed the demo slot; "A real turn" shows one real turn as text)
 - Stream agent tokens into TTS (2026-11-16, structured-answers): start speaking once the structured Answer's `answer` string closes in the stream, instead of after the whole reply
+- Shared login (Plug.BasicAuth) on the Talk screen and browser pages (2026-11-16: guests use Maya without a login for now, ADR-008; #49 and draft #93 closed)
