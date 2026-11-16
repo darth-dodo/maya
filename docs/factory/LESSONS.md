@@ -7,6 +7,7 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 - Always create the Issue (`factory:plan` step 6) and link it to the spec PR, because a change without an Issue is invisible to `next-task`: the dry run's spec PR had no Issue until one was added by hand (#12, #13, #15).
 - When a design session or grill changes a rule, update every doc that states it in the same PR, because #27 left the old voice fallback in three other files until review (#27).
 - Give every PR an Issue with an estimate, even small follow-ups, because PRs without one have blank retro cells and are invisible to `next-task` (#30, #34, #35).
+- Split a redesign into one OpenSpec change per build Issue and give each its own CSS scope (`.home-tide`), because #131's split let #135 and #136 build in parallel on `app.css` and merge 24 s apart with no conflict (#131).
 - Score an experiment only with a metric its change can move, because E3's hourly text Question was scored on escaped defects that were all phone-only bugs it could never catch (#63, #74).
 
 ## Build
@@ -23,6 +24,7 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 - Never change layout under an active touch (no resize, reflow or LiveView patch of the pressed element while a finger is down), because #74 shrank the trainer card under the finger and broke hold to talk on iPhone (#74, #76).
 - Make tool-driven writes idempotent (one Event per tool call), because #86 applied a repeated catch twice and filled the Team with duplicates (#86, #116).
 - Let Maya state only tool results she received, never the result of a tool she did not call, because Answers claimed refusals from tools that never ran (#55, #118).
+- Run `factory:review` and grep the tests for any list you extend (agent tools, ids) before the first push, because #128 pushed twice: CI went red on a pinned tool list and review found a fail-open cap only after the push (#128).
 - Never push to a branch whose PR already merged; start a new branch from `origin/main`, because commits pushed to #54's merged branch were lost until #71 carried them (#71).
 - Log the reason of every failed stage (an atom, status or exception message, never transcripts, Answers or keys), because #55's Conversation logged nothing and its root cause needed a Render trace (#60).
 - Answer an infrastructure flake with the tool's documented fallback setting, not a retry, because #42's Hex outage maps to setup-beam's `hexpm-mirrors` and #52 fixed it in one line (#52).
@@ -30,14 +32,15 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 ## Verify
 - Run every gate on its own and judge it by its exit code, never through `| tail` or `| grep`, because a pipe reports the last command's status and hides a red gate (#15).
 - Tick a `tasks.md` box only after its own verification ran, because a ticked task with missing work became a blocking review finding (#22).
-- Prove a new gate can fail (one red run, local or in CI, then green) before trusting it, because a gate that never fails proves nothing (#22).
+- Prove a new gate can fail (one red run, local or in CI, then green) and document how to satisfy it before trusting it, because a gate that never fails proves nothing (#22) and #129's phone gate had no route to a branch on the phone, so its first PR merged with it pending (#129).
 - Make optional external reporters non-blocking and prove their failure path in CI before relying on them, because #53's Codecov upload failed without a token and CI stayed green as designed (#53).
-- Check every press path or Talk layout change on a real phone before merge, with the largest real data (a full Team at 375 px), because #81's fresh mic per press cut the first words (#94) and #84's sticky card covered a third of the screen (#117), and only the phone showed either; `factory:review` blocks on a `Phone check:` line (#81, #84, E4).
+- Check every press path or Talk layout change on a real phone before merge, with the largest real data (a full Team at 375 px), because #81's fresh mic per press cut the first words (#94) and #84's sticky card covered a third of the screen (#117), and only the phone showed either; `factory:review` lists a pending `Phone check:` line under Blocking, never only in the Checklist, because #130, #135 and #136 merged with it pending (#81, #84, #130, #135, E4).
 - Give every `curl` in a workflow `--max-time`, because a hung request runs into `timeout-minutes`, ends as cancelled and skips `if: failure()` steps (#22).
 
 ## Review
 - Check each Issue "done when" against the skill and doc files too, not only the code, because review found a skill that never named the new checks (#22).
 - Show visual and copy options (screenshots, a page, 2 or 3 taglines) before review, because the welcome page changed twice after review (#24) and #54 took three post-review commits to settle its lines (#24, #54).
+- Fix cheap non-blocking findings (dead CSS, stale counts, unchecked tasks) in one commit before asking for merge, because #136 merged with all 5 findings untouched and the removed demo slot's CSS is still on `main` (#136).
 - Post the `factory:review` comment, and wait for it, before the PR is merged, because #47 merged with no review comment and #100 merged before its 2 blockers, which needed a follow-up PR (#47, #100, #102).
 
 ## Ship
@@ -47,5 +50,5 @@ Rules the factory learned the hard way, grouped by station. Each one cites the P
 - Make every check on the head commit finish fast and exit 0 unless the code is broken, because Render's `checksPass` waits on pending checks and refuses failed ones (#28).
 - Make the deploy step leave production able to run (migrate, then seed the data the app reads), never a manual import, because #55 shipped to an empty Progress table and every Answer failed until #60 seeded on deploy (#55, #60).
 - Check after each deploy that one real Question works against production data, not only that CI passed on fixtures, because #55 was green in CI and failed every Question in production; the hourly smoke Question does this (#55, E3).
-- Cut a release only after its queued PRs merge, because #33's changelog fragment missed v0.1.0 by 38 seconds (#33, #34).
+- Cut a release only after its queued PRs merge, and pin the fold to a named `origin/main` SHA listing which open PRs land in the next version, because #33's changelog fragment missed v0.1.0 by 38 seconds (#33, #34) and #127 folded cleanly while #128 and #130 were still open (#127).
 

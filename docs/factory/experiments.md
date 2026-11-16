@@ -4,7 +4,7 @@ One change at a time, kept only when its metric improves. Opened and closed by `
 
 The public `/factory` page shows this table and the backfill below; `test/maya_web/controllers/factory_page_test.exs` fails until the page matches a new or changed row.
 
-Last improve run: 2026-11-15T20:06:38Z
+Last improve run: 2026-11-16T20:05:39Z
 
 Status: `running` (next 5 retros pending), `kept` (target met or metric improved), `reverted` (not improved, revert PR merged), `inconclusive` (the metric could not see what the change guards; the change stays only with a stated reason).
 
