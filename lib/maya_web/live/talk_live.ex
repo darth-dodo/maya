@@ -219,7 +219,7 @@ defmodule MayaWeb.TalkLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} link={:home}>
       <div id="talk-screen" class="talk-screen" data-state={@talk_state}>
         <h1 id="talk-heading" class="sr-only">Talk to Maya</h1>
 

@@ -34,22 +34,20 @@ defmodule MayaWeb.Layouts do
   # The default bottom padding keeps content clear of the Talk screen's pinned Talk button.
   attr :main_class, :string, default: "px-4 pt-2 pb-36 sm:px-6 lg:px-8"
 
-  attr :talk_link, :boolean,
-    default: false,
-    doc: "show the header Open Talk link (home page only)"
+  attr :link, :atom,
+    default: :talk,
+    values: [:talk, :home],
+    doc: "the header's one text link: Talk (to /talk) or Home (to /, on the Talk screen)"
 
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="text-xl font-bold tracking-tight">Maya</a>
-      </div>
-      <div class="flex-none flex items-center gap-2">
-        <a :if={@talk_link} id="header-talk-link" href="/talk" class="header-talk-link">
-          Open Talk
-        </a>
+    <header id="site-header" class="site-header">
+      <a href="/" class="site-wordmark">Maya</a>
+      <div class="site-header-end">
+        <a :if={@link == :talk} id="header-talk-link" href="/talk" class="header-link">Talk</a>
+        <a :if={@link == :home} id="header-home-link" href="/" class="header-link">Home</a>
         <.theme_toggle />
       </div>
     </header>
@@ -165,39 +163,22 @@ defmodule MayaWeb.Layouts do
   end
 
   @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
+  The theme toggle: one icon button, a moon by day and a sun at night. CSS on `data-theme` shows
+  one labelled span, so the accessible name always says the action. The click handler is the
+  head theme script in root.html.heex, so it works on pages without a LiveView socket.
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
-
-      <button
-        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex items-center justify-center min-h-11 min-w-11 p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-    </div>
+    <button id="theme-toggle" type="button" class="theme-toggle">
+      <span class="theme-to-night">
+        <span class="hero-moon size-6" aria-hidden="true"></span>
+        <span class="sr-only">Switch to night</span>
+      </span>
+      <span class="theme-to-day">
+        <span class="hero-sun size-6" aria-hidden="true"></span>
+        <span class="sr-only">Switch to day</span>
+      </span>
+    </button>
     """
   end
 end

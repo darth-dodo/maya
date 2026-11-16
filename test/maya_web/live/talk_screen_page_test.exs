@@ -25,7 +25,9 @@ defmodule MayaWeb.TalkScreenPageTest do
   test "heading on the Talk screen: one hidden h1 and the header link home", %{conn: conn} do
     html = talk_page(conn)
 
-    assert text_of(html, "header a[href='/']") == "Maya"
+    assert text_of(html, "header a.site-wordmark[href='/']") == "Maya"
+    assert text_of(html, "header a#header-home-link[href='/']") == "Home"
+    assert count(html, "#header-talk-link") == 0
     assert count(html, "h1") == 1
     assert text_of(html, "h1#talk-heading.sr-only") == "Talk to Maya"
     assert count(html, "#maya-heading") == 0
@@ -37,8 +39,9 @@ defmodule MayaWeb.TalkScreenPageTest do
 
     # The page must use the app layout, so this test covers its header too.
     assert count(html, "header") == 1
-    assert text_of(html, "header a[href='/']") == "Maya"
-    assert count(html, "header [data-phx-theme]") == 3
+    assert text_of(html, "header a.site-wordmark[href='/']") == "Maya"
+    assert count(html, "header #theme-toggle") == 1
+    assert count(html, "[data-phx-theme]") == 0
     refute html =~ to_string(Application.spec(:phoenix, :vsn))
     refute html =~ "Peace of mind from prototype to production"
     refute html =~ "Phoenix Framework"

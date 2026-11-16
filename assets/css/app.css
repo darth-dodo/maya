@@ -548,6 +548,55 @@
   .poke-fact:first-child { opacity: 1; }
 }
 
+/* Site header (tide-header): the wordmark, one text link and the theme toggle, the same height
+   and padding on every page. Kept in its own section so page changes leave it alone. */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+}
+.site-wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-family: var(--maya-font-head);
+  font-size: var(--maya-text-xl);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--maya-heading);
+}
+.site-header-end { display: flex; align-items: center; gap: 0.25rem; }
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.5rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.site-header :focus-visible { outline: 3px solid var(--maya-ink); outline-offset: 2px; }
+/* One icon button, no container: a moon by day, a sun at night (each span carries its own name) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--maya-radius-pill);
+  background: transparent;
+  color: var(--maya-ink);
+  cursor: pointer;
+}
+.theme-toggle > span { display: inline-flex; }
+:root[data-theme="dark"] .theme-to-night { display: none; }
+:root:not([data-theme="dark"]) .theme-to-day { display: none; }
+
 /* Public home page at / (#91), on the design system: it follows the theme like every page. */
 .home {
   display: grid;
@@ -695,15 +744,6 @@
 }
 .home-tide .home-lead { margin-top: 0; }
 .home-tide .home-cta { margin-top: 0.25rem; }
-.header-talk-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  padding: 0 0.5rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 .home-tide .real-turn-question { justify-self: end; text-align: right; font-size: var(--maya-text-sm); color: var(--maya-muted); }
 .home-tide .real-turn-answer { font-family: var(--maya-font-body); font-size: 1.5rem; font-weight: 500; line-height: 1.3; }

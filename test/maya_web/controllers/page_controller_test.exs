@@ -36,7 +36,7 @@ defmodule MayaWeb.PageControllerTest do
     html = html_response(conn, 200)
 
     assert text_of(html, "header a[href='/']") == "Maya"
-    assert text_of(html, "header a#header-talk-link[href='/talk']") == "Open Talk"
+    assert text_of(html, "header a#header-talk-link[href='/talk']") == "Talk"
     assert count(html, "h1") == 1
     assert text_of(html, "h1#home-heading") == "Ask out loud. No spoilers."
     assert text_of(html, "#home-tagline") == "Maps, Answers, Yaps, Advice."
@@ -47,9 +47,9 @@ defmodule MayaWeb.PageControllerTest do
     for id <- ~w(#talk-screen #talk-heading #talk-button), do: assert(count(html, id) == 0, id)
   end
 
-  test "Open Talk is in the header of / only, not /factory" do
+  test "the factory page header links to Talk too" do
     factory = build_conn() |> get(~p"/factory") |> html_response(200)
-    assert count(factory, "#header-talk-link") == 0
+    assert text_of(factory, "header a#header-talk-link[href='/talk']") == "Talk"
   end
 
   test "way in for friends links to the Talk screen" do

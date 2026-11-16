@@ -59,29 +59,26 @@
     </script>
     <script>
       (() => {
-        const systemTheme = () => matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-
-        const setTheme = (theme) => {
-          if (theme === "system") {
-            localStorage.removeItem("phx:theme");
-            document.documentElement.setAttribute("data-theme", systemTheme());
-            document.documentElement.setAttribute("data-theme-source", "system");
-          } else {
-            localStorage.setItem("phx:theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
-            document.documentElement.setAttribute("data-theme-source", "user");
-          }
+        const root = document.documentElement;
+        const dark = matchMedia("(prefers-color-scheme: dark)");
+        // Only light or dark is a choice; no key (or an old "system") follows the phone.
+        const stored = () => {
+          const t = localStorage.getItem("phx:theme");
+          return t === "light" || t === "dark" ? t : null;
         };
-        if (!document.documentElement.hasAttribute("data-theme")) {
-          setTheme(localStorage.getItem("phx:theme") || "system");
-        }
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
-
-        matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-          if (document.documentElement.getAttribute("data-theme-source") === "system") {
-            document.documentElement.setAttribute("data-theme", systemTheme());
-          }
+        const apply = () => {
+          const t = stored();
+          root.setAttribute("data-theme", t || (dark.matches ? "dark" : "light"));
+          root.setAttribute("data-theme-source", t ? "user" : "system");
+        };
+        apply();
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && apply());
+        dark.addEventListener("change", apply);
+        // A plain click listener, so the toggle works on pages without a LiveView socket.
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest("#theme-toggle")) return;
+          localStorage.setItem("phx:theme", root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+          apply();
         });
       })();
     </script>
