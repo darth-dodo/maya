@@ -97,6 +97,8 @@ defmodule Maya.Agent.Tools do
   def definitions, do: @definitions
 
   @doc "Runs one tool with decoded arguments against Progress."
+  def call(name, args, progress)
+
   # `location` left out (or null) means the player's current place.
   def call("search_guide", args, progress) when is_map(args) do
     case args["location"] || progress.location do

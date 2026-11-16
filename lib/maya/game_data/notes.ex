@@ -8,13 +8,19 @@ defmodule Maya.GameData.Notes do
   alias Maya.Horizon
 
   @doc """
-  Every problem in the notes, `[]` when they are clean. `forbidden` adds names (the spoiler
-  probe list) that count as past the horizon unless they are part of a name inside it.
+  Every problem in the notes, `[]` when they are clean: a second note for one location, an
+  unlisted location, a tag below the location's, or a name past the note's horizon.
+  `forbidden` adds names (the spoiler probe list) that count as past the horizon unless they
+  are part of a name inside it ("Dewford" inside "Dewford Town" at 1 badge).
   """
   def problems(notes, locations, forbidden \\ []) do
     required = Map.new(locations, &{&1["name"], &1["badges_required"]})
 
-    Enum.flat_map(notes, &note_problems(&1, required, locations, forbidden))
+    duplicates =
+      for {location, [_, _ | _]} <- Enum.group_by(notes, & &1["location"]),
+          do: {location, :duplicate}
+
+    duplicates ++ Enum.flat_map(notes, &note_problems(&1, required, locations, forbidden))
   end
 
   defp note_problems(

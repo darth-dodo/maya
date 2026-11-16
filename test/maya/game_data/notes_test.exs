@@ -38,7 +38,20 @@ defmodule Maya.GameData.NotesTest do
   end
 
   test "the committed notes pass the checker, with the spoiler probe list too" do
-    assert Notes.problems(@notes, @locations, @forbidden) == []
+    encounters = "priv/data/encounters.json" |> File.read!() |> Jason.decode!()
+
+    # The probe list is for 0 badges: a species wild inside a note's horizon may be named.
+    for badges <- 0..2 do
+      maps = for l <- @locations, l["badges_required"] <= badges, do: l["map"]
+      wild = for e <- encounters, e["map"] in maps, into: MapSet.new(), do: e["species"]
+      forbidden = Enum.reject(@forbidden, &(String.downcase(&1) in wild))
+      notes = Enum.filter(@notes, &(&1["badges_required"] == badges))
+
+      assert Notes.problems(notes, @locations, forbidden) == []
+    end
+
+    assert "Makuhita" in @forbidden and "Electrike" in @forbidden
+    assert Notes.leaks("Makuhita lives here.", 0, @locations, @forbidden) == ["Makuhita"]
   end
 
   test "notes use inclusive language and spell Pokémon with an accent" do
@@ -76,6 +89,11 @@ defmodule Maya.GameData.NotesTest do
 
     assert Notes.leaks("Brawly is in Dewford, then Slateport.", 1, @locations, @forbidden) == []
     assert Notes.leaks("Not New Mauville yet.", 2, @locations, @forbidden) == ["New Mauville"]
+  end
+
+  test "a second note for one location is reported" do
+    note = %{"location" => "Route 101", "badges_required" => 0, "text" => "Short."}
+    assert Notes.problems([note, note], @locations) == [{"Route 101", :duplicate}]
   end
 
   test "an unlisted location or a lower badge tag fails closed" do

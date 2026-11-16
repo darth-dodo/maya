@@ -3,7 +3,7 @@
 {"location":"Route 101","badges_required":0,"text":"Route 101 is the short path between Littleroot Town and Oldale Town. Poochyena, Wurmple and Zigzagoon live in the grass."},
 {"location":"Oldale Town","badges_required":0,"text":"Oldale Town is a small stop with Route 103 to the north and Route 102 to the west. Route 102 is the way toward Petalburg City."},
 {"location":"Route 103","badges_required":0,"text":"Route 103 runs north of Oldale Town to the water. Poochyena, Wingull and Zigzagoon live in the grass, and Tentacool and Wingull are on the water."},
-{"location":"Route 102","badges_required":0,"text":"Route 102 leads west from Oldale Town to Petalburg City. Lotad, Seedot, Wurmple, Zigzagoon and Poochyena are common, and Ralts shows up in the grass only 4 percent of the time."},
+{"location":"Route 102","badges_required":0,"text":"Route 102 leads west from Oldale Town to Petalburg City. Poochyena, Wurmple, Lotad and Zigzagoon are common, Ralts shows up in the grass only 4 percent of the time, and Seedot just 1 percent."},
 {"location":"Petalburg City","badges_required":0,"text":"Petalburg City sits between Route 102 and Route 104. Marill swims in the pond, and a rod finds Goldeen, Corphish or Magikarp."},
 {"location":"Route 104","badges_required":0,"text":"Route 104 runs west of Petalburg City along the coast, then north through Petalburg Woods to Rustboro City. Marill, Taillow, Wingull, Wurmple and Poochyena live in the grass."},
 {"location":"Petalburg Woods","badges_required":0,"text":"Petalburg Woods is the forest on Route 104 between Petalburg City and Rustboro City. Look for Shroomish, Slakoth, Taillow and Wurmple, plus Silcoon and Cascoon."},
@@ -13,11 +13,11 @@
 {"location":"Route 105","badges_required":1,"text":"Route 105 is open sea south of Route 104, crossed by boat on the way to Dewford Town. Tentacool, Wingull and Pelipper are on the water, and a rod finds Magikarp or Wailmer."},
 {"location":"Route 106","badges_required":1,"text":"Route 106 is the sea and beach just west of Dewford Town, and its shore leads to Granite Cave. Tentacool, Wingull and Pelipper are on the water."},
 {"location":"Dewford Town","badges_required":1,"text":"Brawly's gym is in Dewford Town, and his fighting team tops out at level 19. Psychic and flying moves hit fighting hard, and Abra from Route 116 is a strong pick. Granite Cave is close by, and the boat can also carry you to Slateport City."},
-{"location":"Granite Cave","badges_required":1,"text":"Maya knows the first floor of Granite Cave only. Abra, Geodude and Zubat live there, and the person your letter is for waits deeper inside."},
+{"location":"Granite Cave","badges_required":1,"text":"Maya knows the first floor of Granite Cave only. Makuhita is the most common there, with Zubat, Abra and Geodude too, and the person your letter is for waits deeper inside."},
 {"location":"Route 109","badges_required":1,"text":"Route 109 is the beach just south of Slateport City, where the boat from Dewford Town lands. Tentacool, Wingull and Pelipper are on the water, and a rod finds Magikarp or Wailmer."},
 {"location":"Slateport City","badges_required":1,"text":"Slateport City is a busy port north of the Route 109 beach. A rod in the harbor finds Magikarp, Tentacool or Wailmer, and Brawly's gym is back in Dewford Town by boat."},
 {"location":"Route 107","badges_required":2,"text":"Route 107 is open sea east of Dewford Town, and the boat crosses it for you. Tentacool, Wingull and Pelipper are on the water."},
 {"location":"Route 108","badges_required":2,"text":"Route 108 is open sea between Route 107 and the Route 109 beach, and the boat crosses it for you. A rod finds Magikarp, Tentacool or Wailmer."},
-{"location":"Route 110","badges_required":2,"text":"Route 110 runs north from Slateport City to Mauville City. Plusle, Minun, Gulpin, Oddish, Wingull and Poochyena live in the grass, and Plusle and Minun are electric."},
+{"location":"Route 110","badges_required":2,"text":"Route 110 runs north from Slateport City to Mauville City. Electrike is the most common in the grass, with Poochyena, Gulpin, Minun, Oddish, Wingull and a rare Plusle."},
 {"location":"Mauville City","badges_required":2,"text":"Wattson's gym is in Mauville City, and his electric team runs from level 20 to his ace at 24. Ground types shrug off electric moves, and Mudkip evolves into the water and ground Marshtomp at level 16."}
 ]

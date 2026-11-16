@@ -9,6 +9,6 @@ defmodule Maya.Repo.Migrations.CreateWalkthroughNotes do
       add :text, :text, null: false
     end
 
-    create index(:walkthrough_notes, [:location])
+    create unique_index(:walkthrough_notes, [:location])
   end
 end
