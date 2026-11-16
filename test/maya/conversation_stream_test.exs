@@ -150,6 +150,37 @@ defmodule Maya.ConversationStreamTest do
     assert %Turn{stt_source: "batch", question: "Where do I catch Ralts?"} = stored()
   end
 
+  test "batch final: release ends the realtime audio once and the last words reach the preview",
+       %{id: id} do
+    voice(stt_realtime: true, stt_final: :batch)
+    FakeMistralRealtime.serve(:ok)
+    me = self()
+
+    # Batch answers late, so the late realtime words can show first.
+    Req.Test.stub(Maya.Mistral, fn
+      %{request_path: "/v1/audio/transcriptions"} = conn ->
+        send(me, :batch_called)
+        Process.sleep(300)
+        Req.Test.json(conn, %{"text" => "Where do I catch Ralts?"})
+
+      %{request_path: "/v1/audio/speech"} = conn ->
+        Plug.Conn.send_resp(conn, 200, "")
+    end)
+
+    Conversation.stream_start(id)
+    Conversation.audio_chunk(id, Base.encode64(<<0::3200*16>>))
+    assert_receive {:conversation, {:partial, "where do"}}
+    Conversation.stream_end(id)
+    Conversation.stream_end(id)
+
+    assert_receive {:fake_got, %{"type" => "input_audio.end"}}
+    assert_receive :batch_called
+    assert_receive {:conversation, {:partial, "where do I catch Ralts"}}
+    assert_receive {:conversation, {:question, "Where do I catch Ralts?"}}
+    refute_received {:fake_got, %{"type" => "input_audio.end"}}
+    refute_receive {:conversation, {:partial, _}}, 100
+  end
+
   test "a refused realtime connection falls back to batch and logs the reason", %{id: id} do
     voice(stt_realtime: true, stt_final: :realtime)
     FakeMistralRealtime.point_relay_at("ws://127.0.0.1:1/v1/audio/transcriptions/realtime")

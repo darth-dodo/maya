@@ -1,0 +1,1 @@
+Fixed: With realtime on and batch as the final source, release now sends `input_audio.end` to the realtime session and keeps it open while batch runs, so the last words show in the live preview before the final transcript replaces it
