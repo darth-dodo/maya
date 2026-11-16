@@ -397,6 +397,71 @@ defmodule MayaWeb.TalkLiveTest do
     assert [%Turn{question: "Where is Ralts"}] = Turn.recent(guest)
   end
 
+  # The agent logs the Event the Question names, then answers with the tool's line.
+  defp log_events do
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      last = List.last(Jason.decode!(body)["messages"])
+
+      message =
+        case {last["role"], last["content"]} do
+          {"tool", content} ->
+            %{"role" => "assistant", "content" => content}
+
+          {"user", question} ->
+            %{"role" => "assistant", "content" => nil, "tool_calls" => [log_call(question)]}
+        end
+
+      Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+    end)
+  end
+
+  defp log_call(question) do
+    args =
+      cond do
+        question =~ "badge" ->
+          %{"kind" => "badge_earned", "details" => %{"leader" => "Roxanne"}}
+
+        question =~ "caught" ->
+          %{"kind" => "caught", "details" => %{"species" => "ralts", "level" => 5}}
+
+        true ->
+          %{"kind" => "undo"}
+      end
+
+    %{
+      "id" => "call_#{System.unique_integer([:positive])}",
+      "type" => "function",
+      "function" => %{"name" => "log_event", "arguments" => Jason.encode!(args)}
+    }
+  end
+
+  defp turn(view, question) do
+    stub(text(question), &speak/1)
+    ask(view)
+    assert_push_event(view, "audio_done", %{})
+  end
+
+  test "an Event in a turn updates the trainer card without a reload", %{conn: conn} do
+    log_events()
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    assert has_element?(view, "#badge-count", "0 of 8 badges")
+
+    turn(view, "I just earned Roxanne's badge")
+    assert has_element?(view, "#badge-count", "1 of 8 badges")
+    assert has_element?(view, "#next-gym", "Next gym: Brawly")
+
+    turn(view, "I caught a Ralts at level 5")
+    assert texts(render(view), "#team .mon") == ["Mudkip Lv 5", "Ralts Lv 5"]
+
+    turn(view, "undo that")
+    assert texts(render(view), "#team .mon") == ["Mudkip Lv 5"]
+
+    turn(view, "undo that too")
+    assert has_element?(view, "#badge-count", "0 of 8 badges")
+    assert has_element?(view, "#next-gym", "Next gym: Roxanne")
+  end
+
   test "playback timings are stored, junk values are dropped", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/talk")

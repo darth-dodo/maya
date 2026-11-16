@@ -76,7 +76,7 @@ defmodule MayaWeb.TalkLive do
   # so the browser pipeline gives it a guest.
   def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/talk")}
 
-  # Read once on mount: Progress only changes through Start fresh, which leaves the page.
+  # Read on mount, then redrawn from each Progress the Conversation reports after an Event (#89).
   defp trainer_card(progress) do
     next = Horizon.next_gym(progress)
 
@@ -185,6 +185,9 @@ defmodule MayaWeb.TalkLive do
   # A turn on screen replaces the pending Question.
   def handle_info({:conversation, {:turns, turns}}, socket),
     do: {:noreply, assign(socket, turns: turns, live_question: nil, pending_question: nil)}
+
+  def handle_info({:conversation, {:progress, progress}}, socket),
+    do: {:noreply, assign(socket, card: trainer_card(progress))}
 
   def handle_info({:conversation, {:partial, text}}, socket),
     do: {:noreply, assign(socket, live_question: text)}

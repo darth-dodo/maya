@@ -116,6 +116,12 @@ The trainer card SHALL show Maya's ball, the Guest's location, the Next gym lead
 - **WHEN** a Guest whose Progress has all 8 badges opens `/talk`
 - **THEN** `#next-gym` reads "All 8 badges earned" and has no `.type-chip`
 
+#### Scenario: An Event updates the card without a reload
+- **WHEN** a turn's agent logs an Event (a badge, a catch, an evolution, a level or a place) or undoes one, on a `/talk` screen that stays mounted
+- **THEN** the Conversation broadcasts the new Progress on the Guest's topic once the agent is done and before the Answer plays
+- **AND** `#badge-count`, `#next-gym` and `#team` show it with no page reload, and an undo puts them back
+- **AND** a turn that changes no Progress broadcasts nothing
+
 ### Requirement: Talk moment on the screen root
 The screen root SHALL carry the current Talk moment in `data-state`, one of `idle`, `recording`, `uploading`, `waiting` and `speaking`, as reported by the Talk button. It starts `idle` and ignores any other value. The Talk button keeps its own `data-state` and changes it at once on press, without waiting for the server.
 

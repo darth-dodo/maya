@@ -361,7 +361,7 @@ defmodule Maya.Conversation do
     do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
 
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
-    c = stt_ms(c)
+    c = c |> stt_ms() |> Map.put(:progress, progress)
     broadcast(state, {:question, question})
     me = self()
     ref = c.ref
@@ -384,12 +384,15 @@ defmodule Maya.Conversation do
     %{state | current: nil}
   end
 
-  defp finished(:agent, {:ok, answer}, state),
-    do: speak(state, state.current.turn.question, answer)
+  defp finished(:agent, {:ok, answer}, state) do
+    progress_news(state)
+    speak(state, state.current.turn.question, answer)
+  end
 
   # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
   defp finished(:agent, {:error, reason}, state) do
     warn(:agent, reason)
+    progress_news(state)
     speak(state, state.current.turn.question, @lost)
   end
 
@@ -403,6 +406,12 @@ defmodule Maya.Conversation do
     state = store(state, %{state.current.turn | voice_down: true})
     broadcast(state, :voice_down)
     state
+  end
+
+  # Events the agent logged (or undid) this turn changed Progress: the screen redraws its card (#89).
+  defp progress_news(%{current: c} = state) do
+    progress = GameData.progress(state.id)
+    if progress != c.progress, do: broadcast(state, {:progress, progress})
   end
 
   # Starts streaming the Answer; the turn shows on screen from here.
