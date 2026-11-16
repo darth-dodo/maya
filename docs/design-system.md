@@ -121,6 +121,8 @@ WCAG 2.x relative luminance. Text needs 4.5:1, a non-text cue that is the only s
 
 `--maya-line` is decorative (dividers next to text that already has contrast) and is exempt from 3:1. A border that is the only cue for a control uses `--maya-action` or `--maya-muted`.
 
+The Talk header (tide-talk) lays a `--maya-bg` scrim of 85% (`color-mix()`, no literal) over `tide.jpg` by day and `night.jpg` at night, so its text sits on bg, not surface. Worst pixel of the real art at 375px: muted and accent 4.64 by day, muted 7.63 and accent 6.01 at night; rings (non-text) at least 3.29. Never lower the scrim below 85%. The chat is unboxed: older turns are `--maya-muted` on bg, the latest Answer `--maya-ink`, with a `--maya-line` hairline between turns.
+
 The Talk button's state labels use `--maya-surface` as their text colour: white by day, the night card green at night, which keeps every state at 4.5:1 on its state colour. The "Yes, start fresh" button is `btn-error` (it was `btn-warning`, 4.29:1 by day).
 
 ---
@@ -164,7 +166,7 @@ A 1.25 ratio from a 1rem base. Body line height 1.5, headings 1.1. No text under
 | Token | Value | Use |
 |---|---|---|
 | `--maya-radius-sm` | 0.5rem | fields, small buttons, daisyUI radii |
-| `--maya-radius-md` | 1rem | cards, bubbles |
+| `--maya-radius-md` | 1rem | cards, the Talk header |
 | `--maya-radius-lg` | 1.5rem | scenes, the hero |
 | `--maya-radius-pill` | 999px | the Talk button, chips |
 | `--maya-shadow-1` | day `0 14px 26px -20px rgb(15 58 40 / 0.6)`; night `inset 0 1px 1px rgb(255 255 255 / 0.06), 0 18px 30px -22px #000000` | cards |

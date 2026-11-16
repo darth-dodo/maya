@@ -91,6 +91,16 @@ defmodule MayaWeb.TalkScreenPageTest do
     for name <- @badges, do: refute(html =~ "#{name} Badge", "#{name} Badge on the page")
   end
 
+  test "header parts: the eyebrow holds the place and the badge count", %{conn: conn} do
+    html = talk_page(conn)
+
+    for id <- ~w(location badge-count next-gym team badge-case pokeball),
+        do: assert(count(html, "#trainer-card ##{id}") == 1, id)
+
+    assert count(html, "#trainer-card #card-eyebrow #location") == 1
+    assert count(html, "#trainer-card #card-eyebrow #badge-count") == 1
+  end
+
   test "Poké facts: 10 to 14 non-empty facts", %{conn: conn} do
     facts = conn |> talk_page() |> doc() |> LazyHTML.query("#poke-facts .poke-fact")
 

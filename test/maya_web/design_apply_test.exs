@@ -30,11 +30,57 @@ defmodule MayaWeb.DesignApplyTest do
     refute pages() =~ "color-scheme: light"
   end
 
-  test "trainer card: opaque surface, gold hairline border (transparent by day), soft shadow" do
+  test "trainer card: gold hairline on its bottom border (transparent by day)" do
+    assert rule(".trainer-card")["border-bottom"] =~ "var(--maya-hairline)"
+  end
+
+  # tide-talk: Slim header over tide art
+  test "header art per theme: tide by day, night in both night scopes, under an 85% bg scrim" do
     card = rule(".trainer-card")
-    assert card["background"] == "var(--maya-surface)"
-    assert card["border"] =~ "var(--maya-hairline)"
-    assert card["box-shadow"] == "var(--maya-shadow-1)"
+    assert card["background"] =~ "color-mix(in srgb, var(--maya-bg) 85%, transparent)"
+    assert card["background"] =~ "var(--card-art)"
+    assert card["--card-art"] == ~s|url("/images/backdrops/tide.jpg")|
+
+    for scope <- [
+          ~S|:root[data-theme="dark"] .trainer-card|,
+          ~S|:root:not([data-theme="light"]) .trainer-card|
+        ],
+        do: assert(rule(scope)["--card-art"] == ~s|url("/images/backdrops/night.jpg")|)
+  end
+
+  test "header keeps one height in every moment: no per-state layout rule on the card" do
+    refute pages() =~
+             ~r/\.talk-screen[^{]*data-state[^{]*(\.trainer-card|\.pokeball|\.card-team|\.card-badges)\s*[,{]/
+  end
+
+  test "Team chips wrap instead of scrolling" do
+    assert rule(".card-team")["flex-wrap"] == "wrap"
+  end
+
+  # tide-talk: Short chat, unboxed
+  test "turns are unboxed with a hairline between them" do
+    for sel <- [".turn .you", ".turn .maya"] do
+      decls = rule(sel)
+
+      for prop <- ~w(background border box-shadow),
+          do: refute(Map.has_key?(decls, prop), "#{sel} #{prop}")
+    end
+
+    assert rule(".turn + .turn")["border-top"] == "1px solid var(--maya-line)"
+  end
+
+  test "older turns are muted at body size; the latest Answer is the largest text" do
+    turn = rule(".turn")
+    assert turn["color"] == "var(--maya-muted)"
+    assert turn["font-size"] == "var(--maya-text-base)"
+    assert rule(".turn.now .maya")["font-size"] == "var(--maya-text-xl)"
+  end
+
+  # tide-talk: Talk button in the thumb zone
+  test "Talk button is a 72px pill" do
+    button = rule(".talk-button")
+    assert button["min-height"] == "4.5rem"
+    assert button["border-radius"] == "var(--maya-radius-pill)"
   end
 
   test "the ball glows only through the glow token (none by day)" do
