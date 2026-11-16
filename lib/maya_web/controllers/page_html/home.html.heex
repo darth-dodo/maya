@@ -1,54 +1,55 @@
-<Layouts.app flash={@flash} main_class="px-4 pt-2 pb-8 sm:px-6 lg:px-8">
-  <div class="home">
+<Layouts.app flash={@flash} talk_link main_class="px-4 pb-8">
+  <div class="home home-tide">
     <section id="home-hero" class="home-hero" aria-labelledby="home-heading">
-      <div id="pokeball" class="pokeball pokeball-emerald" aria-hidden="true">
-        <div class="pokeball-button"></div>
-      </div>
-      <h1 id="home-heading" class="home-heading">Maya</h1>
-      <p id="home-tagline" class="home-tagline">Maps, Answers, Yaps, Advice.</p>
-      <p id="home-catchphrase" class="home-catchphrase">
-        So I hear you like Mudkip. Good. Correct choice.
-      </p>
+      <p id="home-eyebrow" class="home-eyebrow">A Pokémon Emerald companion</p>
+      <h1 id="home-heading" class="home-heading">Ask out loud. No spoilers.</h1>
       <p class="home-lead">
-        A talking, spoiler-free Pokémon Emerald companion for your phone. Hold the button, ask out loud, and hear a short answer based on your badges and Team.
+        Hold the button, ask about your game, and hear a short answer based on your badges and Team.
       </p>
       <a id="talk-link" href={~p"/talk"} class="home-cta">Talk to Maya</a>
-      <p class="home-note">Maya uses your microphone only while you hold the button.</p>
+      <p id="mic-note" class="home-note">
+        The mic is on while you hold, and off a few seconds after.
+      </p>
     </section>
 
-    <section id="demo" class="home-section" aria-labelledby="demo-heading">
-      <h2 id="demo-heading">See Maya</h2>
-      <%= if @demo_transcript do %>
-        <video
-          id="demo-video"
-          class="demo-video"
-          muted
-          playsinline
-          controls
-          preload="metadata"
-          poster="/videos/maya-demo-poster.jpg"
-        >
-          <source src="/videos/maya-demo.mp4" type="video/mp4" />
-          <track kind="captions" src="/videos/maya-demo.vtt" srclang="en" label="English" default />
-        </video>
-        <details class="demo-transcript-box">
-          <summary>Transcript</summary>
-          <p id="demo-transcript">{@demo_transcript}</p>
-        </details>
-      <% else %>
-        <p>
-          Real screenshots of the Talk screen. A short clip with sound and captions follows once it is recorded on the phone.
-        </p>
-        <div class="demo-shots">
-          <figure :for={shot <- screenshots()}>
-            <img src={shot.src} alt={shot.alt} width="390" height="780" loading="lazy" />
-          </figure>
+    <section id="real-turn" class="home-section" aria-labelledby="real-turn-heading">
+      <h2 id="real-turn-heading" class="home-eyebrow">A real turn, Route 104</h2>
+      <p id="real-turn-question" class="real-turn-question">{real_turn().question}</p>
+      <p id="real-turn-answer" class="real-turn-answer">{real_turn().answer}</p>
+      <p id="real-turn-latency" class="home-note">{real_turn_caption(real_turn())}</p>
+    </section>
+
+    <section id="meet-maya" class="home-section" aria-labelledby="meet-maya-heading">
+      <h2 id="meet-maya-heading">Meet Maya. She has opinions.</h2>
+      <div class="meet-intro">
+        <div id="pokeball" class="pokeball pokeball-emerald" aria-hidden="true">
+          <div class="pokeball-button"></div>
         </div>
-      <% end %>
+        <p id="home-catchphrase" class="bubble">
+          So I hear you like Mudkip. Good. Correct choice.
+        </p>
+      </div>
+      <p id="home-tagline" class="home-tagline">Maps, Answers, Yaps, Advice.</p>
+
+      <h3 class="home-sub">Her Dials</h3>
+      <ul id="dials" class="dials">
+        <li :for={{name, value, locked?} <- dials()} class="dial">
+          <span class="dial-name">{name}</span>
+          <span class="dial-value">{value}{if locked?, do: ", locked"}</span>
+          <span class="dial-bar" style={"--dial: #{value}%"} aria-hidden="true"></span>
+        </li>
+      </ul>
+
+      <h3 class="home-sub">Things she says</h3>
+      <ul id="sayings" class="sayings">
+        <li class="saying bubble">Mudkip would approve.</li>
+        <li class="saying bubble">Further ahead, no spoilers.</li>
+        <li class="saying bubble">Mudkip is a pure Water type, and Maya is not biased at all.</li>
+      </ul>
     </section>
 
     <section id="voice-loop" class="home-section" aria-labelledby="voice-loop-heading">
-      <h2 id="voice-loop-heading">The voice loop</h2>
+      <h2 id="voice-loop-heading">How a turn works</h2>
       <ol class="loop">
         <li>
           <span class="loop-step">Hold</span>
@@ -74,22 +75,11 @@
       </p>
     </section>
 
-    <section id="spoiler-promise" class="home-section" aria-labelledby="spoiler-promise-heading">
-      <h2 id="spoiler-promise-heading">The spoiler promise</h2>
-      <ul class="promises">
-        <li id="promise-facts">
-          <strong>Facts only from Maya's own data.</strong>
-          Wild encounters, trainer parties and Pokémon come from Emerald's game data (the pokeemerald decompilation and PokeAPI), never from her memory.
-        </li>
-        <li id="promise-horizon">
-          <strong>Nothing past your Next gym.</strong>
-          Maya knows your badges and keeps everything beyond the Spoiler horizon to herself.
-        </li>
-        <li id="promise-ci-gate">
-          <strong>A CI spoiler gate checks every change.</strong>
-          20 spoiler Questions run on every change, and the build fails if anything past the Spoiler horizon reaches the model. A nightly probe asks the live Maya the same Questions.
-        </li>
-      </ul>
+    <section id="spoiler-promise" class="promise-band" aria-labelledby="spoiler-promise-heading">
+      <h2 id="spoiler-promise-heading">Further ahead, no spoilers.</h2>
+      <p id="promise-ci-gate">
+        A CI spoiler gate checks every change: 20 spoiler Questions run on every change, and the build fails if anything past the Spoiler horizon reaches the model. A nightly probe asks the live Maya the same Questions.
+      </p>
     </section>
 
     <Layouts.site_footer />

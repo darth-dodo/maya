@@ -4,19 +4,29 @@ defmodule MayaWeb.PageHTML do
 
   embed_templates "page_html/*"
 
-  # Real Talk screen screenshots (seed Progress, empty Conversation), until the clip lands.
-  @screenshots [
-    %{
-      src: "/images/demo/talk-idle.png",
-      alt:
-        "The Talk screen for a new trainer: Littleroot Town, Next gym Roxanne (Rock), Mudkip at level 5, 0 of 8 badges, a Poké fact and the Hold to talk button."
-    },
-    %{
-      src: "/images/demo/talk-listening.png",
-      alt:
-        "The Talk screen while the button is held: a coral ring around the ball, Listening to you, and the button reads Release to send."
-    }
+  # One real turn at Route 104, given by Abhishek on 2026-11-15. Median Answer time and turn
+  # count as recorded in the tide-homepage proposal on 2026-11-15; update them together.
+  @real_turn %{
+    question: "Where do I go next?",
+    answer:
+      "Head north to Rustboro City for Roxanne. Mudkip's Water moves make it a short fight.",
+    median_s: 4.95,
+    turns: 145
+  }
+
+  # Maya's Dials as {name, value, locked?}, the same as her agent prompt and the seed humor.
+  @dials [
+    {"Humor", 75, false},
+    {"Honesty", 90, false},
+    {"Sass", 40, false},
+    {"Mudkip hype", 100, false},
+    {"Spoilers", 0, true}
   ]
 
-  def screenshots, do: @screenshots
+  def real_turn, do: @real_turn
+  def dials, do: @dials
+
+  def real_turn_caption(%{median_s: median, turns: turns}),
+    do:
+      "Median Answer time #{:erlang.float_to_binary(median / 1, decimals: 2)} s over #{turns} turns"
 end

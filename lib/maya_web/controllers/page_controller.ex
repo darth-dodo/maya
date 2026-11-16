@@ -7,23 +7,10 @@ defmodule MayaWeb.PageController do
   use MayaWeb, :controller
 
   def home(conn, _params) do
-    render(conn, :home, indexable: true, demo_transcript: demo_transcript())
+    render(conn, :home, indexable: true)
   end
 
   def factory(conn, _params) do
     render(conn, :factory, indexable: true, page_title: "Maya factory")
-  end
-
-  # The demo slot shows the clip once Abhishek adds it with its transcript; screenshots until then.
-  # Read per request so dropping the files in needs no recompile.
-  defp demo_transcript do
-    videos = Application.app_dir(:maya, "priv/static/videos")
-
-    with true <- File.exists?(Path.join(videos, "maya-demo.mp4")),
-         {:ok, text} <- File.read(Path.join(videos, "maya-demo.txt")) do
-      String.trim(text)
-    else
-      _ -> nil
-    end
   end
 end

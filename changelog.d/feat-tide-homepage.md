@@ -1,0 +1,2 @@
+Changed: The homepage is the Tide layout: a full bleed tide backdrop (night backdrop at night) fading into the page, the headline "Ask out loud. No spoilers.", an "Open Talk" header link, a real turn at Route 104 with the median Answer time, "Meet Maya" with her read-only Dials and three things she says, the voice loop as ruled numbered lines and a sea band for the spoiler promise
+Removed: The homepage demo slot, its screenshots in `priv/static/images/demo/` and the planned demo clip slot
