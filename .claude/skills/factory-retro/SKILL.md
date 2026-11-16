@@ -1,16 +1,20 @@
 ---
 name: factory:retro
-description: Use after a Maya PR merges (factory:build step 11), or when backfilling one, to record that Issue's metrics row and one lesson in ~/maya-factory/. Writes nothing in the repo.
+description: Use when 10 merged Maya PRs have no row in ~/maya-factory/metrics.csv (checked at factory:build step 11), or when backfilling, to record each Issue's metrics row and one lesson in ~/maya-factory/. Runs in batches of 10. Writes nothing in the repo.
 ---
 
 # factory:retro
 
-Flywheel step 1 (FACTORY.md "Flywheel"). Argument: a merged PR number. Raw data lives outside the repo, so a retro needs no PR:
+Flywheel step 1 (FACTORY.md "Flywheel"). Argument: none (a batch) or merged PR numbers. Raw data lives outside the repo, so a retro needs no PR:
 
 - `~/maya-factory/metrics.csv`: one row per Issue. Create the folder and the file with the header below if missing.
 - `~/maya-factory/retros/<issue>.md`: the retro file.
 
 Rerunning for the same Issue replaces its row and file; never add a second row.
+
+## 0. Batch
+
+Retros run in batches (decided 2026-11-16: "Let's do a retro every 10 prs"), not after each merge. List merged PRs (`gh pr list --state merged --limit 50 --json number,mergedAt`) and drop those whose number is in the `pr` column of `metrics.csv`. Fewer than 10 left: stop and say how many more merges the batch needs. 10 or more: run steps 1 to 4 for every one of them, oldest first, in this run.
 
 ## 1. Gather
 
@@ -82,4 +86,4 @@ Ground every line in the gathered evidence (PR body, review comment, CI, transcr
 
 ## 5. Report
 
-Print the row and the lesson. If `metrics.csv` now has 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, say that `factory:improve` is due.
+Print each row and its lesson. A batch always leaves at least 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, so say that `factory:improve` is due now and run it right after.

@@ -126,12 +126,12 @@ defmodule MayaWeb.FactoryPageTest do
           do: assert(n in section_numbers, "#{n} is not in the Review reward backfill section")
     end
 
-    test "flywheel holds the experiments and the review reward, retros every 5" do
+    test "flywheel holds the experiments and the review reward, retros every 10 PRs" do
       html = factory()
 
       assert count(html, "#flywheel #experiments") == 1
       assert count(html, "#flywheel #review-reward") == 1
-      assert text_of(html, "#flywheel-intro") =~ ~r/retro.*Every 5 retros/
+      assert text_of(html, "#flywheel-intro") =~ ~r/Every 10 merged PRs, a retro/
     end
   end
 

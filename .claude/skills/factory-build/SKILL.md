@@ -19,6 +19,6 @@ Build and verify stations (FACTORY.md lines 3 and 4). Argument: an Issue number,
 | 8 | Archive | `openspec-archive-change <change-id>` | Change moved to `openspec/changes/archive/`, `openspec/specs/` updated |
 | 9 | PR | `git merge origin/main` and rerun `factory:test` if it changed anything; changelog fragment `changelog.d/<branch-with-dashes>.md`, PR template filled, `Closes #<n>`, Conventional Commit title; `superpowers:verification-before-completion`; then push once and do not push again until the first CI run has finished (a new push cancels it) | PR open, first CI run green |
 | 10 | Review | `factory:review <pr>` | No blocking findings, or they are fixed and step 7 rerun |
-| 11 | Stop | Report the PR link | Abhishek merges. Then run any post-merge task in `tasks.md`, comment the result on the Issue, and run `factory:retro <pr>` |
+| 11 | Stop | Report the PR link | Abhishek merges. Then run any post-merge task in `tasks.md`, comment the result on the Issue, and run `factory:retro` only if 10 merged PRs now have no row in `~/maya-factory/metrics.csv` (a batch, then `factory:improve`); otherwise the PR waits for the next batch |
 
 Denied, do not try: `openspec-apply-change`, Matt `tdd`, Matt `diagnosing-bugs` (use `superpowers:systematic-debugging`). Never merge, never push to `main`.
