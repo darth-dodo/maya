@@ -123,6 +123,7 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 | `factory:retro` | After 7 Gate, in batches | Once 10 merged PRs have no row: a metrics row and one lesson for each of the 10 in `~/maya-factory/`; no PR |
 | `factory:improve` | Flywheel | Right after each retro batch: medians, worst metric, ONE experiment PR, keep or revert the last one, folds lessons into `docs/factory/LESSONS.md` |
 | `factory:recap` | Any time | Under 15 lines: merged PRs, open Issues and blockers, main CI, metric trend, new lessons, gym reminder; writes nothing |
+| `factory:dashboard` | Any time | The visual recap: one private page rebuilt from live sources each run ("Needs Abhishek" first, then flow, quality, the running experiment), every number sourced; nothing committed |
 
 Single-skill stations need no wrapper: intake interviews (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
 

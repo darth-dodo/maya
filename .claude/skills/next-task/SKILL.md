@@ -25,4 +25,4 @@ Limits: max 2 builders in parallel, one block at a time, stop at "done when".
 
 ## 3. Report
 
-One recommendation with the reason, then the ranked list in one line per item.
+One recommendation with the reason, then the ranked list in one line per item. For the visual version (what needs Abhishek, flow, quality), run `factory:dashboard`.

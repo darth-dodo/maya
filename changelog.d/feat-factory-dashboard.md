@@ -1,0 +1,1 @@
+Added: `factory:dashboard` project skill: one private page rebuilt from live sources each run (Needs Abhishek first, then flow, quality and the running experiment), every number with its source and read time; nothing is committed
