@@ -47,6 +47,11 @@ defmodule MayaWeb.PageControllerTest do
     for id <- ~w(#talk-screen #talk-heading #talk-button), do: assert(count(html, id) == 0, id)
   end
 
+  test "Open Talk is in the header of / only, not /factory" do
+    factory = build_conn() |> get(~p"/factory") |> html_response(200)
+    assert count(factory, "#header-talk-link") == 0
+  end
+
   test "way in for friends links to the Talk screen" do
     html = home()
     assert attrs(html, "#talk-link", "href") == ["/talk"]

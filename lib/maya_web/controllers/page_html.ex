@@ -26,6 +26,7 @@ defmodule MayaWeb.PageHTML do
   def real_turn, do: @real_turn
   def dials, do: @dials
 
+  # median / 1 makes a whole number (say 5) a float, so it still prints as 5.00.
   def real_turn_caption(%{median_s: median, turns: turns}),
     do:
       "Median Answer time #{:erlang.float_to_binary(median / 1, decimals: 2)} s over #{turns} turns"

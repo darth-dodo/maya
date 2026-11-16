@@ -722,14 +722,14 @@
   text-underline-offset: 3px;
 }
 
-.real-turn-question { justify-self: end; text-align: right; font-size: var(--maya-text-sm); color: var(--maya-muted); }
-.real-turn-answer { font-family: var(--maya-font-body); font-size: 1.5rem; font-weight: 500; line-height: 1.3; }
+.home-tide .real-turn-question { justify-self: end; text-align: right; font-size: var(--maya-text-sm); color: var(--maya-muted); }
+.home-tide .real-turn-answer { font-family: var(--maya-font-body); font-size: 1.5rem; font-weight: 500; line-height: 1.3; }
 .home-tide #real-turn-latency { color: var(--maya-muted); }
 
-.home-sub { margin-top: 0.5rem; font-size: var(--maya-text-lg); font-weight: 600; color: var(--maya-heading); }
-.meet-intro { display: flex; align-items: center; gap: 1rem; }
-.meet-intro .pokeball { --size: 4.5rem; flex: none; }
-.bubble {
+.home-tide .home-sub { margin-top: 0.5rem; font-size: var(--maya-text-lg); font-weight: 600; color: var(--maya-heading); }
+.home-tide .meet-intro { display: flex; align-items: center; gap: 1rem; }
+.home-tide .meet-intro .pokeball { --size: 4.5rem; flex: none; }
+.home-tide .bubble {
   padding: 0.75rem 1rem;
   border-radius: var(--maya-radius-md);
   border-bottom-left-radius: 0.25rem;
@@ -737,17 +737,17 @@
   color: var(--maya-ink);
   line-height: 1.45;
 }
-.dials { display: grid; gap: 0.75rem; }
-.dial { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; }
-.dial-name { font-weight: 600; }
-.dial-value { color: var(--maya-muted); font-variant-numeric: tabular-nums; }
-.dial-bar {
+.home-tide .dials { display: grid; gap: 0.75rem; }
+.home-tide .dial { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; }
+.home-tide .dial-name { font-weight: 600; }
+.home-tide .dial-value { color: var(--maya-muted); font-variant-numeric: tabular-nums; }
+.home-tide .dial-bar {
   grid-column: 1 / -1;
   height: 0.5rem;
   border-radius: var(--maya-radius-pill);
   background: linear-gradient(to right, var(--maya-action) var(--dial), var(--maya-line) var(--dial));
 }
-.sayings { display: grid; gap: 0.5rem; justify-items: start; }
+.home-tide .sayings { display: grid; gap: 0.5rem; justify-items: start; }
 
 /* How a turn works: numbered lines between hairline rules, no cards */
 .home-tide .loop { gap: 0; }
