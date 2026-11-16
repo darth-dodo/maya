@@ -361,7 +361,7 @@ defmodule Maya.Conversation do
     do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
 
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
-    c = c |> stt_ms() |> Map.put(:progress, progress)
+    c = stt_ms(c)
     broadcast(state, {:question, question})
     me = self()
     ref = c.ref
@@ -385,15 +385,17 @@ defmodule Maya.Conversation do
   end
 
   defp finished(:agent, {:ok, answer}, state) do
+    state = speak(state, state.current.turn.question, answer)
     progress_news(state)
-    speak(state, state.current.turn.question, answer)
+    state
   end
 
   # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
   defp finished(:agent, {:error, reason}, state) do
     warn(:agent, reason)
+    state = speak(state, state.current.turn.question, @lost)
     progress_news(state)
-    speak(state, state.current.turn.question, @lost)
+    state
   end
 
   defp finished(:tts, :ok, state) do
@@ -408,10 +410,12 @@ defmodule Maya.Conversation do
     state
   end
 
-  # Events the agent logged (or undid) this turn changed Progress: the screen redraws its card (#89).
-  defp progress_news(%{current: c} = state) do
-    progress = GameData.progress(state.id)
-    if progress != c.progress, do: broadcast(state, {:progress, progress})
+  # The agent may have logged or undone Events, so the screen redraws its card (#89). Read once TTS
+  # is already streaming, off the path to first sound; a failed read keeps the turn going.
+  defp progress_news(state) do
+    broadcast(state, {:progress, GameData.progress(state.id)})
+  rescue
+    e -> warn(:progress, e)
   end
 
   # Starts streaming the Answer; the turn shows on screen from here.
@@ -447,8 +451,16 @@ defmodule Maya.Conversation do
     end
 
     case c.stage do
-      :tts -> store(state, %{c.turn | cut: true})
-      _hold_stt_or_agent -> %{state | current: nil}
+      :tts ->
+        store(state, %{c.turn | cut: true})
+
+      # A cut agent may have logged Events already.
+      :agent ->
+        progress_news(state)
+        %{state | current: nil}
+
+      _hold_or_stt ->
+        %{state | current: nil}
     end
   end
 

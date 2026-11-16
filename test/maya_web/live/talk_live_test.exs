@@ -425,6 +425,9 @@ defmodule MayaWeb.TalkLiveTest do
         question =~ "caught" ->
           %{"kind" => "caught", "details" => %{"species" => "ralts", "level" => 5}}
 
+        question =~ "Dewford" ->
+          %{"kind" => "moved", "details" => %{"location" => "Dewford Town"}}
+
         true ->
           %{"kind" => "undo"}
       end
@@ -436,7 +439,7 @@ defmodule MayaWeb.TalkLiveTest do
     }
   end
 
-  defp turn(view, question) do
+  defp ask_and_hear(view, question) do
     stub(text(question), &speak/1)
     ask(view)
     assert_push_event(view, "audio_done", %{})
@@ -447,19 +450,58 @@ defmodule MayaWeb.TalkLiveTest do
     {:ok, view, _html} = live(conn, ~p"/talk")
     assert has_element?(view, "#badge-count", "0 of 8 badges")
 
-    turn(view, "I just earned Roxanne's badge")
+    ask_and_hear(view, "I just earned Roxanne's badge")
     assert has_element?(view, "#badge-count", "1 of 8 badges")
     assert has_element?(view, "#next-gym", "Next gym: Brawly")
 
-    turn(view, "I caught a Ralts at level 5")
-    assert texts(render(view), "#team .mon") == ["Mudkip Lv 5", "Ralts Lv 5"]
+    ask_and_hear(view, "I sailed to Dewford")
+    assert has_element?(view, "#location", "Dewford Town")
 
-    turn(view, "undo that")
-    assert texts(render(view), "#team .mon") == ["Mudkip Lv 5"]
+    ask_and_hear(view, "I caught a Ralts at level 5")
+    assert has_element?(view, "#team .mon", "Ralts Lv 5")
 
-    turn(view, "undo that too")
+    ask_and_hear(view, "undo that")
+    refute has_element?(view, "#team .mon", "Ralts")
+    assert has_element?(view, "#location", "Dewford Town")
+
+    ask_and_hear(view, "undo that too")
+    assert has_element?(view, "#location", "Littleroot Town")
+
+    ask_and_hear(view, "and undo the last one")
     assert has_element?(view, "#badge-count", "0 of 8 badges")
     assert has_element?(view, "#next-gym", "Next gym: Roxanne")
+  end
+
+  test "a cut after the agent logged an Event still updates the card", %{conn: conn, guest: guest} do
+    me = self()
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      case List.last(Jason.decode!(body)["messages"]) do
+        %{"role" => "tool"} ->
+          send(me, :logged)
+          Process.sleep(:infinity)
+
+        %{"content" => question} ->
+          message = %{
+            "role" => "assistant",
+            "content" => nil,
+            "tool_calls" => [log_call(question)]
+          }
+
+          Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+      end
+    end)
+
+    stub(text("I just earned Roxanne's badge"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    ask(view)
+    assert_receive :logged
+
+    view |> element("#talk-button") |> render_hook("barge_in", %{})
+    _ = Maya.Conversation.turns(guest)
+    assert has_element?(view, "#badge-count", "1 of 8 badges")
   end
 
   test "playback timings are stored, junk values are dropped", %{conn: conn, guest: guest} do

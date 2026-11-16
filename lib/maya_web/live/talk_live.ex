@@ -46,6 +46,8 @@ defmodule MayaWeb.TalkLive do
 
   @impl true
   def mount(_params, %{"guest_id" => guest_id}, socket) do
+    progress = GameData.progress(guest_id)
+
     turns =
       if connected?(socket) do
         {:ok, _} = Conversation.start_or_find(guest_id)
@@ -60,7 +62,8 @@ defmodule MayaWeb.TalkLive do
      |> assign(
        guest_id: guest_id,
        turns: turns,
-       card: trainer_card(GameData.progress(guest_id)),
+       progress: progress,
+       card: trainer_card(progress),
        talk_state: "idle",
        voice_down: false,
        confirm_fresh: false,
@@ -186,8 +189,15 @@ defmodule MayaWeb.TalkLive do
   def handle_info({:conversation, {:turns, turns}}, socket),
     do: {:noreply, assign(socket, turns: turns, live_question: nil, pending_question: nil)}
 
+  # Sent after every agent stage; an unchanged Progress leaves the card as it is.
+  def handle_info(
+        {:conversation, {:progress, progress}},
+        %{assigns: %{progress: progress}} = socket
+      ),
+      do: {:noreply, socket}
+
   def handle_info({:conversation, {:progress, progress}}, socket),
-    do: {:noreply, assign(socket, card: trainer_card(progress))}
+    do: {:noreply, assign(socket, progress: progress, card: trainer_card(progress))}
 
   def handle_info({:conversation, {:partial, text}}, socket),
     do: {:noreply, assign(socket, live_question: text)}
