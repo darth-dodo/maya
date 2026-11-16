@@ -8,10 +8,11 @@ Asked by Abhishek on 2026-11-16: "Make the Pokémon list collapsible". The stick
 
 The calls below are proposals Abhishek can correct on the spec PR.
 
-- **Collapsed by default**: the Team in the trainer band shows as one summary line, the lead Pokémon (first in the Team) and the rest as a count, for example "Mudkip Lv 14 + 5 more", with a chevron. A Team of one reads just "Mudkip Lv 5".
+- **Collapsed by default**: the Team in the trainer band shows as one summary line with a chevron. Abhishek chose option D on 2026-11-16: Team names in Team order, no levels, up to the first 3 comma separated, then "+N" for the rest ("Mudkip, Poochyena, Wingull +3"); 3 or fewer show all names with no "+N"; an empty Team reads "No Team yet".
+- **One line on any phone**: if the names do not fit, they truncate with an ellipsis; the "+N" and the chevron always stay visible. The summary's accessible name lists the whole Team ("Team: Mudkip, Poochyena, Wingull, Ralts, Zigzagoon, Lotad").
 - **Tap to open and close**: a tap on the summary shows the full Team as chips (as today); another tap folds it back.
-- **State survives updates**: once open, the list stays open through any LiveView update (a catch while open keeps it open) for the rest of the page view; a reload starts collapsed again.
-- **Updates never open it**: a new Team member updates the summary count and, when open, the chips; it never opens the list by itself.
+- **State survives updates**: once open, the list stays open through any LiveView update (a catch while open keeps it open) for the rest of the page view; each visit starts collapsed, nothing is stored.
+- **Updates never open it**: a new Team member updates the summary names and, when open, the chips; it never opens the list by itself.
 - **Steady band**: the band and the Talk button keep the same size in every Talk moment (#74), open or closed; only the Guest's own tap changes the band height.
 - **Accessible and on the design system**: a 44px tap target, native expanded and collapsed state for screen readers, both themes, only `--maya-*` tokens, no animated height (the chevron turn uses `--maya-duration`, 0ms under reduced motion), and `assets/js/talk_hook.js` untouched.
 

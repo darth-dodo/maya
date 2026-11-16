@@ -12,7 +12,7 @@ Goals: the smallest change that folds the Team, with no JS file, no server round
 
 ### Native `<details>`/`<summary>`, with `open` kept by `JS.ignore_attributes`
 
-`#team` moves inside a `<details id="team-details">` whose `<summary id="team-summary">` holds the lead chip, the "+ K more" text and the chevron. The browser gives the expanded state, keyboard toggle and focus for free, and a tap toggles with no server round trip.
+`#team` moves inside a `<details id="team-details">` whose `<summary id="team-summary">` holds the names, the "+N" and the chevron. The browser gives the expanded state, keyboard toggle and focus for free, and a tap toggles with no server round trip.
 
 The catch: LiveView patches the DOM to match the server render, and the server never renders `open`, so a patch of the `<details>` (a Team change from #89) would close it. LiveView 1.1+ solves exactly this with `phx-mounted={JS.ignore_attributes(["open"])}`, which makes patches keep the client's `open` (https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.JS.html#ignore_attributes/1). It is a JS command in a `phx-` attribute, so the strict CSP and `talk_hook.js` are untouched.
 
@@ -22,9 +22,17 @@ Alternative considered: an `@team_open` assign toggled by `phx-click` on a butto
 
 The open list simply appears; only the chevron turns, with `--maya-duration` (0ms under reduced motion). Animating `<details>` height needs JS or `interpolate-size`, which is not worth it here.
 
-### Summary text in the template
+### Summary text in the template (option D, 2026-11-16)
 
-"Name Lv N + K more" is built in the template from `@card.team`, so a Team change from #89 updates it in the same render. The lead is the first Team member, as listed in Progress.
+The summary is built in the template from `@card.team` (Team order as listed in Progress), so a Team change from #89 updates it in the same render: the first 3 names joined by ", ", then "+N" when more remain; "No Team yet" when empty.
+
+### One line with a fixed tail
+
+The summary is a one-line flex row: a names span with `min-width: 0`, `overflow: hidden`, `white-space: nowrap` and `text-overflow: ellipsis`, then the "+N" span and the chevron with `flex-shrink: 0`, so only the names give way on a narrow phone.
+
+### Full Team for screen readers
+
+The summary carries `aria-label="Team: <every name, comma separated>"`, so the truncated or "+N" line never hides a name from assistive technology; `<details>` still exposes expanded or collapsed. The visible "+N" and chevron stay `aria-hidden` inside it.
 
 ## Risks / Trade-offs
 
