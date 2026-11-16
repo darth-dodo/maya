@@ -74,7 +74,7 @@ Maya SHALL send the last 5 turns of the Conversation as context between the syst
 - **THEN** it prints one line per model with its name, milliseconds and Answer
 
 ### Requirement: Progress reported in a Question becomes an Event
-The system prompt SHALL tell the model to call `log_event` when the Guest reports a badge, a catch, an evolution, a level or a move, to call it with `undo` when the Guest says "no" or "undo that" right after a logged Event, and to say the tool's confirm or refusal line. The prompt SHALL show the Guest's latest Progress row, and tools later in the same turn SHALL use the Progress the Event produced.
+The system prompt SHALL tell the model to call `log_event` when the Guest reports a badge, a catch, an evolution, a level or a move, to call it with `undo` when the Guest says "no" or "undo that" right after a logged Event, to call it with `released` when the Guest released a Pokémon or has one on the Team twice, and to say the tool's confirm or refusal line. The prompt SHALL show the Guest's latest Progress row, and tools later in the same turn SHALL use the Progress the Event produced.
 
 #### Scenario: "I just earned Roxanne's badge"
 - **WHEN** the model answers that Question with a `log_event` call for Roxanne's badge and then text

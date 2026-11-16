@@ -173,13 +173,14 @@ defmodule Maya.GameData do
   def lock_progress!(guest_id),
     do: Repo.one!(from p in progress_query(guest_id), lock: "FOR UPDATE")
 
-  @doc "Writes badges, Team and location back to the guest's Progress row (Events only, ADR-006)."
+  @doc "Writes badges, Team, PC box and location back to the guest's Progress row (Events only, ADR-006)."
   def put_progress!(%{guest_id: guest_id} = progress) do
     {1, _} =
       Repo.update_all(from(p in "progress", where: p.guest_id == ^guest_id),
         set: [
           badges: progress.badges,
           team: progress.team,
+          box: progress.box,
           location: progress.location,
           updated_at: DateTime.utc_now(:second)
         ]
@@ -195,6 +196,7 @@ defmodule Maya.GameData do
         guest_id: p.guest_id,
         badges: p.badges,
         team: p.team,
+        box: p.box,
         location: p.location,
         humor: p.humor
       }
