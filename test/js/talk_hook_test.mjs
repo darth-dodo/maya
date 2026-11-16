@@ -1,4 +1,4 @@
-// Pure helpers of the Talk hook. Run with `node --test test/js/` (built in, no dependencies).
+// Pure helpers of the Talk hook. Run with `node --test test/js/*_test.mjs` (built in, no dependencies).
 import {test} from "node:test"
 import assert from "node:assert/strict"
 import {micCloseDelay, audioCanSleep, setAudioSession} from "../../assets/js/talk_hook.js"

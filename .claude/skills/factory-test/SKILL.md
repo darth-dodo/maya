@@ -14,7 +14,7 @@ Mirrors the CI jobs behind `ci-success` (format, credo, test with coverage, secu
 | DB up | `docker compose -p maya up -d --wait db` (the `-p maya` reuses the main checkout's container from a worktree) |
 | Compile | `MIX_ENV=test mix compile --warnings-as-errors` |
 | Format | `mix format --check-formatted` |
-| JS tests (in CI's format job) | `node --test test/js/` |
+| JS tests (in CI's format job) | `node --test test/js/*_test.mjs` |
 | Credo | `mix credo` |
 | Tests + coverage floor | `MIX_ENV=test mix test --cover` (fails below the `test_coverage` threshold in `mix.exs`) |
 | Dependency audit | `mix deps.audit` |
