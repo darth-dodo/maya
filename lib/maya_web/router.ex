@@ -13,7 +13,7 @@ defmodule MayaWeb.Router do
     plug :put_secure_browser_headers, %{
       "content-security-policy" =>
         "default-src 'self'; " <>
-          "script-src 'self' 'sha256-N9ROwqWGQr86D+44Fl+eezRnLda60Cc10mUgYRSbmQk='; " <>
+          "script-src 'self' 'sha256-5NC+Z8siXaS0nzgxCHqhfX9ONuxreDBwvdVdZkwqL4A='; " <>
           "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; " <>
           "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; " <>
           "frame-ancestors 'none'"

@@ -78,6 +78,7 @@ defmodule MayaWeb.SiteHeaderTest do
         assert count(html, "#theme-toggle .theme-to-night .hero-moon[aria-hidden='true']") == 1
         assert count(html, "#theme-toggle .theme-to-day .hero-sun[aria-hidden='true']") == 1
         assert count(html, "[data-phx-theme]") == 0
+        refute text_of(html, "#site-header") =~ ~r/system/i
       end
     end
 

@@ -62,9 +62,9 @@
         const root = document.documentElement;
         const dark = matchMedia("(prefers-color-scheme: dark)");
         // Storage can throw (blocked, private modes): a tap on this page is kept in memory too.
-        let memo = null;
+        let tapped = null;
         const read = () => {
-          if (memo) return memo;
+          if (tapped) return tapped;
           try {
             return localStorage.getItem("phx:theme");
           } catch {
@@ -80,19 +80,19 @@
           root.setAttribute("data-theme", stored() || (dark.matches ? "dark" : "light"));
         };
         apply();
-        // Another tab's tap wins over this page's.
+        // Another tab's tap (or a cleared storage) wins over this page's.
         window.addEventListener("storage", (e) => {
-          if (e.key !== "phx:theme") return;
-          memo = null;
+          if (e.key !== null && e.key !== "phx:theme") return;
+          tapped = null;
           apply();
         });
         dark.addEventListener("change", apply);
         // A plain click listener, so the toggle works on pages without a LiveView socket.
         document.addEventListener("click", (e) => {
           if (!e.target.closest("#theme-toggle")) return;
-          memo = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          tapped = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
           try {
-            localStorage.setItem("phx:theme", memo);
+            localStorage.setItem("phx:theme", tapped);
           } catch {}
           apply();
         });

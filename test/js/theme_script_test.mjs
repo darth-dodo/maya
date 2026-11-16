@@ -6,6 +6,7 @@ import vm from "node:vm"
 
 const heex = readFileSync(new URL("../../lib/maya_web/components/layouts/root.html.heex", import.meta.url), "utf8")
 const script = heex.match(/<script>([\s\S]*?)<\/script>/)[1]
+assert.match(script, /"phx:theme"/, "the first inline script in root.html.heex is not the theme script")
 
 // storage: an object with getItem/setItem, or null for blocked storage (the getter throws).
 function run({storage, prefersDark}) {
