@@ -184,13 +184,16 @@ export const TalkHook = {
   // A cold press that got no mic (denied, or released first): back to "auto" unless a newer
   // press is opening one.
   micNotOpened() {
-    if (!this.mic && !this.pressed) setAudioSession(navigator, "auto")
+    if (this.mic || this.pressed) return
+    setAudioSession(navigator, "auto")
+    this.maybeSleep()
   },
 
   // Hands the phone's audio back once Maya is silent and the mic is closed (#141). The next
   // press resumes the context inside the gesture.
   maybeSleep() {
-    if (this.ctx?.state === "running" && audioCanSleep(!!this.mic, this.state, this.sources.length)) {
+    // Not only "running": a resume() still pending from a press reads "suspended" until it lands.
+    if (this.ctx && this.ctx.state !== "closed" && audioCanSleep(!!this.mic, this.state, this.sources.length)) {
       this.ctx.suspend()
     }
   },
