@@ -175,6 +175,7 @@ defmodule Maya.ConversationStreamTest do
 
     assert_receive {:fake_got, %{"type" => "input_audio.end"}}
     assert_receive :batch_called
+    assert_receive {:conversation, {:partial, "where do I catch"}}
     assert_receive {:conversation, {:partial, "where do I catch Ralts"}}
     assert_receive {:conversation, {:question, "Where do I catch Ralts?"}}
     refute_received {:fake_got, %{"type" => "input_audio.end"}}
