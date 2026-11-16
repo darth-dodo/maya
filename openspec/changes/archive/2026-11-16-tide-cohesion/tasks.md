@@ -8,7 +8,7 @@ Start from main after `tide-header` merges (the shared header and `#site-header`
 
 ## 2. Talk screen without containers
 
-- [x] 2.1 Tests first in `talk_screen_page_test.exs` for the added and modified scenarios that a rendered page can check (header parts, ball in `#trainer-card`, Safari fallback line in `app.css`, no scrim literal); update the old scrim and gold hairline assertions; verify the new ones fail and the state, mic and voice assertions are unchanged
+- [x] 2.1 Tests first in `talk_screen_page_test.exs` for the added and modified scenarios that a rendered page can check (header parts, ball in `#trainer-card`, Safari fallback line in `app.css`, no scrim literal); update the old scrim and gold hairline assertions; verify the new ones fail and the state, mic and voice assertions are unchanged (the static CSS checks landed in `design_apply_test.exs` and `fonts_test.exs`, next to the existing Talk CSS checks; the rendered header parts test was already in `talk_screen_page_test.exs`)
 - [x] 2.2 CSS: drop the scene panel and card box, the shared band fade (design decisions 1 and 2), the ball left of the eyebrow, the `content: "·";` fallback; verify 2.1 passes, the colour gate is green and `git diff --stat assets/js/talk_hook.js` is empty
 - [x] 2.3 Turns like the real turn (design decision 3); verify the chat tests pass
 

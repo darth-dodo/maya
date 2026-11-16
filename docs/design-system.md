@@ -168,7 +168,7 @@ A 1.25 ratio from a 1rem base. Body line height 1.5, headings 1.1. No text under
 |---|---|---|
 | `--maya-radius-sm` | 0.5rem | fields, small buttons, daisyUI radii |
 | `--maya-radius-md` | 1rem | cards |
-| `--maya-radius-lg` | 1.5rem | scenes, the hero |
+| `--maya-radius-lg` | 1.5rem | the factory hero, the promise band |
 | `--maya-radius-pill` | 999px | the Talk button, chips |
 | `--maya-shadow-1` | day `0 14px 26px -20px rgb(15 58 40 / 0.6)`; night `inset 0 1px 1px rgb(255 255 255 / 0.06), 0 18px 30px -22px #000000` | cards |
 | `--maya-shadow-2` | day `0 12px 20px -12px rgb(15 58 40 / 0.7)`; night `0 0 24px -6px rgb(63 194 131 / 0.6)` | the Talk button |

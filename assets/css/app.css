@@ -251,9 +251,9 @@
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
-/* Talk screen, layout B3 "rich trainer card" (#66), on the design system (design-apply): it
-   follows the theme, Calm Emerald by day and Emerald night (deep night sea, the ball
-   glows), with no panel or card box (tide-cohesion). Every colour is a token; the contrast pairs are in
+/* Talk screen on the design system (design-apply): it follows the theme, Calm Emerald by day
+   and Emerald night (deep night sea, the ball glows). It sits on the page like the homepage, so
+   the two read as one app (tide-cohesion). Every colour is a token; the contrast pairs are in
    docs/design-system.md and design_tokens_test.exs.
    The moment lives in #talk-screen[data-state] (server copy of the TalkHook state) and in
    #talk-button[data-state] (the hook's own, instant). Moments: talking = recording,
