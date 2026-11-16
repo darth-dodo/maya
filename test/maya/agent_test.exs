@@ -62,6 +62,7 @@ defmodule Maya.AgentTest do
       assert body["model"] == "anthropic/claude-haiku-5.5"
 
       assert Enum.map(body["tools"], & &1["function"]["name"]) == [
+               "search_guide",
                "gym_counter",
                "find_pokemon",
                "move_learnset",

@@ -12,5 +12,12 @@
 {"name":"Rusturf Tunnel","map":"MAP_RUSTURF_TUNNEL","badges_required":1},
 {"name":"Route 105","map":"MAP_ROUTE105","badges_required":1},
 {"name":"Route 106","map":"MAP_ROUTE106","badges_required":1},
-{"name":"Dewford Town","map":"MAP_DEWFORD_TOWN","badges_required":1}
+{"name":"Dewford Town","map":"MAP_DEWFORD_TOWN","badges_required":1},
+{"name":"Granite Cave","map":"MAP_GRANITE_CAVE_1F","badges_required":1},
+{"name":"Route 109","map":"MAP_ROUTE109","badges_required":1},
+{"name":"Slateport City","map":"MAP_SLATEPORT_CITY","badges_required":1},
+{"name":"Route 107","map":"MAP_ROUTE107","badges_required":2},
+{"name":"Route 108","map":"MAP_ROUTE108","badges_required":2},
+{"name":"Route 110","map":"MAP_ROUTE110","badges_required":2},
+{"name":"Mauville City","map":"MAP_MAUVILLE_CITY","badges_required":2}
 ]

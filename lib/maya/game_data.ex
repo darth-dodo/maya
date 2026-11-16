@@ -7,11 +7,12 @@ defmodule Maya.GameData do
 
   import Ecto.Query
 
+  alias Maya.GameData.Notes
   alias Maya.Repo
   alias Maya.Voice.Vocabulary
 
   # Children before parents, so deletes never trip the trainer_pokemon foreign key.
-  @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations learnsets)
+  @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations learnsets walkthrough_notes)
 
   @doc """
   Replaces the game data tables from `priv/data/` in one transaction. Progress is
@@ -23,6 +24,14 @@ defmodule Maya.GameData do
     end
 
     trainers = data.("trainers")
+    locations = data.("locations")
+    notes = data.("walkthrough_notes")
+
+    # Checked before the transaction, so a bad notes file changes no table (fail closed).
+    case Notes.problems(notes, locations) do
+      [] -> :ok
+      problems -> raise ArgumentError, "walkthrough notes: #{inspect(problems)}"
+    end
 
     {:ok, :ok} =
       Repo.transaction(fn ->
@@ -44,8 +53,9 @@ defmodule Maya.GameData do
           ~w(trainer_label slot species level moves)
         )
 
-        insert!("locations", data.("locations"), ~w(name map badges_required))
+        insert!("locations", locations, ~w(name map badges_required))
         insert!("learnsets", data.("learnsets"), ~w(species move method level))
+        insert!("walkthrough_notes", notes, ~w(location badges_required text))
       end)
 
     # Bias names are cached from these tables.
@@ -145,6 +155,16 @@ defmodule Maya.GameData do
 
   @doc "A location by name, or nil when unlisted (which the Spoiler horizon treats as not allowed)."
   def location(name), do: Repo.one(from l in locations_query(), where: l.name == ^name)
+
+  @doc "A location's Walkthrough note text, or nil when it has none inside `badges` earned."
+  def walkthrough_note(location, badges) do
+    Repo.one(
+      from n in "walkthrough_notes",
+        where: n.location == ^location and n.badges_required <= ^badges,
+        select: n.text,
+        limit: 1
+    )
+  end
 
   defp locations_query,
     do:

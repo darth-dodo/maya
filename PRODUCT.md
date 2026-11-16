@@ -29,7 +29,7 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 - **Progress** (badges, **Team**, location): seeded once by hand in `progress.json`, then kept current by **Events**. When the player says something like "I just earned Roxanne's badge", Maya updates Progress and confirms in one line ("Stone Badge logged. Mudkip would approve."). The player can say "no" to undo.
 - **Facts** come only from Maya's own data and tools, never from the model's memory (ADR-004). No Fact means "Not sure".
 - **Game data:** all of Hoenn is imported once (pokeemerald `wild_encounters.json` and `trainer_parties.h`, PokeAPI for Emerald). The Spoiler horizon decides what Maya may use.
-- **Walkthrough notes:** short, original notes per location from Littleroot to Dewford (up to Brawly), written by Claude from the game data and not reviewed by Abhishek. Wrong directions surface when Maya says them; they get fixed as found.
+- **Walkthrough notes:** short, original notes per location from Littleroot Town to Mauville City (up to Wattson), written by Claude from the game data and not reviewed by Abhishek. Wrong directions surface when Maya says them; they get fixed as found.
 - **Audio** is sent to speech to text and dropped; only the transcript is kept in the Conversation.
 
 ## Spoilers
@@ -67,7 +67,7 @@ Both Answers must also meet the quality bar:
 
 ## Out of scope (PHASE_2.md)
 
-Battle Frontier strategist, realtime speech to speech, narrated recap, custom voice, other games, more players, languages other than English, voice control of Dials other than humor, Walkthrough notes past Dewford.
+Battle Frontier strategist, realtime speech to speech, narrated recap, custom voice, other games, more players, languages other than English, voice control of Dials other than humor, Walkthrough notes past Mauville City.
 
 ## Risks
 

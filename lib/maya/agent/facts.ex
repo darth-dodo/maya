@@ -139,6 +139,28 @@ defmodule Maya.Agent.Facts do
     end
   end
 
+  @doc """
+  A spoken place name as a listed location row, or nil: trimmed, any case, a leading "the"
+  dropped, no fuzzy match (a mishearing fails closed).
+  """
+  def guide_location(name, locations) do
+    wanted = name |> String.trim() |> String.downcase() |> String.replace(~r/^the\s+/, "")
+    Enum.find(locations, &(String.downcase(&1.name) == wanted))
+  end
+
+  @doc """
+  A location's Walkthrough note. Unlisted and past the horizon are both `past_horizon`, so a
+  later place is never told apart from a made-up one; a listed place inside it with no note
+  is `not_found`. `note` comes from a query already filtered on the badges earned.
+  """
+  def search_guide(location, note, progress) do
+    cond do
+      not Horizon.allowed?(location, progress) -> {:error, :past_horizon}
+      is_nil(note) -> {:error, :not_found}
+      true -> {:ok, %{location: location.name, note: note}}
+    end
+  end
+
   @doc "A spoken Pokémon name as a PokeAPI species name (`Mr Mime` is `mr-mime`)."
   def species_name(name),
     do: name |> String.trim() |> String.downcase() |> String.replace(~r/\s+/, "-")

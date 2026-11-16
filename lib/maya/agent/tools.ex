@@ -13,6 +13,20 @@ defmodule Maya.Agent.Tools do
     %{
       type: "function",
       function: %{
+        name: "search_guide",
+        description:
+          "A short Walkthrough note for a place: where it leads and what lives there. Leave location out for the player's current place.",
+        parameters: %{
+          type: "object",
+          properties: %{
+            location: %{type: "string", description: "Place name, e.g. Rustboro City"}
+          }
+        }
+      }
+    },
+    %{
+      type: "function",
+      function: %{
         name: "gym_counter",
         description:
           "A gym leader's team and levels, the player's Team with type matchups against the leader's ace, and a suggested lead.",
@@ -83,6 +97,26 @@ defmodule Maya.Agent.Tools do
   def definitions, do: @definitions
 
   @doc "Runs one tool with decoded arguments against Progress."
+  def call(name, args, progress)
+
+  # `location` left out (or null) means the player's current place.
+  def call("search_guide", args, progress) when is_map(args) do
+    case args["location"] || progress.location do
+      name when is_binary(name) ->
+        location = Facts.guide_location(name, GameData.locations())
+
+        note =
+          location && GameData.walkthrough_note(location.name, Horizon.badges_earned(progress))
+
+        Facts.search_guide(location, note, progress)
+
+      _ ->
+        {:error, :bad_arguments}
+    end
+  end
+
+  def call("search_guide", _args, _progress), do: {:error, :bad_arguments}
+
   def call("gym_counter", %{"leader" => leader}, progress) when is_binary(leader) do
     gym = Facts.gym(leader)
     trainer = gym && GameData.trainer(gym.party)

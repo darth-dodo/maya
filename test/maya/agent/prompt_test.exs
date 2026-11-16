@@ -49,6 +49,12 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "refused"
   end
 
+  test "where to go comes only from search_guide's note" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "call search_guide"
+    assert prompt =~ "say only what its note says"
+  end
+
   test "moves a Pokémon learns come only from move_learnset" do
     prompt = Prompt.system(@progress)
     assert prompt =~ "Always call move_learnset before you name a move a Pokémon learns."

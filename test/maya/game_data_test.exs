@@ -4,7 +4,7 @@ defmodule Maya.GameDataTest do
   alias Maya.GameData
   alias Maya.Horizon
 
-  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets progress)
+  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets walkthrough_notes progress)
 
   setup do
     :ok = GameData.import!()
@@ -58,7 +58,7 @@ defmodule Maya.GameDataTest do
     assert GameData.learnset("agumon") == []
   end
 
-  test "locations are Littleroot Town to Dewford Town; anything else fails closed" do
+  test "locations are Littleroot Town to Mauville City; anything else fails closed" do
     required = Map.new(GameData.locations(), &{&1.name, &1.badges_required})
 
     assert required == %{
@@ -75,21 +75,65 @@ defmodule Maya.GameDataTest do
              "Rusturf Tunnel" => 1,
              "Route 105" => 1,
              "Route 106" => 1,
-             "Dewford Town" => 1
+             "Dewford Town" => 1,
+             "Granite Cave" => 1,
+             "Route 109" => 1,
+             "Slateport City" => 1,
+             "Route 107" => 2,
+             "Route 108" => 2,
+             "Route 110" => 2,
+             "Mauville City" => 2
            }
 
     one_badge = %{badges: [1]}
-    assert Horizon.allowed?(GameData.location("Route 104"), one_badge)
-    assert Horizon.allowed?(GameData.location("Dewford Town"), one_badge)
-    refute Horizon.allowed?(GameData.location("Mauville City"), one_badge)
-    refute Horizon.allowed?(GameData.location("Dewford Town"), %{badges: []})
-    refute Horizon.allowed?(GameData.location("Route 116"), %{badges: []})
+    two_badges = %{badges: [1, 2]}
+
+    for place <- ["Route 104", "Dewford Town", "Granite Cave", "Slateport City"],
+        do: assert(Horizon.allowed?(GameData.location(place), one_badge))
+
+    for place <- ["Route 110", "Mauville City"] do
+      refute Horizon.allowed?(GameData.location(place), one_badge)
+      assert Horizon.allowed?(GameData.location(place), two_badges)
+    end
+
+    for place <- ["Dewford Town", "Granite Cave", "Slateport City", "Route 116"],
+        do: refute(Horizon.allowed?(GameData.location(place), %{badges: []}))
 
     progress = GameData.progress("guest-a")
     assert Horizon.allowed?(GameData.location("Rustboro City"), progress)
-    assert GameData.location("Route 110") == nil
-    refute Horizon.allowed?(GameData.location("Route 110"), progress)
-    refute Horizon.allowed?(GameData.location("Route 110"), %{badges: [1]})
+
+    for place <- ["Verdanturf Town", "Route 111"] do
+      assert GameData.location(place) == nil
+      refute Horizon.allowed?(GameData.location(place), two_badges)
+    end
+  end
+
+  test "Walkthrough notes: one per location, with its badges, filtered by badges earned" do
+    notes = Repo.all(from n in "walkthrough_notes", select: {n.location, n.badges_required})
+
+    assert Enum.sort(notes) ==
+             Enum.sort(for l <- GameData.locations(), do: {l.name, l.badges_required})
+
+    assert GameData.walkthrough_note("Rustboro City", 0) =~ "Roxanne"
+    assert GameData.walkthrough_note("Mauville City", 1) == nil
+    assert GameData.walkthrough_note("Mauville City", 2) =~ "Wattson"
+  end
+
+  test "a notes file with a note for an unlisted place fails the import and changes nothing" do
+    priv = Path.join(System.tmp_dir!(), "maya-notes-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(Path.join(priv, "data"))
+    on_exit(fn -> File.rm_rf!(priv) end)
+
+    for file <- File.ls!("priv/data"), do: File.cp!("priv/data/#{file}", "#{priv}/data/#{file}")
+
+    File.write!(
+      "#{priv}/data/walkthrough_notes.json",
+      ~s([{"location":"Verdanturf Town","badges_required":3,"text":"Quiet."}])
+    )
+
+    counts = row_counts()
+    assert_raise ArgumentError, ~r/Verdanturf Town/, fn -> GameData.import!(priv) end
+    assert row_counts() == counts
   end
 
   test "the import seeds no Progress; a new guest's first read seeds it from priv/progress.json" do
