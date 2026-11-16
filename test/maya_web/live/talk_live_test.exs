@@ -397,6 +397,113 @@ defmodule MayaWeb.TalkLiveTest do
     assert [%Turn{question: "Where is Ralts"}] = Turn.recent(guest)
   end
 
+  # The agent logs the Event the Question names, then answers with the tool's line.
+  defp log_events do
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      last = List.last(Jason.decode!(body)["messages"])
+
+      message =
+        case {last["role"], last["content"]} do
+          {"tool", content} ->
+            %{"role" => "assistant", "content" => content}
+
+          {"user", question} ->
+            %{"role" => "assistant", "content" => nil, "tool_calls" => [log_call(question)]}
+        end
+
+      Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+    end)
+  end
+
+  defp log_call(question) do
+    args =
+      cond do
+        question =~ "badge" ->
+          %{"kind" => "badge_earned", "details" => %{"leader" => "Roxanne"}}
+
+        question =~ "caught" ->
+          %{"kind" => "caught", "details" => %{"species" => "ralts", "level" => 5}}
+
+        question =~ "Dewford" ->
+          %{"kind" => "moved", "details" => %{"location" => "Dewford Town"}}
+
+        true ->
+          %{"kind" => "undo"}
+      end
+
+    %{
+      "id" => "call_#{System.unique_integer([:positive])}",
+      "type" => "function",
+      "function" => %{"name" => "log_event", "arguments" => Jason.encode!(args)}
+    }
+  end
+
+  defp ask_and_hear(view, question) do
+    stub(text(question), &speak/1)
+    ask(view)
+    assert_push_event(view, "audio_done", %{})
+  end
+
+  test "an Event in a turn updates the trainer card without a reload", %{conn: conn} do
+    log_events()
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    assert has_element?(view, "#badge-count", "0 of 8 badges")
+
+    ask_and_hear(view, "I just earned Roxanne's badge")
+    assert has_element?(view, "#badge-count", "1 of 8 badges")
+    assert has_element?(view, "#next-gym", "Next gym: Brawly")
+
+    ask_and_hear(view, "I sailed to Dewford")
+    assert has_element?(view, "#location", "Dewford Town")
+
+    ask_and_hear(view, "I caught a Ralts at level 5")
+    assert has_element?(view, "#team .mon", "Ralts Lv 5")
+
+    ask_and_hear(view, "undo that")
+    refute has_element?(view, "#team .mon", "Ralts")
+    assert has_element?(view, "#location", "Dewford Town")
+
+    ask_and_hear(view, "undo that too")
+    assert has_element?(view, "#location", "Littleroot Town")
+
+    ask_and_hear(view, "and undo the last one")
+    assert has_element?(view, "#badge-count", "0 of 8 badges")
+    assert has_element?(view, "#next-gym", "Next gym: Roxanne")
+  end
+
+  test "a cut after the agent logged an Event still updates the card", %{conn: conn, guest: guest} do
+    me = self()
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      case List.last(Jason.decode!(body)["messages"]) do
+        %{"role" => "tool"} ->
+          send(me, :logged)
+          Process.sleep(:infinity)
+
+        %{"content" => question} ->
+          message = %{
+            "role" => "assistant",
+            "content" => nil,
+            "tool_calls" => [log_call(question)]
+          }
+
+          Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+      end
+    end)
+
+    stub(text("I just earned Roxanne's badge"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    ask(view)
+    assert_receive :logged
+
+    view |> element("#talk-button") |> render_hook("barge_in", %{})
+    _ = Maya.Conversation.turns(guest)
+    assert has_element?(view, "#badge-count", "1 of 8 badges")
+  end
+
   test "playback timings are stored, junk values are dropped", %{conn: conn, guest: guest} do
     stub(text("Where is Ralts"), &speak/1)
     {:ok, view, _html} = live(conn, ~p"/talk")

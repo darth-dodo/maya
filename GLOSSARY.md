@@ -33,8 +33,12 @@ _Avoid_: user, account, session id (in Maya's speech)
 ### The player's game
 
 **Progress**:
-What Maya knows about the player's save: badges earned, team, and current location.
+What Maya knows about the player's save: badges earned, team, PC box, and current location.
 _Avoid_: state, save data, profile
+
+**PC box**:
+Where a catch goes when the Team already has 6, as in the game. Kept in Progress, never shown on the trainer card.
+_Avoid_: storage, bench
 
 **Team**:
 The Pokémon currently in the player's party, with their levels.

@@ -25,10 +25,13 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/maya"
 import topbar from "../vendor/topbar"
 import {TalkHook} from "./talk_hook"
+import {safeStorage} from "./safe_storage"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
+  localStorage: safeStorage(window, "localStorage"),
+  sessionStorage: safeStorage(window, "sessionStorage"),
   params: {_csrf_token: csrfToken},
   hooks: {...colocatedHooks, TalkHook},
 })

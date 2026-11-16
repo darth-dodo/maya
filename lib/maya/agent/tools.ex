@@ -76,7 +76,7 @@ defmodule Maya.Agent.Tools do
             details: %{
               type: "object",
               description:
-                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. level_up: species, level. moved: location. undo: nothing.",
+                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. level_up: species, level. moved: location. released: species. undo: nothing.",
               properties: %{
                 leader: %{type: "string"},
                 badge: %{type: "integer"},

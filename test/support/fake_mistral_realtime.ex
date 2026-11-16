@@ -2,7 +2,8 @@ defmodule Maya.FakeMistralRealtime do
   @moduledoc """
   A test-only Voxtral realtime endpoint on Bandit (design.md, Testing the relay). It sends
   `session.created`, reports every client message to the test process and answers by `mode`:
-  `:ok` sends one delta per audio message and `transcription.done` on end of audio, `:error`
+  `:ok` sends one delta per audio message, then on end of audio the deltas left and
+  `transcription.done` (the real API sends the last deltas after `input_audio.end`), `:error`
   sends an error event, `:close` closes the socket, `:garbage` sends a frame that is not JSON,
   `:stall` never finishes. `Maya.FakeMistralRealtimePlug` does the upgrade.
   """
@@ -61,8 +62,9 @@ defmodule Maya.FakeMistralRealtime do
     do: {:push, {:text, "where do I catch {"}, state}
 
   defp answer("input_audio.end", %{mode: :ok} = state) do
+    late = Enum.map(state.deltas, &text(%{type: "transcription.text.delta", text: &1}))
     done = %{type: "transcription.done", text: "where do I catch Ralts", segments: []}
-    {:push, text(done), state}
+    {:push, late ++ [text(done)], %{state | deltas: []}}
   end
 
   defp answer(_type, state), do: {:ok, state}

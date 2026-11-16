@@ -169,6 +169,9 @@ defmodule Maya.Conversation do
         noreply(%{state | current: %{c | stage: :realtime_final}})
 
       true ->
+        # Preview only: the relay stays open while batch runs, so the words Voxtral sends after
+        # `input_audio.end` still reach the preview (#110).
+        with {pid, _mon} <- c.relay, do: send(pid, :end)
         noreply(batch(state, c))
     end
   end
@@ -228,7 +231,7 @@ defmodule Maya.Conversation do
   end
 
   def handle_info({:partial, ref, text}, %{current: %{ref: ref, stage: stage} = c} = state)
-      when stage in [:listening, :realtime_final] do
+      when stage in [:listening, :realtime_final, :stt] do
     c = %{c | partial: c.partial <> text}
     broadcast(state, {:partial, c.partial})
     noreply(%{state | current: c})
@@ -244,6 +247,10 @@ defmodule Maya.Conversation do
       finished(:stt, {:ok, Vocabulary.correct(text, c.terms), c.progress}, %{state | current: c})
     )
   end
+
+  # Preview only: batch gives the final text, the relay has closed itself.
+  def handle_info({:realtime_done, ref, _text}, %{current: %{ref: ref, stage: :stt} = c} = state),
+    do: noreply(%{state | current: %{c | relay: nil}})
 
   def handle_info(
         {:realtime_failed, ref, reason},
@@ -309,7 +316,6 @@ defmodule Maya.Conversation do
 
   # Batch STT on the hold's buffered audio: the final source, or the fallback.
   defp batch(state, c) do
-    c = close_relay(c)
     wav = Wav.wrap(IO.iodata_to_binary(c.audio), 16_000)
     {terms, progress, me, ref} = {c.terms, c.progress, self(), c.ref}
 
@@ -357,6 +363,10 @@ defmodule Maya.Conversation do
 
   defp stt_ms(c), do: c
 
+  # Batch is final: a preview relay still open stops here, so no late partial follows it.
+  defp finished(:stt, result, %{current: %{relay: {_pid, _mon}} = c} = state),
+    do: finished(:stt, result, %{state | current: close_relay(c)})
+
   defp finished(:stt, {:ok, "", _progress}, state),
     do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
 
@@ -384,13 +394,18 @@ defmodule Maya.Conversation do
     %{state | current: nil}
   end
 
-  defp finished(:agent, {:ok, answer}, state),
-    do: speak(state, state.current.turn.question, answer)
+  defp finished(:agent, {:ok, answer}, state) do
+    state = speak(state, state.current.turn.question, answer)
+    progress_news(state)
+    state
+  end
 
   # Agent or OpenRouter down, or the round cap: one short spoken line, never silence.
   defp finished(:agent, {:error, reason}, state) do
     warn(:agent, reason)
-    speak(state, state.current.turn.question, @lost)
+    state = speak(state, state.current.turn.question, @lost)
+    progress_news(state)
+    state
   end
 
   defp finished(:tts, :ok, state) do
@@ -403,6 +418,14 @@ defmodule Maya.Conversation do
     state = store(state, %{state.current.turn | voice_down: true})
     broadcast(state, :voice_down)
     state
+  end
+
+  # The agent may have logged or undone Events, so the screen redraws its card (#89). Read once TTS
+  # is already streaming, off the path to first sound; a failed read keeps the turn going.
+  defp progress_news(state) do
+    broadcast(state, {:progress, GameData.progress(state.id)})
+  rescue
+    e -> warn(:progress, e)
   end
 
   # Starts streaming the Answer; the turn shows on screen from here.
@@ -438,8 +461,16 @@ defmodule Maya.Conversation do
     end
 
     case c.stage do
-      :tts -> store(state, %{c.turn | cut: true})
-      _hold_stt_or_agent -> %{state | current: nil}
+      :tts ->
+        store(state, %{c.turn | cut: true})
+
+      # A cut agent may have logged Events already.
+      :agent ->
+        progress_news(state)
+        %{state | current: nil}
+
+      _hold_or_stt ->
+        %{state | current: nil}
     end
   end
 
