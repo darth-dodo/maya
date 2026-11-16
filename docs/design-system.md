@@ -187,6 +187,16 @@ Every transition uses `--maya-duration` and `--maya-ease`. Looping state animati
 
 ---
 
+## 5a. Header and theme toggle
+
+Every page (`/`, `/talk`, `/factory`) renders one header, `#site-header` from `Layouts.app/1`: the "Maya" wordmark in Fraunces (`--maya-heading`, a link to `/`), one text link and the theme toggle. The link is "Talk" (to `/talk`) on `/` and `/factory`, and "Home" (to `/`) on `/talk`; pick it with the `link` attr (`:talk` default, `:home`). Height and padding are fixed in `.site-header` (min-height 3.5rem, padding 0.5rem 1rem), so the header matches on every page. Its rules live in their own section of `app.css`; page changes leave them alone.
+
+The theme toggle is one 44px icon button, `#theme-toggle`, with no border or background: a moon by day ("Switch to night"), a sun at night ("Switch to day"). Each icon sits in a span with its own visually hidden name, and CSS on `data-theme` shows one, so the accessible name always says the action. There is no "system" option.
+
+The theme is chosen by the inline script in the `head` of `root.html.heex`, before first paint: no stored choice follows `prefers-color-scheme` (live), a tap stores `light` or `dark` in `localStorage["phx:theme"]` and wins on every later load (an old stored "system" counts as no choice). The click handler is a plain listener in that script, so it works on pages with no LiveView socket. Editing the script changes its CSP `sha256` in `lib/maya_web/router.ex`; the CSP test fails until it is updated.
+
+---
+
 ## 6. The colour gate
 
 `test/maya_web/colour_gate_test.exs` reads `assets/css/app.css` and every `.ex` and `.heex` under `lib/maya_web`, and fails on `#` hex, `rgb()`, `rgba()`, `hsl()` or `oklch()` outside the token layer, naming the file and line. The one exception: the two `theme-color` metas in `root.html.heex` (browsers need a literal). The legacy allow list is empty since design-apply, and the test fails if a `legacy-colours` block comes back. Note that `#` followed by three hex digits counts as a literal, so write "Issue 117", not the bare number, in CSS and template comments.
