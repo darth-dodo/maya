@@ -31,6 +31,16 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* The real italic (homepage headline), same OFL package; not preloaded, so only / fetches it */
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/fraunces-latin-wght-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @font-face {
   font-family: "Inter";
   font-style: normal;
@@ -226,7 +236,7 @@
 
 /* Fraunces for headings, Inter for everything else */
 @layer base {
-  body { font-family: var(--maya-font-body); }
+  body { font-family: var(--maya-font-body); background-color: var(--maya-bg); }
   h1, h2, h3, h4 { font-family: var(--maya-font-head); }
 }
 
@@ -242,8 +252,8 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* Talk screen, layout B3 "rich trainer card" (#66), on the design system (design-apply): it
-   follows the theme, Calm Emerald by day and Emerald night (deep night sea, gold hairline on
-   the cards, the ball glows). Every colour is a token; the contrast pairs are in
+   follows the theme, Calm Emerald by day and Emerald night (deep night sea, the ball
+   glows), with no panel or card box (tide-cohesion). Every colour is a token; the contrast pairs are in
    docs/design-system.md and design_tokens_test.exs.
    The moment lives in #talk-screen[data-state] (server copy of the TalkHook state) and in
    #talk-button[data-state] (the hook's own, instant). Moments: talking = recording,
@@ -251,46 +261,37 @@
 .talk-screen {
   display: grid;
   gap: 0.75rem;
-  padding: 1rem 0.75rem 1.5rem;
-  border-radius: var(--maya-radius-lg);
-  border: 1px solid var(--maya-line);
+  padding-bottom: 1.5rem;
   background-color: var(--maya-bg);
-  background-image: linear-gradient(var(--maya-sea), var(--maya-sea-deep));
   color: var(--maya-ink);
   overflow-wrap: anywhere;
 }
 
 .talk-screen :focus-visible { outline: 3px solid var(--maya-ink); outline-offset: 2px; }
 
-/* The trainer card, a slim Tide header (tide-talk): ball | eyebrow, gym line and badges, then the
-   Team across the full width, so six Team chips wrap in rows (Issue 117). Faint art under a
-   85% --maya-bg scrim, so text keeps its contrast on bg; the gold hairline sits on the bottom. */
+/* The trainer info in the art band, no box: ball | eyebrow, gym line and badges, then the Team
+   across the full width, so six Team chips wrap in rows (Issue 117). Full bleed like the hero. */
 .trainer-card {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 0.375rem 0.875rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--maya-radius-md);
-  border-bottom: 1px solid var(--maya-hairline);
-  --card-art: url("/images/backdrops/tide.jpg");
-  background: linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), color-mix(in srgb, var(--maya-bg) 85%, transparent)), var(--maya-bg) var(--card-art) center / cover;
+  margin-inline: -1rem;
+  padding: 3.75rem 1rem 0.75rem;
+  --band-clear: 1.5rem;
+  --band-solid: 3.5rem;
   /* Sticky HUD (#78): stays under the phone's status bar while the chat scrolls beneath it,
      opaque so the chat never shows through (Issue 117). One height in every moment, so nothing
      moves under the finger (#76). */
   position: sticky;
-  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  top: env(safe-area-inset-top, 0px);
   z-index: 5;
-}
-:root[data-theme="dark"] .trainer-card { --card-art: url("/images/backdrops/night.jpg"); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .trainer-card { --card-art: url("/images/backdrops/night.jpg"); }
 }
 
 .card-ball { position: relative; }
 .card-meta { display: grid; gap: 0.25rem; min-width: 0; }
 .card-eyebrow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.5rem; }
-.card-eyebrow .badge-count::before { content: "·" / ""; margin-right: 0.5rem; }
+.card-eyebrow .badge-count::before { content: "·"; content: "·" / ""; margin-right: 0.5rem; }
 .card-label {
   font-size: var(--maya-text-xs);
   font-weight: 700;
@@ -433,9 +434,8 @@
 #conversation { display: grid; gap: 0.75rem; }
 .turn { display: grid; gap: 0.375rem; font-size: var(--maya-text-base); line-height: 1.45; color: var(--maya-muted); }
 .turn + .turn { border-top: 1px solid var(--maya-line); padding-top: 0.75rem; }
-.turn .you { justify-self: end; max-width: 86%; text-align: right; }
-/* Live words while held (ADR-009): lighter until the final transcript replaces them. */
-.turn .you.live { color: var(--maya-muted); }
+/* Every Question small and muted like the homepage real turn, live words too (ADR-009) */
+.turn .you { justify-self: end; max-width: 86%; text-align: right; font-size: var(--maya-text-sm); color: var(--maya-muted); }
 .turn .maya { justify-self: start; }
 .turn.now { color: var(--maya-ink); }
 .turn.now .maya { font-size: var(--maya-text-xl); font-weight: 500; line-height: 1.3; }
@@ -625,7 +625,6 @@
   color: var(--maya-heading);
 }
 .home-tagline { font-family: var(--maya-font-head); font-size: var(--maya-text-lg); font-weight: 600; }
-.home-catchphrase { font-style: italic; font-weight: 500; color: var(--maya-muted); }
 .home-lead { max-width: 34rem; margin-top: 0.5rem; line-height: 1.5; }
 .home-cta {
   display: inline-flex;
@@ -649,18 +648,6 @@
 
 .home-section { display: grid; gap: 0.75rem; }
 .home-section h2 { font-size: 1.5rem; font-weight: 700; color: var(--maya-heading); }
-
-.demo-shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
-.demo-shots figure { max-width: 22rem; justify-self: center; }
-.demo-shots img,
-.demo-video {
-  width: 100%;
-  height: auto;
-  border-radius: var(--maya-radius-md);
-  border: 1px solid var(--maya-line);
-  box-shadow: var(--maya-shadow-1);
-}
-.demo-transcript-box summary { display: flex; align-items: center; min-height: 2.75rem; font-weight: 600; cursor: pointer; }
 
 /* The voice loop as four connected steps in one column (the page column is narrow) */
 .loop { display: grid; gap: 0.75rem; counter-reset: loop; }
@@ -714,26 +701,34 @@
 /* Tide homepage (tide-homepage): backdrop hero, a real turn, Meet Maya, ruled loop, sea band.
    Scoped to .home-tide so /factory keeps the shared .home rules above. */
 .home-tide { gap: 2.5rem; }
+/* The art band (tide-cohesion), one fade recipe for the homepage hero and the Talk trainer
+   info: the art shows clear down to --band-clear and is solid --maya-bg by --band-solid, and
+   every text starts below --band-solid, so text sits on bg and keeps its contrast pairs.
+   It lives here so the homepage block holds every backdrop url(). */
+.home-tide .home-hero, .trainer-card {
+  --band-art: url("/images/backdrops/tide.jpg");
+  background: linear-gradient(transparent 0 var(--band-clear), var(--maya-bg) var(--band-solid)) no-repeat, var(--band-art) center top / cover no-repeat, var(--maya-bg);
+}
+:root[data-theme="dark"] :is(.home-tide .home-hero, .trainer-card) { --band-art: url("/images/backdrops/night.jpg"); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.home-tide .home-hero, .trainer-card) { --band-art: url("/images/backdrops/night.jpg"); }
+}
+
 .home-tide .home-hero {
-  --hero-art: url("/images/backdrops/tide.jpg");
+  --band-clear: 6rem;
+  --band-solid: 9.5rem;
   min-height: 35rem;
   margin-inline: -1rem;
   align-content: end;
   justify-items: start;
   gap: 0.75rem;
-  padding: 7rem 1.25rem 1.5rem;
+  padding: 10rem 1.25rem 1.5rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   text-align: left;
-  /* The art fades into the page background above the top padding, so text sits on --maya-bg */
-  background: linear-gradient(transparent 0, var(--maya-bg) 6.5rem) no-repeat, var(--hero-art) center top / cover no-repeat, var(--maya-bg);
 }
-:root[data-theme="dark"] .home-tide .home-hero { --hero-art: url("/images/backdrops/night.jpg"); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .home-tide .home-hero { --hero-art: url("/images/backdrops/night.jpg"); }
-}
-.home-tide .home-heading { font-size: clamp(3rem, 17vw, 4rem); line-height: 1; }
+.home-tide .home-heading { font-size: clamp(2.75rem, 14vw, 3.5rem); font-style: italic; font-weight: 600; line-height: 1; }
 .home-tide .home-eyebrow {
   font-family: var(--maya-font-body);
   font-size: var(--maya-text-sm);
@@ -785,7 +780,7 @@
 .home-tide .loop li::before { left: 0; top: 0.875rem; }
 .home-tide .loop li + li::after { content: none; }
 
-.promise-band {
+.home-tide .promise-band {
   display: grid;
   gap: 0.75rem;
   padding: 2rem 1.25rem;
@@ -793,8 +788,8 @@
   border: 1px solid var(--maya-hairline);
   background: var(--maya-sea);
 }
-.promise-band h2 { font-size: var(--maya-text-2xl); font-weight: 700; line-height: 1.1; color: var(--maya-heading); }
-.promise-band p { line-height: 1.5; }
+.home-tide .promise-band h2 { font-size: var(--maya-text-2xl); font-weight: 700; line-height: 1.1; color: var(--maya-heading); }
+.home-tide .promise-band p { line-height: 1.5; }
 
 /* Site footer: the art from docs/assets/footer.svg, drawn with token colours so it follows the theme */
 .site-footer { display: grid; gap: 0.75rem; margin-top: 1rem; }

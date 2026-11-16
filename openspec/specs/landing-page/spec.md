@@ -7,13 +7,14 @@ The public home page at `/`: the hero, a real turn, Meet Maya, the voice loop, t
 ## Requirements
 
 ### Requirement: Maya identity on the home page
-The home page at `/` SHALL be public. Its header SHALL read "Maya" (a link to `/`) and SHALL have a link "Talk" to `/talk`. The page SHALL have exactly one top-level heading, "Ask out loud. No spoilers.", with id `home-heading`. The tagline "Maps, Answers, Yaps, Advice." SHALL be in `#home-tagline` and the line "So I hear you like Mudkip. Good. Correct choice." in `#home-catchphrase`. It SHALL NOT show the Talk screen (`#talk-screen`) or the Talk heading `#talk-heading`.
+The home page at `/` SHALL be public. Its header SHALL read "Maya" (a link to `/`) and SHALL have a link "Talk" to `/talk`. The page SHALL have exactly one top-level heading, "Your Pokédex has a voice now.", with id `home-heading`. The tagline "Maps, Answers, Yaps, Advice." SHALL be in `#home-tagline` and the line "So I hear you like Mudkip. Good. Correct choice." in `#home-catchphrase`. It SHALL NOT show the Talk screen (`#talk-screen`) or the Talk heading `#talk-heading`.
 
 #### Scenario: Visitor opens the home page
 - **WHEN** a visitor requests `/`
 - **THEN** the response is HTTP 200
 - **AND** the header link to `/` reads "Maya" and the header has a link `#header-talk-link` reading "Talk" to `/talk`
-- **AND** the page has one `h1`, `#home-heading`, reading "Ask out loud. No spoilers."
+- **AND** the page has one `h1`, `#home-heading`, reading "Your Pokédex has a voice now."
+- **AND** the page does not contain "Ask out loud. No spoilers."
 - **AND** `#home-tagline` reads "Maps, Answers, Yaps, Advice."
 - **AND** `#home-catchphrase` reads "So I hear you like Mudkip. Good. Correct choice."
 - **AND** the page has no `#talk-screen`, no `#talk-heading` and no `#talk-button`
@@ -56,7 +57,7 @@ The home page SHALL NOT load images, video, captions, fonts, stylesheets or scri
 - **THEN** every `url()` in it starts with `/images/backdrops/` or `/fonts/`
 
 ### Requirement: Hero
-The home page SHALL open with a hero `#home-hero`: the tide backdrop by day and the night backdrop at night, full bleed and fading into the page background, then the eyebrow "A Pokémon Emerald companion", the heading, one line of body copy, the call to action `#talk-link` as a pill, and the mic note `#mic-note`. The heading SHALL use the heading font at about 64px on a 375px wide screen. The hero SHALL hold no `img` and no ball.
+The home page SHALL open with a hero `#home-hero`: the tide backdrop by day and the night backdrop at night, full bleed, at full strength at the top and fading into the page background below, then the eyebrow "A Pokémon Emerald companion", the heading, one line of body copy, the call to action `#talk-link` as a pill, and the mic note `#mic-note`. The heading SHALL use the heading font in italic, weight 600, at about 52px on a 375px wide screen. The hero SHALL hold no `img` and no ball.
 
 #### Scenario: Hero parts
 - **WHEN** a visitor requests `/`
@@ -70,7 +71,13 @@ The home page SHALL open with a hero `#home-hero`: the tide backdrop by day and 
 
 #### Scenario: Hero size on a phone
 - **WHEN** `/` renders at 375px wide
-- **THEN** `#home-hero` is between 500 and 620px tall and `#home-heading` has a computed font size between 56 and 68px
+- **THEN** `#home-hero` is between 500 and 620px tall
+- **AND** `#home-heading` has a computed font size between 48 and 56px, `font-style` italic, `font-weight` 600 and a font family starting with "Fraunces"
+
+#### Scenario: More art, fading at the bottom
+- **WHEN** `/` renders at 375px wide in either theme
+- **THEN** the fade over the art is fully transparent for at least the top 96px of `#home-hero`
+- **AND** it reaches opaque `--maya-bg` no less than 144px from the top of `#home-hero` and at or above the top of `#home-eyebrow`, so all hero text sits on `--maya-bg`
 
 ### Requirement: Voice loop section
 The home page SHALL have a section `#voice-loop` headed "How a turn works", showing the loop as four numbered steps `.loop-step`: "Hold", "Transcribe", "Agent with tools", "Speak", each on a line separated by a hairline rule, with no boxed cards and no image file. It SHALL show per-stage latency numbers only once they are measured on the phone and recorded in the repo; until then it SHALL show the note `#latency-pending` and no millisecond or second figures.
