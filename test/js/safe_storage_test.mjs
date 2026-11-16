@@ -1,6 +1,7 @@
 // The storage handed to LiveSocket when the browser blocks storage (#157).
 import {test} from "node:test"
 import assert from "node:assert/strict"
+import {readFileSync} from "node:fs"
 import {safeStorage} from "../../assets/js/safe_storage.js"
 
 const blocked = {
@@ -28,4 +29,10 @@ test("working storage: the browser's own object, unchanged", () => {
   const data = {}
   const real = {getItem: (k) => data[k] ?? null, setItem: (k, v) => (data[k] = v), removeItem: (k) => delete data[k]}
   assert.equal(safeStorage({localStorage: real}, "localStorage"), real)
+})
+
+test("app.js hands both stand-ins to LiveSocket", () => {
+  const app = readFileSync(new URL("../../assets/js/app.js", import.meta.url), "utf8")
+  assert.match(app, /localStorage: safeStorage\(window, "localStorage"\)/)
+  assert.match(app, /sessionStorage: safeStorage\(window, "sessionStorage"\)/)
 })
