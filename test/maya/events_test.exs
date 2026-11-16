@@ -6,6 +6,7 @@ defmodule Maya.EventsTest do
   @progress %{
     badges: [],
     team: [%{"species" => "mudkip", "level" => 5}],
+    box: [],
     location: "Littleroot Town",
     humor: 75
   }
@@ -76,11 +77,59 @@ defmodule Maya.EventsTest do
                {:refused, "That Pokémon is not in my data."}
     end
 
-    test "a full Team is refused" do
+    test "with a full Team it goes to the PC box, never refused (#116)" do
       team = List.duplicate(%{"species" => "mudkip", "level" => 5}, 6)
 
-      assert {:refused, "The Team is full at 6, so I left it as is."} =
+      assert {:ok, progress, "Ralts level 4 sent to the PC, the Team is full at 6."} =
                change(%{@progress | team: team}, "caught", %{"species" => "ralts", "level" => 4})
+
+      assert progress.team == team
+      assert progress.box == [%{"species" => "ralts", "level" => 4}]
+    end
+  end
+
+  describe "released" do
+    test "removes one matching Pokémon from the Team, so a duplicate can be fixed (#116)" do
+      team = [%{"species" => "mudkip", "level" => 5}, %{"species" => "ralts", "level" => 4}]
+      dup = %{@progress | team: team ++ [%{"species" => "ralts", "level" => 4}]}
+
+      assert {:ok, progress, "Ralts released from the Team."} =
+               change(dup, "released", %{"species" => "Ralts"})
+
+      assert progress.team == team
+    end
+
+    test "falls back to the PC box" do
+      boxed = %{@progress | box: [%{"species" => "ralts", "level" => 4}]}
+
+      assert {:ok, %{box: [], team: [_]}, "Ralts released from the PC."} =
+               change(boxed, "released", %{"species" => "ralts"})
+    end
+
+    test "a Pokémon in neither is refused" do
+      assert change("released", %{"species" => "ralts"}) ==
+               {:refused, "I can only release a Pokémon on your Team or in the PC."}
+    end
+  end
+
+  describe "repeat?" do
+    @poochyena %{"species" => "Poochyena", "level" => 9}
+    @recent [%{details: %{"species" => "poochyena ", "level" => 9}}]
+
+    defp holding_poochyena,
+      do: %{@progress | team: @progress.team ++ [%{"species" => "poochyena", "level" => 9}]}
+
+    test "the same catch logged again in the window is a repeat (#116)" do
+      assert Events.repeat?(holding_poochyena(), @poochyena, @recent)
+    end
+
+    test "a catch at another level, or none in the window, is not a repeat" do
+      refute Events.repeat?(holding_poochyena(), @poochyena, [])
+      refute Events.repeat?(holding_poochyena(), %{@poochyena | "level" => 10}, @recent)
+    end
+
+    test "a catch after that Pokémon was released is not a repeat" do
+      refute Events.repeat?(@progress, @poochyena, @recent)
     end
   end
 
