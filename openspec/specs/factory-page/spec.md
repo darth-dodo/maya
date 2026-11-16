@@ -56,12 +56,12 @@ The page SHALL have a section `#review-reward` explaining that review findings a
 - **AND** every number in `#review-reward` appears in the "Review reward backfill" section of `docs/factory/experiments.md`
 
 ### Requirement: Flywheel
-The page SHALL have a section `#flywheel` explaining the loop: a retro with one lesson after every merge, and every 5 retros one experiment, kept or reverted on its metric, with lessons folded into `docs/factory/LESSONS.md`.
+The page SHALL have a section `#flywheel` explaining the loop: every 10 merged PRs a retro batch with one lesson per PR, and after each batch one experiment, kept or reverted on its metric, with lessons folded into `docs/factory/LESSONS.md`.
 
 #### Scenario: Flywheel parts
 - **WHEN** a visitor requests `/factory`
 - **THEN** `#flywheel` contains `#experiments` and `#review-reward`
-- **AND** its text names "retro" and "5"
+- **AND** its text names "retro" and "10"
 
 ### Requirement: Source links
 The page SHALL link to FACTORY.md and the Elixir and Phoenix in 5 minutes explainer on GitHub, and SHALL NOT load any asset from another host.

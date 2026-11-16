@@ -1,6 +1,6 @@
 ---
 name: factory:improve
-description: Use when factory:retro says 5 new retros exist, or when asked to improve the Maya factory from its metrics. Hill climbs: one experiment PR at a time, kept or reverted on the numbers, and folds new lessons into docs/factory/LESSONS.md.
+description: Use right after each factory:retro batch (10 new rows), or when asked to improve the Maya factory from its metrics. Hill climbs: one experiment PR at a time, kept or reverted on the numbers, and folds new lessons into docs/factory/LESSONS.md.
 ---
 
 # factory:improve
@@ -9,7 +9,7 @@ Flywheel step 2 (FACTORY.md "Flywheel"). Inputs: `~/maya-factory/metrics.csv`, `
 
 ## When
 
-Run when `metrics.csv` has 5 rows with `merged_at` after the `Last improve run` line in `experiments.md` (`never`: the first 5 rows ever). Fewer than 5: stop and say how many are missing. Every run, including a close-only one, updates that line to the newest `merged_at` it used, in the same PR.
+Run right after each `factory:retro` batch (every 10 merged PRs). The trigger is unchanged: `metrics.csv` has 5 rows with `merged_at` after the `Last improve run` line in `experiments.md` (`never`: the first 5 rows ever). Fewer than 5: stop and say how many are missing. Every run, including a close-only one, updates that line to the newest `merged_at` it used, in the same PR.
 
 ## 1. Close the running experiment
 

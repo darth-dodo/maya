@@ -1,5 +1,5 @@
 # FACTORY.md: Maya Software Factory
-Last updated: 14 Nov 2026
+Last updated: 16 Nov 2026
 
 ## Purpose
 An agent-run pipeline that builds Maya from PRODUCT.md to a live Render deploy.
@@ -120,17 +120,17 @@ Entry points (project skills, run in order, each step gated by its "done when"):
 | `factory:resume [#N]` | Build | Restores the worktree from the branch, re-runs the gates, continues `factory:build` from the recorded step |
 | `factory:cleanup` | Housekeeping | Removes local worktrees and branches whose PR merged and tree is clean; lists remote branches to delete |
 | `factory:review <pr>` | 5 Review | Matt `code-review`, the definition of done checklist, blocking vs non-blocking, one PR comment |
-| `factory:retro <pr>` | After 7 Gate | Metrics row and one lesson for the merged Issue in `~/maya-factory/`; no PR |
-| `factory:improve` | Flywheel | Every 5 retros: medians, worst metric, ONE experiment PR, keep or revert the last one, folds lessons into `docs/factory/LESSONS.md` |
+| `factory:retro` | After 7 Gate, in batches | Once 10 merged PRs have no row: a metrics row and one lesson for each of the 10 in `~/maya-factory/`; no PR |
+| `factory:improve` | Flywheel | Right after each retro batch: medians, worst metric, ONE experiment PR, keep or revert the last one, folds lessons into `docs/factory/LESSONS.md` |
 | `factory:recap` | Any time | Under 15 lines: merged PRs, open Issues and blockers, main CI, metric trend, new lessons, gym reminder; writes nothing |
 
 Single-skill stations need no wrapper: intake interviews (`grill-with-docs`), ship (`render-deploy`, `release-manager`), you (`quiz-me`).
 
 ## Flywheel
 
-Every merged PR makes the factory a little better, measured, one change at a time.
-- `factory:retro <pr>` (run by `factory:build` step 11): one metrics row per Issue in `~/maya-factory/metrics.csv` and a retro file `~/maya-factory/retros/<issue>.md` with one lesson. Raw data stays outside the repo, like the `quiz-me` log.
-- `factory:improve` (every 5 retros): compares medians of the last 5 vs the 5 before, opens ONE experiment PR for the worst metric and logs it in `docs/factory/experiments.md`; after the next 5 it keeps or reverts it. It also folds lessons into `docs/factory/LESSONS.md`, which `factory:build` reads at step 4.
+Every 10 merged PRs make the factory a little better, measured, one change at a time (retro cadence decided 2026-11-16: "Let's do a retro every 10 prs").
+- `factory:retro` (checked at `factory:build` step 11): once 10 merged PRs have no row, one batch backfills all 10: one metrics row per Issue in `~/maya-factory/metrics.csv` and a retro file `~/maya-factory/retros/<issue>.md` with one lesson. Raw data stays outside the repo, like the `quiz-me` log.
+- `factory:improve` (right after each retro batch, which always brings at least 5 new rows): compares medians of the last 5 vs the 5 before, opens ONE experiment PR for the worst metric and logs it in `docs/factory/experiments.md`; after the next 5 it keeps or reverts it. It also folds lessons into `docs/factory/LESSONS.md`, which `factory:build` reads at step 4.
 - Review reward (scored by `factory:retro`, never by the reviewer, who shares the builder's model family): each `factory:review` finding F1, F2, ... is good when a later commit changed its `file:line` with a test that fails without the change, weaker when changed untested, noise when dismissed; an escaped defect no finding flagged is a miss. `review_precision` and `review_misses` measure it after merge, because only the code and production show which findings mattered.
 - `factory:recap`: the on-demand digest that replaces the 21:00 Telegram digest (PHASE_2.md).
 - The repo only changes through `factory:improve` PRs; local data lost with the machine is acceptable.
