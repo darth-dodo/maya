@@ -85,6 +85,14 @@ export function holdReport(endedBy, pressedAt, releasedAt, lostCapture, micLiveA
   return report
 }
 
+// Which event ends the hold, or null: only the pressing pointer's pointerup or pointercancel,
+// wherever it lands. After a lost capture the lift targets another element, never the button
+// (#83), so the hook listens on the document; a lost capture alone ends nothing.
+export function holdEndedBy(heldPointerId, e) {
+  const ends = e.type === "pointerup" || e.type === "pointercancel"
+  return ends && heldPointerId != null && e.pointerId === heldPointerId ? e.type : null
+}
+
 // The pre-roll ring (#94): the blocks heard while the mic is warm and no hold is active, cut to
 // the last `max` samples. Only a press ever reads it; everything older is dropped here.
 export function pushPreRoll(ring, block, max) {
@@ -141,9 +149,15 @@ export const TalkHook = {
     this.state = "idle" // the server renders idle on the button and the screen root
 
     this.el.addEventListener("pointerdown", e => this.press(e))
-    this.el.addEventListener("pointerup", () => this.release("pointerup"))
-    // A real cancel (app switch, palm rejection) still stops recording and sends the clip.
-    this.el.addEventListener("pointercancel", () => this.release("pointercancel"))
+    // On the document from press to lift, so a lift off the button after a lost capture still
+    // ends the hold (#83), in the capture phase so no stopPropagation below can hide it. A real
+    // cancel (app switch, palm rejection) still stops recording and sends the clip.
+    this.onPointerEnd = e => {
+      const endedBy = holdEndedBy(this.pointerId, e)
+      if (!endedBy) return
+      this.unlistenPointerEnd()
+      this.release(endedBy)
+    }
     // Only noted: it also follows every pointerup, so releasing on it would end a hold twice,
     // or early when capture is lost mid-hold.
     this.el.addEventListener("lostpointercapture", () => { if (this.pressed) this.lostCapture = true })
@@ -166,10 +180,17 @@ export const TalkHook = {
 
   destroyed() {
     document.removeEventListener("visibilitychange", this.onVisibility)
+    this.unlistenPointerEnd()
     clearTimeout(this.tailTimer)
     this.stopAudio()
     this.dropMic()
     this.ctx?.close()
+  },
+
+  unlistenPointerEnd() {
+    this.pointerId = null
+    document.removeEventListener("pointerup", this.onPointerEnd, true)
+    document.removeEventListener("pointercancel", this.onPointerEnd, true)
   },
 
   dropMic() {
@@ -237,6 +258,9 @@ export const TalkHook = {
       this.set("idle")
     }
     this.el.setPointerCapture?.(e.pointerId)
+    this.pointerId = e.pointerId
+    document.addEventListener("pointerup", this.onPointerEnd, true)
+    document.addEventListener("pointercancel", this.onPointerEnd, true)
     // Created and resumed inside the gesture, or iOS keeps it suspended. Also wakes it after
     // maybeSleep; on a warm press it is already running, so this costs nothing.
     this.ctx ||= new (window.AudioContext || window.webkitAudioContext)()
