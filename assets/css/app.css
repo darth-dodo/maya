@@ -273,7 +273,8 @@
   padding: 0.625rem 0.875rem;
   border-radius: var(--maya-radius-md);
   border-bottom: 1px solid var(--maya-hairline);
-  background: linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), color-mix(in srgb, var(--maya-bg) 85%, transparent)), var(--maya-bg) url("/images/backdrops/tide.jpg") center / cover;
+  --card-art: url("/images/backdrops/tide.jpg");
+  background: linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), color-mix(in srgb, var(--maya-bg) 85%, transparent)), var(--maya-bg) var(--card-art) center / cover;
   /* Sticky HUD (#78): stays under the phone's status bar while the chat scrolls beneath it,
      opaque so the chat never shows through (Issue 117). One height in every moment, so nothing
      moves under the finger (#76). */
@@ -281,13 +282,9 @@
   top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
   z-index: 5;
 }
-:root[data-theme="dark"] .trainer-card {
-  background: linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), color-mix(in srgb, var(--maya-bg) 85%, transparent)), var(--maya-bg) url("/images/backdrops/night.jpg") center / cover;
-}
+:root[data-theme="dark"] .trainer-card { --card-art: url("/images/backdrops/night.jpg"); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .trainer-card {
-    background: linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), color-mix(in srgb, var(--maya-bg) 85%, transparent)), var(--maya-bg) url("/images/backdrops/night.jpg") center / cover;
-  }
+  :root:not([data-theme="light"]) .trainer-card { --card-art: url("/images/backdrops/night.jpg"); }
 }
 
 .card-ball { position: relative; }
@@ -504,7 +501,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: 4.5rem;
+  min-height: 4.5rem;
   padding: 0.5rem 1rem;
   border-radius: var(--maya-radius-pill);
   border: 1px solid var(--maya-hairline);

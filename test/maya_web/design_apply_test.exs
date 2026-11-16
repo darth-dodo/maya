@@ -36,16 +36,16 @@ defmodule MayaWeb.DesignApplyTest do
 
   # tide-talk: Slim header over tide art
   test "header art per theme: tide by day, night in both night scopes, under an 85% bg scrim" do
-    scrim =
-      "linear-gradient(color-mix(in srgb, var(--maya-bg) 85%, transparent), " <>
-        "color-mix(in srgb, var(--maya-bg) 85%, transparent))"
+    card = rule(".trainer-card")
+    assert card["background"] =~ "color-mix(in srgb, var(--maya-bg) 85%, transparent)"
+    assert card["background"] =~ "var(--card-art)"
+    assert card["--card-art"] == ~s|url("/images/backdrops/tide.jpg")|
 
-    assert rule(".trainer-card")["background"] ==
-             "#{scrim}, var(--maya-bg) url(\"/images/backdrops/tide.jpg\") center / cover"
-
-    night = "#{scrim}, var(--maya-bg) url(\"/images/backdrops/night.jpg\") center / cover"
-    assert rule(~S|:root[data-theme="dark"] .trainer-card|)["background"] == night
-    assert rule(~S|:root:not([data-theme="light"]) .trainer-card|)["background"] == night
+    for scope <- [
+          ~S|:root[data-theme="dark"] .trainer-card|,
+          ~S|:root:not([data-theme="light"]) .trainer-card|
+        ],
+        do: assert(rule(scope)["--card-art"] == ~s|url("/images/backdrops/night.jpg")|)
   end
 
   test "header keeps one height in every moment: no per-state layout rule on the card" do
@@ -79,7 +79,7 @@ defmodule MayaWeb.DesignApplyTest do
   # tide-talk: Talk button in the thumb zone
   test "Talk button is a 72px pill" do
     button = rule(".talk-button")
-    assert button["height"] == "4.5rem"
+    assert button["min-height"] == "4.5rem"
     assert button["border-radius"] == "var(--maya-radius-pill)"
   end
 

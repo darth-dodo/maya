@@ -299,7 +299,7 @@ The Talk screen SHALL take every colour, font, radius, shadow and transition fro
 #### Scenario: Night look
 
 - **WHEN** `/talk` renders with `data-theme="dark"`
-- **THEN** the screen background computes to the night `--maya-bg` (`#08181a`), the trainer card border colour computes to the gold hairline (`#b58a2a`), and Maya's ball has a box shadow glow
+- **THEN** the screen background computes to the night `--maya-bg` (`#08181a`), the trainer card bottom border colour computes to the gold hairline (`#b58a2a`), and Maya's ball has a box shadow glow
 
 #### Scenario: Day look
 
