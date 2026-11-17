@@ -77,7 +77,7 @@ defmodule Maya.Agent.Tools do
             details: %{
               type: "object",
               description:
-                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. set_level: species, level (up or down). moved: location. released, deposited (Team to PC), withdrawn (PC to Team), set_lead: species. set_team: team, the whole Team in one call. undo: nothing.",
+                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. set_level: species, level (up or down). moved: location. released, deposited (Team to PC), withdrawn (PC to Team), set_lead: species. set_team: team (species and level each), the whole Team in one call. undo: nothing.",
               properties: %{
                 team: %{
                   type: "array",
