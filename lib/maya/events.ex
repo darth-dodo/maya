@@ -11,8 +11,11 @@ defmodule Maya.Events do
   alias Maya.Agent.Facts
   alias Maya.{GameData, Horizon, Repo}
 
-  @kinds ~w(badge_earned caught evolved level_up moved released undo)
+  @kinds ~w(badge_earned caught evolved level_up moved released deposited withdrawn set_lead set_team set_level undo)
+  # Team changes that can leave Progress as it was; then no Event is written (team-voice).
+  @team_kinds ~w(set_lead set_team set_level)
   @team_max 6
+  @stale {:refused, "That Pokémon moved, so nothing changed."}
   # A catch repeated this soon is the agent logging it again, not a second catch (#116).
   # shortcut: a real identical second catch inside the window is not logged; upgrade to a
   # per-turn key if Guests hit it.
@@ -54,23 +57,134 @@ defmodule Maya.Events do
     end
   end
 
-  def change(progress, "released", %{"species" => name}, _data) when is_binary(name) do
+  def change(progress, "released", %{"species" => name} = details, _data) when is_binary(name) do
     wanted = Facts.species_name(name)
-    index = &Enum.find_index(&1, fn member -> member["species"] == wanted end)
 
-    cond do
-      i = index.(progress.team) ->
+    case {pick(progress.team, wanted, details), box_pick(progress.box, wanted, details)} do
+      {:stale, _} ->
+        @stale
+
+      {i, _} when is_integer(i) ->
         {:ok, %{progress | team: List.delete_at(progress.team, i)},
          "#{say(wanted)} released from the Team."}
 
-      i = index.(progress.box) ->
+      {nil, i} when is_integer(i) ->
         {:ok, %{progress | box: List.delete_at(progress.box, i)},
          "#{say(wanted)} released from the PC."}
 
-      true ->
+      _none ->
         {:refused, "I can only release a Pokémon on your Team or in the PC."}
     end
   end
+
+  def change(progress, "deposited", %{"species" => name} = details, _data) when is_binary(name) do
+    wanted = Facts.species_name(name)
+
+    case pick(progress.team, wanted, details) do
+      :stale ->
+        @stale
+
+      nil ->
+        {:refused, "I can only deposit a Pokémon on your Team."}
+
+      _i when length(progress.team) == 1 ->
+        {:refused, "Your Team needs at least one Pokémon."}
+
+      i ->
+        {member, team} = List.pop_at(progress.team, i)
+
+        {:ok, %{progress | team: team, box: progress.box ++ [member]},
+         "#{say(wanted)} sent to the PC."}
+    end
+  end
+
+  def change(progress, "withdrawn", %{"species" => name} = details, _data) when is_binary(name) do
+    wanted = Facts.species_name(name)
+
+    case pick(progress.box, wanted, details) do
+      :stale ->
+        @stale
+
+      nil ->
+        {:refused, "I can only withdraw a Pokémon in the PC."}
+
+      _i when length(progress.team) >= @team_max ->
+        # The lowest level member, ties to the last in Team order (Abhishek, 2026-11-16).
+        lowest = progress.team |> Enum.reverse() |> Enum.min_by(& &1["level"])
+
+        {:refused,
+         "The Team is full at #{@team_max}. Deposit one first, maybe #{say(lowest["species"])}."}
+
+      i ->
+        {member, box} = List.pop_at(progress.box, i)
+
+        {:ok, %{progress | team: progress.team ++ [member], box: box},
+         "#{say(wanted)} level #{member["level"]} joined the Team."}
+    end
+  end
+
+  def change(progress, "set_lead", %{"species" => name} = details, _data) when is_binary(name) do
+    wanted = Facts.species_name(name)
+
+    case pick(progress.team, wanted, details) do
+      :stale ->
+        @stale
+
+      0 ->
+        {:ok, progress, "#{say(wanted)} already leads the Team."}
+
+      nil ->
+        if pick(progress.box, wanted),
+          do: {:refused, "#{say(wanted)} is in the PC, withdraw it first."},
+          else: {:refused, "Only a Pokémon on your Team can lead."}
+
+      i ->
+        {member, rest} = List.pop_at(progress.team, i)
+        {:ok, %{progress | team: [member | rest]}, "#{say(wanted)} leads the Team now."}
+    end
+  end
+
+  def change(progress, "set_level", %{"species" => name, "level" => level} = details, _data)
+      when is_binary(name) do
+    wanted = Facts.species_name(name)
+
+    with :ok <- level(level) do
+      case {pick(progress.team, wanted, details), box_pick(progress.box, wanted, details)} do
+        {:stale, _} -> @stale
+        {i, _} when is_integer(i) -> set_level(progress, :team, i, level)
+        {nil, i} when is_integer(i) -> set_level(progress, :box, i, level)
+        _none -> {:refused, "I can only set a level for a Pokémon on your Team or in the PC."}
+      end
+    end
+  end
+
+  def change(progress, "set_team", %{"team" => named}, data)
+      when is_list(named) and length(named) in 1..@team_max do
+    named
+    |> Enum.reduce_while({[], progress.team, progress.box}, fn entry, {team, left, box} ->
+      case take(entry, left, box, data) do
+        {:ok, member, left, box} -> {:cont, {[member | team], left, box}}
+        refused -> {:halt, refused}
+      end
+    end)
+    |> case do
+      {team, left, box} ->
+        team = Enum.reverse(team)
+        new = %{progress | team: team, box: box ++ left}
+        list = Enum.map_join(team, ", ", &"#{say(&1["species"])} level #{&1["level"]}")
+        sent = if left == [], do: "", else: " #{length(left)} sent to the PC."
+
+        if new == progress,
+          do: {:ok, progress, "That is already your Team."},
+          else: {:ok, new, "Team set: #{list}.#{sent}"}
+
+      refused ->
+        refused
+    end
+  end
+
+  def change(_progress, "set_team", _details, _data),
+    do: {:refused, "A Team holds 1 to #{@team_max} Pokémon."}
 
   def change(progress, "level_up", %{"species" => name, "level" => level}, _data)
       when is_binary(name) do
@@ -134,6 +248,57 @@ defmodule Maya.Events do
       nil -> {:refused, "I can only log that for a Pokémon on your Team."}
       index -> {:ok, index}
     end
+  end
+
+  # The index of the member to change: the 1-based `slot` the screen sent, checked against the
+  # species so a stale screen changes nothing, else the first member of that species.
+  defp pick(list, wanted, %{"slot" => slot}) do
+    if is_integer(slot) and slot >= 1 and match?(%{"species" => ^wanted}, Enum.at(list, slot - 1)),
+      do: slot - 1,
+      else: :stale
+  end
+
+  defp pick(list, wanted, _details), do: pick(list, wanted)
+  defp pick(list, wanted), do: Enum.find_index(list, &(&1["species"] == wanted))
+
+  # A slot on these kinds names a Team position, so the PC box is searched only without one.
+  defp box_pick(_box, _wanted, %{"slot" => _}), do: nil
+  defp box_pick(box, wanted, _details), do: pick(box, wanted)
+
+  defp set_level(progress, where, i, level) do
+    member = Enum.at(Map.fetch!(progress, where), i)
+    name = say(member["species"])
+
+    if member["level"] == level do
+      {:ok, progress, "#{name} is already level #{level}."}
+    else
+      list = List.replace_at(Map.fetch!(progress, where), i, %{member | "level" => level})
+      {:ok, Map.put(progress, where, list), "#{name} is level #{level} now."}
+    end
+  end
+
+  # One `set_team` member: taken from the Team members not yet named, then the PC box, else new.
+  defp take(%{"species" => name} = entry, left, box, data) when is_binary(name) do
+    level = entry["level"]
+
+    with {:ok, species} <- species(name, data),
+         :ok <- if(level == nil, do: :ok, else: level(level)) do
+      wanted = species.name
+
+      cond do
+        i = pick(left, wanted) -> taken(List.pop_at(left, i), level, box, :left)
+        i = pick(box, wanted) -> taken(List.pop_at(box, i), level, left, :box)
+        level == nil -> {:refused, "What level is #{say(wanted)}?"}
+        true -> {:ok, %{"species" => wanted, "level" => level}, left, box}
+      end
+    end
+  end
+
+  defp take(_entry, _left, _box, _data), do: {:refused, "That Pokémon is not in my data."}
+
+  defp taken({member, rest}, level, other, from) do
+    member = if level, do: %{member | "level" => level}, else: member
+    if from == :left, do: {:ok, member, rest, other}, else: {:ok, member, other, rest}
   end
 
   defp evolves(from, to) do
@@ -213,15 +378,45 @@ defmodule Maya.Events do
   end
 
   defp run(kind, current, details) do
-    # Only a catch adds to Progress, so only a catch can repeat (other kinds skip the read).
-    if kind == "caught" and repeat?(current, details, recent_catches(current.guest_id)) do
-      name = say(Facts.species_name(details["species"]))
-      {:ok, current, "#{name} level #{details["level"]} is already logged."}
-    else
-      data = %{species: &GameData.species/1, locations: GameData.locations()}
-      apply_event(kind, current, details, data)
+    cond do
+      kind == "caught" and repeat?(current, details, recent_catches(current.guest_id)) ->
+        name = say(Facts.species_name(details["species"]))
+        {:ok, current, "#{name} level #{details["level"]} is already logged."}
+
+      kind in ~w(deposited withdrawn) and repeats_last?(current.guest_id, kind, details) ->
+        name = say(Facts.species_name(details["species"]))
+        where = if kind == "deposited", do: "in the PC", else: "on the Team"
+        {:ok, current, "#{name} is already #{where}."}
+
+      true ->
+        data = %{species: &GameData.species/1, locations: GameData.locations()}
+        apply_event(kind, current, details, data)
     end
   end
+
+  # A deposit or withdraw changes Progress each time, so a doubled call is caught by the last
+  # Event only (same kind, species and slot, inside the window); an undo deletes it, so a later
+  # identical deposit still counts (team-voice).
+  # shortcut: a real second deposit of the same species inside the window without a slot is not
+  # logged; upgrade to a per-turn key if Guests hit it.
+  defp repeats_last?(guest_id, kind, %{"species" => name} = details) when is_binary(name) do
+    since = DateTime.add(DateTime.utc_now(:second), -@repeat_seconds)
+
+    last =
+      Repo.one(
+        from e in "events",
+          where: e.guest_id == ^guest_id,
+          order_by: [desc: e.id],
+          limit: 1,
+          select: %{kind: e.kind, details: e.details, recent: e.inserted_at >= ^since}
+      )
+
+    match?(%{kind: ^kind, recent: true, details: %{"species" => s}} when is_binary(s), last) and
+      Facts.species_name(last.details["species"]) == Facts.species_name(name) and
+      last.details["slot"] == details["slot"]
+  end
+
+  defp repeats_last?(_guest_id, _kind, _details), do: false
 
   defp recent_catches(guest_id) do
     since = DateTime.add(DateTime.utc_now(:second), -@repeat_seconds)
@@ -234,19 +429,30 @@ defmodule Maya.Events do
   end
 
   defp apply_event(kind, current, details, data) do
-    with {:ok, progress, line} <- change(current, kind, details, data) do
-      Repo.insert_all("events", [
-        %{
-          guest_id: current.guest_id,
-          kind: kind,
-          details: details,
-          previous: Map.take(current, [:badges, :team, :box, :location]),
-          inserted_at: DateTime.utc_now(:second)
-        }
-      ])
+    case change(current, kind, details, data) do
+      {:ok, progress, line} when kind in @team_kinds and progress == current ->
+        {:ok, current, line}
 
-      GameData.put_progress!(progress)
-      {:ok, progress, line}
+      {:ok, progress, line} ->
+        write_event(kind, current, details, progress, line)
+
+      refused ->
+        refused
     end
+  end
+
+  defp write_event(kind, current, details, progress, line) do
+    Repo.insert_all("events", [
+      %{
+        guest_id: current.guest_id,
+        kind: kind,
+        details: details,
+        previous: Map.take(current, [:badges, :team, :box, :location]),
+        inserted_at: DateTime.utc_now(:second)
+      }
+    ])
+
+    GameData.put_progress!(progress)
+    {:ok, progress, line}
   end
 end
