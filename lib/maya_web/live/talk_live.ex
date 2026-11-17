@@ -224,9 +224,19 @@ defmodule MayaWeb.TalkLive do
   defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
   defp ms_or_none(_missing), do: "none"
 
-  # Option D (2026-11-16): the first 3 names; the "+N" is its own span so it never truncates.
+  # The collapsed Team line (team-collapse): the first @team_shown names, the rest as "+N" in
+  # its own span so it never truncates; the label names everyone for screen readers.
+  @team_shown 3
+
   defp team_names([]), do: "No Team yet"
-  defp team_names(team), do: team |> Enum.take(3) |> Enum.map_join(", ", & &1.name)
+  defp team_names(team), do: team |> Enum.take(@team_shown) |> names()
+
+  defp team_more(team), do: max(length(team) - @team_shown, 0)
+
+  defp team_label([]), do: "Team: No Team yet"
+  defp team_label(team), do: "Team: " <> names(team)
+
+  defp names(team), do: Enum.map_join(team, ", ", & &1.name)
 
   defp status("idle"), do: "Ready when you are"
   defp status("recording"), do: "Listening to you…"
@@ -278,11 +288,11 @@ defmodule MayaWeb.TalkLive do
             <summary
               id="team-summary"
               class="team-summary"
-              aria-label={"Team: " <> Enum.map_join(@card.team, ", ", & &1.name)}
+              aria-label={team_label(@card.team)}
             >
               <span class="team-names">{team_names(@card.team)}</span>
-              <span :if={length(@card.team) > 3} class="team-more" aria-hidden="true">
-                +{length(@card.team) - 3}
+              <span :if={team_more(@card.team) > 0} class="team-more" aria-hidden="true">
+                +{team_more(@card.team)}
               </span>
               <span class="team-chevron" aria-hidden="true"></span>
             </summary>

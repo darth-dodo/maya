@@ -107,7 +107,7 @@ defmodule MayaWeb.TalkLiveTest do
       set_team(guest, ~w(mudkip wingull))
       {:ok, view, _html} = live(conn, ~p"/talk")
 
-      assert has_element?(view, "#team-summary .team-names", "Mudkip, Wingull")
+      assert has_element?(view, "#team-summary .team-names", ~r/^\s*Mudkip, Wingull\s*$/)
       refute has_element?(view, "#team-summary .team-more")
     end
 
@@ -116,6 +116,7 @@ defmodule MayaWeb.TalkLiveTest do
       {:ok, view, _html} = live(conn, ~p"/talk")
 
       assert has_element?(view, "#team-summary .team-names", "No Team yet")
+      assert has_element?(view, ~s(#team-summary[aria-label="Team: No Team yet"]))
     end
 
     test "a catch while collapsed updates the names", %{conn: conn, guest: guest} do
@@ -124,7 +125,7 @@ defmodule MayaWeb.TalkLiveTest do
       {:ok, view, _html} = live(conn, ~p"/talk")
 
       ask_and_hear(view, "I caught a Ralts at level 5")
-      assert has_element?(view, "#team-summary .team-names", "Mudkip, Wingull, Ralts")
+      assert has_element?(view, "#team-summary .team-names", ~r/^\s*Mudkip, Wingull, Ralts\s*$/)
       refute has_element?(view, "#team-details[open]")
     end
   end
