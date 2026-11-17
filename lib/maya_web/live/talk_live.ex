@@ -224,6 +224,20 @@ defmodule MayaWeb.TalkLive do
   defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
   defp ms_or_none(_missing), do: "none"
 
+  # The collapsed Team line (team-collapse): the first @team_shown names, the rest as "+N" in
+  # its own span so it never truncates; the label names everyone for screen readers.
+  @team_shown 3
+
+  defp team_names([]), do: "No Team yet"
+  defp team_names(team), do: team |> Enum.take(@team_shown) |> names()
+
+  defp team_more(team), do: max(length(team) - @team_shown, 0)
+
+  defp team_label([]), do: "Team: No Team yet"
+  defp team_label(team), do: "Team: " <> names(team)
+
+  defp names(team), do: Enum.map_join(team, ", ", & &1.name)
+
   defp status("idle"), do: "Ready when you are"
   defp status("recording"), do: "Listening to you…"
   defp status("speaking"), do: "Maya is speaking"
@@ -265,13 +279,30 @@ defmodule MayaWeb.TalkLive do
               </li>
             </ul>
           </div>
-          <%!-- Full header width, so a full Team wraps in rows and the sticky header stays short (Issue 117) --%>
-          <ul id="team" class="card-team" aria-label="Team">
-            <li :for={mon <- @card.team} class="mon">
-              <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
-              {mon.name} Lv {mon.level}
-            </li>
-          </ul>
+          <%!-- Collapsed each visit; ignore_attributes keeps the Guest's open through patches (team-collapse) --%>
+          <details
+            id="team-details"
+            class="card-team-details"
+            phx-mounted={JS.ignore_attributes(["open"])}
+          >
+            <summary
+              id="team-summary"
+              class="team-summary"
+              aria-label={team_label(@card.team)}
+            >
+              <span class="team-names">{team_names(@card.team)}</span>
+              <span :if={team_more(@card.team) > 0} class="team-more" aria-hidden="true">
+                +{team_more(@card.team)}
+              </span>
+              <span class="team-chevron" aria-hidden="true"></span>
+            </summary>
+            <ul id="team" class="card-team" aria-label="Team">
+              <li :for={mon <- @card.team} class="mon">
+                <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
+                {mon.name} Lv {mon.level}
+              </li>
+            </ul>
+          </details>
         </section>
 
         <p id="talk-status" class="talk-status" role="status" aria-live="polite">

@@ -70,6 +70,66 @@ defmodule MayaWeb.TalkLiveTest do
     {1, _} = Maya.Repo.update_all(query, [])
   end
 
+  defp set_team(guest, species) do
+    _ = Maya.GameData.progress(guest)
+    team = for s <- species, do: %{"species" => s, "level" => 5}
+    query = from p in "progress", where: p.guest_id == ^guest, update: [set: [team: ^team]]
+    {1, _} = Maya.Repo.update_all(query, [])
+  end
+
+  @six ~w(mudkip poochyena wingull ralts zigzagoon lotad)
+
+  describe "collapsible Team" do
+    test "six members collapse to three names and +3", %{conn: conn, guest: guest} do
+      set_team(guest, @six)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      refute has_element?(view, "#team-details[open]")
+
+      assert view |> element("#team-summary") |> render() |> texts(".team-names") ==
+               ["Mudkip, Poochyena, Wingull"]
+
+      assert has_element?(view, "#team-summary .team-more", "+3")
+      assert view |> element("#team") |> render() |> count(".mon") == 6
+    end
+
+    test "the accessible name lists the whole Team", %{conn: conn, guest: guest} do
+      set_team(guest, @six)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      assert has_element?(
+               view,
+               ~s(#team-summary[aria-label="Team: Mudkip, Poochyena, Wingull, Ralts, Zigzagoon, Lotad"])
+             )
+    end
+
+    test "two members show both names and no +", %{conn: conn, guest: guest} do
+      set_team(guest, ~w(mudkip wingull))
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      assert has_element?(view, "#team-summary .team-names", ~r/^\s*Mudkip, Wingull\s*$/)
+      refute has_element?(view, "#team-summary .team-more")
+    end
+
+    test "an empty Team reads No Team yet", %{conn: conn, guest: guest} do
+      set_team(guest, [])
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      assert has_element?(view, "#team-summary .team-names", "No Team yet")
+      assert has_element?(view, ~s(#team-summary[aria-label="Team: No Team yet"]))
+    end
+
+    test "a catch while collapsed updates the names", %{conn: conn, guest: guest} do
+      set_team(guest, ~w(mudkip wingull))
+      log_events()
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      ask_and_hear(view, "I caught a Ralts at level 5")
+      assert has_element?(view, "#team-summary .team-names", ~r/^\s*Mudkip, Wingull, Ralts\s*$/)
+      refute has_element?(view, "#team-details[open]")
+    end
+  end
+
   defp count(html, selector),
     do: html |> LazyHTML.from_fragment() |> LazyHTML.query(selector) |> Enum.count()
 
