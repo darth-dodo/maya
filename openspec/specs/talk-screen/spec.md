@@ -37,7 +37,18 @@ The Talk button SHALL run as a state machine (`idle`, `recording`, `uploading`, 
 - **THEN** every chunk but the last holds 1600 to 4000 samples (100 to 250 ms at 16 kHz)
 
 ### Requirement: Hold end
-The first `pointerup` or `pointercancel` of the pressing pointer, wherever on the page it lands, SHALL end a hold and any later one SHALL do nothing; another pointer's SHALL NOT end it, and a lost pointer capture alone SHALL NOT end a hold. A server re-render SHALL NOT change the button's own state. Each hold SHALL report how it ended (`pointerup` or `pointercancel`), its length in ms, whether capture was lost first, whether the press was warm and its post-roll, and the server SHALL log that report at info level with no audio or text; any other report is ignored.
+The first `pointerup` or `pointercancel` of the pressing pointer, wherever on the page it lands, SHALL end a hold and any later one SHALL do nothing; another pointer's SHALL NOT end it, and a lost pointer capture alone SHALL NOT end a hold. A server re-render SHALL NOT change the button's own state.
+
+#### Scenario: Lift off the button after a lost capture
+- **WHEN** the Talk button is recording, its pointer capture is lost, and the same finger lifts over another element
+- **THEN** the hold ends once by `pointerup` with lost capture true, the clip is sent, the button leaves `recording`, and the mic closes after the normal idle delay once the turn is back to idle
+
+#### Scenario: Server moment does not drive the button
+- **WHEN** the Talk button reports the moment `recording`
+- **THEN** `#talk-screen` has `data-state="recording"` and the server renders `#talk-button` only with its static `data-state="idle"`, which the Talk hook replaces with its own
+
+### Requirement: Hold end report
+Each hold SHALL report how it ended (`pointerup` or `pointercancel`), its length in ms, whether capture was lost first, whether the press was warm and its post-roll, and the server SHALL log that report at info level with no audio or text; any other report is ignored.
 
 #### Scenario: Hold end logged
 - **WHEN** the Talk button reports a hold that ended by `pointercancel` after 840 ms with capture lost, a cold press, the mic live after 120 ms and a 150 ms post-roll
@@ -51,17 +62,9 @@ The first `pointerup` or `pointercancel` of the pressing pointer, wherever on th
 - **WHEN** the Talk button reports a cold hold that ended by `pointerup` after 60 ms with no mic open time and no post-roll
 - **THEN** the server logs "hold ended by pointerup after 60 ms, lost capture: false, mic open: none, warm: false, post roll: 0 ms"
 
-#### Scenario: Lift off the button after a lost capture
-- **WHEN** the Talk button is recording, its pointer capture is lost, and the same finger lifts over another element
-- **THEN** the hold ends once by `pointerup` with lost capture true, the clip is sent, the button leaves `recording`, and the mic closes after the normal idle delay once the turn is back to idle
-
 #### Scenario: Bad hold end report ignored
 - **WHEN** the Talk button reports a hold with an unknown ending, a length that is not a non-negative integer, a `warm` that is not a boolean, or a `post_roll_ms` that is not a non-negative integer
 - **THEN** nothing is logged and the screen is unchanged
-
-#### Scenario: Server moment does not drive the button
-- **WHEN** the Talk button reports the moment `recording`
-- **THEN** `#talk-screen` has `data-state="recording"` and the server renders `#talk-button` only with its static `data-state="idle"`, which the Talk hook replaces with its own
 
 ### Requirement: Mic only while held
 The Talk button SHALL open the mic on a press when it is closed and enter `recording` only once the stream is live. An open mic SHALL stay open while a turn is in flight and stop every track 4 s after the button is back to `idle` with no new press, and at once when the page is hidden or destroyed. While open with no hold it SHALL keep only a 300 ms pre-roll and send nothing; a press on an open mic SHALL start with it. A hold that ends before the mic is live SHALL send no Question.
