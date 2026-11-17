@@ -290,5 +290,47 @@ defmodule Maya.AgentTest do
       refute refused =~ "Mauville"
       assert Maya.GameData.progress(guest).badges == []
     end
+
+    test "\"My Team is Mudkip 16, Taillow 12\": one set_team call, and the next prompt shows it" do
+      guest = "events-set-team"
+
+      team =
+        ~s({"kind":"set_team","details":{"team":[{"species":"Mudkip","level":16},{"species":"Taillow","level":12}]}})
+
+      script([calls([{"team", "log_event", team}]), text("Team set.")])
+
+      assert {:ok, _} = Agent.answer("My Team is Mudkip 16, Taillow 12", [], guest_id: guest)
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+      assert [%{"content" => logged}] = tool_messages(second)
+      assert %{"confirm" => "Team set: " <> _} = Jason.decode!(logged)
+
+      assert {:ok, _} = Agent.answer("Who leads?", [], guest_id: guest)
+      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]}}
+      assert prompt =~ "Team: mudkip level 16, taillow level 12"
+    end
+
+    test "gym_counter after a new lead lists the Team with Wingull first" do
+      guest = "events-set-lead"
+      progress = Maya.GameData.progress(guest)
+      {:ok, _, _} = Maya.Events.log(progress, "caught", %{"species" => "wingull", "level" => 8})
+
+      script([
+        calls([
+          {"lead", "log_event", ~s({"kind":"set_lead","details":{"species":"Wingull"}})},
+          {"roxanne", "gym_counter", ~s({"leader":"Roxanne"})}
+        ]),
+        text("Wingull leads the Team now.")
+      ])
+
+      assert {:ok, _} = Agent.answer("Make Wingull my lead", [], guest_id: guest)
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+      assert [%{"content" => led}, %{"content" => roxanne}] = tool_messages(second)
+      assert Jason.decode!(led) == %{"confirm" => "Wingull leads the Team now."}
+
+      assert %{"fact" => %{"team" => [%{"species" => "wingull"}, %{"species" => "mudkip"}]}} =
+               Jason.decode!(roxanne)
+    end
   end
 end

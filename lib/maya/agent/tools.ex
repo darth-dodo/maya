@@ -72,12 +72,20 @@ defmodule Maya.Agent.Tools do
         parameters: %{
           type: "object",
           properties: %{
-            kind: %{type: "string", enum: Events.kinds()},
+            # level_up stays valid for old Events, but the model gets one way to log a level.
+            kind: %{type: "string", enum: Events.kinds() -- ["level_up"]},
             details: %{
               type: "object",
               description:
-                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. level_up: species, level. moved: location. released: species. undo: nothing.",
+                "badge_earned: leader or badge (number). caught: species, level. evolved: from, to. set_level: species, level (up or down). moved: location. released, deposited (Team to PC), withdrawn (PC to Team), set_lead: species. set_team: team, the whole Team in one call. undo: nothing.",
               properties: %{
+                team: %{
+                  type: "array",
+                  items: %{
+                    type: "object",
+                    properties: %{species: %{type: "string"}, level: %{type: "integer"}}
+                  }
+                },
                 leader: %{type: "string"},
                 badge: %{type: "integer"},
                 species: %{type: "string"},

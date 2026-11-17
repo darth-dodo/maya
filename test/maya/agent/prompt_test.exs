@@ -49,6 +49,16 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "refused"
   end
 
+  test "Prompt asks for log_event: one line per Team change kind and the honesty line" do
+    prompt = Prompt.system(@progress)
+
+    for kind <- ~w(deposited withdrawn set_lead set_team set_level),
+        do: assert(prompt =~ ~s(kind "#{kind}"), "missing #{kind}")
+
+    refute prompt =~ "level_up"
+    assert prompt =~ "Never say a Team change happened unless log_event confirmed it."
+  end
+
   test "where to go comes only from search_guide's note" do
     prompt = Prompt.system(@progress)
     assert prompt =~ "call search_guide"

@@ -24,6 +24,21 @@ defmodule Maya.Agent.ToolsTest do
            ]
   end
 
+  test "The tool offers set_level, not level_up, a team list and no slot" do
+    log_event = Enum.find(Tools.definitions(), &(&1.function.name == "log_event"))
+    %{kind: %{enum: kinds}, details: details} = log_event.function.parameters.properties
+
+    assert "set_level" in kinds and "set_team" in kinds
+    refute "level_up" in kinds
+    assert Enum.sort(kinds) == Enum.sort(Maya.Events.kinds() -- ["level_up"])
+    refute details.description =~ "level_up"
+
+    assert %{type: "array", items: %{properties: %{species: _, level: _}}} =
+             details.properties.team
+
+    refute Map.has_key?(details.properties, :slot)
+  end
+
   describe "search_guide" do
     defp guide(location, badges, progress) do
       args = if location, do: %{"location" => location}, else: %{}
