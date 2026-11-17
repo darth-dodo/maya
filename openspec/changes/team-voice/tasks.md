@@ -5,11 +5,11 @@ Two build PRs (3h in all, so split): A is Events (2h), B is the agent wiring and
 ## 1. Events (PR A, 2h)
 
 - [ ] 1.1 Record the "before" agent latency: `mix maya.latency` over 10 phone Questions on main before any code change. Verify: p50 and p95 noted in PR A's body.
-- [ ] 1.2 `deposited` and `withdrawn` clauses in `Maya.Events.change/4`, with the full Team refusal naming the lowest level member. Verify: `test/maya/events_test.exs` tests for "Deposit", "The last Team member", "Not on the Team", "Withdraw", "Withdraw with a full Team", "Not in the PC box".
-- [ ] 1.3 `set_lead` and `set_level` clauses. Verify: tests for "New lead", "In the PC box" (both requirements), "A lower level", "Neither", "Level out of range" with `set_level`.
-- [ ] 1.4 `set_team` clause (take from Team then PC box, unnamed members to the end of the PC box, 1 to 6, level kept or required). Verify: tests for "My Team is", "Undo a whole Team", "A new species with no level", "Too many or none", "Unknown species" with `set_team`.
-- [ ] 1.5 `slot` detail on `deposited`, `set_lead`, `set_level`, `released`, `withdrawn`. Verify: tests for "The second Poochyena" and "A stale slot".
-- [ ] 1.6 No-change rule and the widened repeat guard in `run/3` (last Event, same kind and species, inside 2 minutes, for `deposited` and `withdrawn`). Verify: tests for "Already the lead", "The same Team again", "The same deposit twice", "A deposit after an undo"; existing repeat and undo tests pass unchanged.
+- [x] 1.2 `deposited` and `withdrawn` clauses in `Maya.Events.change/4`, with the full Team refusal naming the lowest level member. Verify: `test/maya/events_test.exs` tests for "Deposit", "The last Team member", "Not on the Team", "Withdraw", "Withdraw with a full Team", "Not in the PC box".
+- [x] 1.3 `set_lead` and `set_level` clauses. Verify: tests for "New lead", "In the PC box" (both requirements), "A lower level", "Neither", "Level out of range" with `set_level`.
+- [x] 1.4 `set_team` clause (take from Team then PC box, unnamed members to the end of the PC box, 1 to 6, level kept or required). Verify: tests for "My Team is", "Undo a whole Team", "A new species with no level", "Too many or none", "Unknown species" with `set_team`.
+- [x] 1.5 `slot` detail on `deposited`, `set_lead`, `set_level`, `released`, `withdrawn`. Verify: tests for "The second Poochyena" and "A stale slot".
+- [x] 1.6 No-change rule and the widened repeat guard in `run/3` (last Event, same kind and species, inside 2 minutes, for `deposited` and `withdrawn`). Verify: tests for "Already the lead", "The same Team again", "The same deposit twice", "A deposit after an undo"; existing repeat and undo tests pass unchanged.
 
 ## 2. Agent wiring and evidence (PR B, 1h)
 

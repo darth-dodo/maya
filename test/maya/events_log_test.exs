@@ -123,4 +123,93 @@ defmodule Maya.EventsLogTest do
                Enum.map(GameData.progress("events-guest").team, & &1["species"])
     end
   end
+
+  describe "team-voice" do
+    defp m(species, level), do: %{"species" => species, "level" => level}
+
+    defp team!(p, team, box \\ []), do: GameData.put_progress!(%{p | team: team, box: box})
+
+    test "Undo a whole Team", %{progress: p} do
+      team!(p, [m("mudkip", 14), m("wingull", 9), m("ralts", 7)], [m("taillow", 11)])
+
+      assert {:ok, "Team set: Mudkip level 16, Taillow level 12. 2 sent to the PC.", _} =
+               Events.log(p, "set_team", %{"team" => [m("Mudkip", 16), m("Taillow", 12)]})
+
+      assert {:ok, _, _} = Events.log(p, "undo", %{})
+      progress = GameData.progress("events-guest")
+      assert progress.team == [m("mudkip", 14), m("wingull", 9), m("ralts", 7)]
+      assert progress.box == [m("taillow", 11)]
+    end
+
+    test "each new kind is one Event and undoable", %{progress: p} do
+      team!(p, [m("mudkip", 16), m("wingull", 9)], [m("lotad", 6)])
+
+      for {kind, details} <- [
+            {"deposited", %{"species" => "Wingull"}},
+            {"withdrawn", %{"species" => "Lotad"}},
+            {"set_lead", %{"species" => "Lotad"}},
+            {"set_level", %{"species" => "Lotad", "level" => 8}}
+          ] do
+        before = Map.take(GameData.progress("events-guest"), [:team, :box])
+        assert {:ok, _, _} = Events.log(p, kind, details)
+        assert events("events-guest") == [kind]
+        assert {:ok, _, _} = Events.log(p, "undo", %{})
+        assert Map.take(GameData.progress("events-guest"), [:team, :box]) == before
+        {:ok, _, _} = Events.log(p, kind, details)
+        Repo.delete_all(from e in "events", where: e.guest_id == "events-guest")
+      end
+    end
+
+    test "Already the lead writes no Event, and undo undoes the Event before it", %{progress: p} do
+      {:ok, _, _} = Events.log(p, "caught", m("Ralts", 4))
+
+      assert {:ok, "Mudkip already leads the Team.", _} =
+               Events.log(p, "set_lead", %{"species" => "Mudkip"})
+
+      assert events("events-guest") == ["caught"]
+      {:ok, _, _} = Events.log(p, "undo", %{})
+      assert GameData.progress("events-guest").team == [m("mudkip", 5)]
+    end
+
+    test "The same Team again is one Event", %{progress: p} do
+      details = %{"team" => [m("Mudkip", 16), m("Taillow", 12)]}
+      {:ok, _, _} = Events.log(p, "set_team", details)
+      assert {:ok, "That is already your Team.", _} = Events.log(p, "set_team", details)
+      assert events("events-guest") == ["set_team"]
+    end
+
+    test "The same deposit twice is one Event", %{progress: p} do
+      team!(p, [m("mudkip", 16), m("wingull", 9), m("wingull", 9)])
+      {:ok, "Wingull sent to the PC.", _} = Events.log(p, "deposited", %{"species" => "Wingull"})
+
+      assert {:ok, "Wingull is already in the PC.", _} =
+               Events.log(p, "deposited", %{"species" => "wingull"})
+
+      progress = GameData.progress("events-guest")
+      assert progress.team == [m("mudkip", 16), m("wingull", 9)]
+      assert progress.box == [m("wingull", 9)]
+      assert events("events-guest") == ["deposited"]
+    end
+
+    test "the same withdraw twice is one Event", %{progress: p} do
+      team!(p, [m("mudkip", 16)], [m("lotad", 6), m("lotad", 6)])
+      {:ok, _, _} = Events.log(p, "withdrawn", %{"species" => "Lotad"})
+
+      assert {:ok, "Lotad is already on the Team.", _} =
+               Events.log(p, "withdrawn", %{"species" => "Lotad"})
+
+      assert length(GameData.progress("events-guest").box) == 1
+    end
+
+    test "A deposit after an undo is logged", %{progress: p} do
+      team!(p, [m("mudkip", 16), m("wingull", 9)])
+      {:ok, _, _} = Events.log(p, "deposited", %{"species" => "Wingull"})
+      {:ok, _, _} = Events.log(p, "undo", %{})
+
+      assert {:ok, "Wingull sent to the PC.", _} =
+               Events.log(p, "deposited", %{"species" => "Wingull"})
+
+      assert GameData.progress("events-guest").box == [m("wingull", 9)]
+    end
+  end
 end
