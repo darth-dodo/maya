@@ -261,7 +261,7 @@ defmodule Maya.Events do
   defp pick(list, wanted, _details), do: pick(list, wanted)
   defp pick(list, wanted), do: Enum.find_index(list, &(&1["species"] == wanted))
 
-  # A slot names a Team position, so the PC box is searched only when there is none.
+  # A slot on these kinds names a Team position, so the PC box is searched only without one.
   defp box_pick(_box, _wanted, %{"slot" => _}), do: nil
   defp box_pick(box, wanted, _details), do: pick(box, wanted)
 
@@ -378,7 +378,6 @@ defmodule Maya.Events do
   end
 
   defp run(kind, current, details) do
-    # Only a catch adds to Progress, so only a catch can repeat (other kinds skip the read).
     cond do
       kind == "caught" and repeat?(current, details, recent_catches(current.guest_id)) ->
         name = say(Facts.species_name(details["species"]))
@@ -396,9 +395,11 @@ defmodule Maya.Events do
   end
 
   # A deposit or withdraw changes Progress each time, so a doubled call is caught by the last
-  # Event only (same kind and species, inside the window); an undo deletes it, so a later
+  # Event only (same kind, species and slot, inside the window); an undo deletes it, so a later
   # identical deposit still counts (team-voice).
-  defp repeats_last?(guest_id, kind, %{"species" => name}) when is_binary(name) do
+  # shortcut: a real second deposit of the same species inside the window without a slot is not
+  # logged; upgrade to a per-turn key if Guests hit it.
+  defp repeats_last?(guest_id, kind, %{"species" => name} = details) when is_binary(name) do
     since = DateTime.add(DateTime.utc_now(:second), -@repeat_seconds)
 
     last =
@@ -411,7 +412,8 @@ defmodule Maya.Events do
       )
 
     match?(%{kind: ^kind, recent: true, details: %{"species" => s}} when is_binary(s), last) and
-      Facts.species_name(last.details["species"]) == Facts.species_name(name)
+      Facts.species_name(last.details["species"]) == Facts.species_name(name) and
+      last.details["slot"] == details["slot"]
   end
 
   defp repeats_last?(_guest_id, _kind, _details), do: false

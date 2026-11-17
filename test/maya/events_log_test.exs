@@ -201,6 +201,17 @@ defmodule Maya.EventsLogTest do
       assert length(GameData.progress("events-guest").box) == 1
     end
 
+    test "deposits of two same-species members by slot are both logged", %{progress: p} do
+      team!(p, [m("wingull", 5), m("mudkip", 16), m("wingull", 9)])
+      {:ok, _, _} = Events.log(p, "deposited", %{"species" => "wingull", "slot" => 3})
+
+      assert {:ok, "Wingull sent to the PC.", _} =
+               Events.log(p, "deposited", %{"species" => "wingull", "slot" => 1})
+
+      assert GameData.progress("events-guest").team == [m("mudkip", 16)]
+      assert events("events-guest") == ["deposited", "deposited"]
+    end
+
     test "A deposit after an undo is logged", %{progress: p} do
       team!(p, [m("mudkip", 16), m("wingull", 9)])
       {:ok, _, _} = Events.log(p, "deposited", %{"species" => "Wingull"})
