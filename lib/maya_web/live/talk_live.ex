@@ -224,6 +224,10 @@ defmodule MayaWeb.TalkLive do
   defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
   defp ms_or_none(_missing), do: "none"
 
+  # Option D (2026-11-16): the first 3 names; the "+N" is its own span so it never truncates.
+  defp team_names([]), do: "No Team yet"
+  defp team_names(team), do: team |> Enum.take(3) |> Enum.map_join(", ", & &1.name)
+
   defp status("idle"), do: "Ready when you are"
   defp status("recording"), do: "Listening to you…"
   defp status("speaking"), do: "Maya is speaking"
@@ -265,13 +269,30 @@ defmodule MayaWeb.TalkLive do
               </li>
             </ul>
           </div>
-          <%!-- Full header width, so a full Team wraps in rows and the sticky header stays short (Issue 117) --%>
-          <ul id="team" class="card-team" aria-label="Team">
-            <li :for={mon <- @card.team} class="mon">
-              <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
-              {mon.name} Lv {mon.level}
-            </li>
-          </ul>
+          <%!-- Collapsed each visit; ignore_attributes keeps the Guest's open through patches (team-collapse) --%>
+          <details
+            id="team-details"
+            class="card-team-details"
+            phx-mounted={JS.ignore_attributes(["open"])}
+          >
+            <summary
+              id="team-summary"
+              class="team-summary"
+              aria-label={"Team: " <> Enum.map_join(@card.team, ", ", & &1.name)}
+            >
+              <span class="team-names">{team_names(@card.team)}</span>
+              <span :if={length(@card.team) > 3} class="team-more" aria-hidden="true">
+                +{length(@card.team) - 3}
+              </span>
+              <span class="team-chevron" aria-hidden="true"></span>
+            </summary>
+            <ul id="team" class="card-team" aria-label="Team">
+              <li :for={mon <- @card.team} class="mon">
+                <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
+                {mon.name} Lv {mon.level}
+              </li>
+            </ul>
+          </details>
         </section>
 
         <p id="talk-status" class="talk-status" role="status" aria-live="polite">
