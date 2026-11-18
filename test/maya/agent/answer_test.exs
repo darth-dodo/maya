@@ -56,6 +56,20 @@ defmodule Maya.Agent.AnswerTest do
     assert {:ok, ^text} = Answer.check(answer(text), %{"c1" => "log_event"})
   end
 
+  test "a Dial change needs set_setting: its confirm passes, set to and changed claims without it fail" do
+    text = "Humor set to 60 percent."
+    assert {:ok, ^text} = Answer.check(answer(text), %{"h" => "set_setting"})
+    assert {:error, {:unbacked_claim, "set to"}} = Answer.check(answer(text), %{})
+
+    assert {:error, {:unbacked_claim, "set to"}} =
+             Answer.check(answer("Done, spoilers set to 100."), %{"f" => "find_pokemon"})
+
+    assert {:error, {:unbacked_claim, "changed"}} =
+             Answer.check(answer("Your humor dial is changed."), %{})
+
+    assert {:ok, _} = Answer.check(answer("Humor is at 75 percent today."), %{})
+  end
+
   test "an ordinary got it with no write passes" do
     assert {:ok, _} = Answer.check(answer("Got it, Brawly uses Fighting types."), %{})
   end

@@ -20,8 +20,44 @@ defmodule Maya.Agent.ToolsTest do
              "gym_counter",
              "log_event",
              "move_learnset",
-             "search_guide"
+             "search_guide",
+             "set_setting"
            ]
+  end
+
+  describe "set_setting" do
+    test "humor 60 is written and confirmed, and the new Progress has it", %{progress: progress} do
+      assert {:logged, "Humor set to 60 percent.", %{humor: 60}} =
+               Tools.call("set_setting", %{"name" => "humor", "value" => 60}, progress)
+
+      assert GameData.progress("tools-test").humor == 60
+    end
+
+    test "spoilers stay locked at 0", %{progress: progress} do
+      assert {:refused, line} =
+               Tools.call("set_setting", %{"name" => "spoilers", "value" => 100}, progress)
+
+      assert line =~ "Spoilers stay at 0"
+      assert GameData.progress("tools-test") == progress
+    end
+
+    test "humor out of range, or not a whole number, is refused", %{progress: progress} do
+      for value <- [140, -1, "60", 60.5, nil] do
+        assert {:refused, _} =
+                 Tools.call("set_setting", %{"name" => "humor", "value" => value}, progress)
+      end
+
+      assert GameData.progress("tools-test").humor == 75
+    end
+
+    test "the definition offers humor only, 0 to 100" do
+      tool = Enum.find(Tools.definitions(), &(&1.function.name == "set_setting"))
+
+      assert %{name: %{enum: ["humor"]}, value: %{type: "integer"}} =
+               tool.function.parameters.properties
+
+      assert tool.function.parameters.required == ["name", "value"]
+    end
   end
 
   test "The tool offers set_level, not level_up, a team list and no slot" do
@@ -152,7 +188,8 @@ defmodule Maya.Agent.ToolsTest do
 
   test "wrong arguments and unknown tools are errors, not crashes", %{progress: progress} do
     assert Tools.call("gym_counter", %{"name" => 1}, progress) == {:error, :bad_arguments}
-    assert Tools.call("set_setting", %{}, progress) == {:error, :unknown_tool}
+    assert Tools.call("set_dial", %{}, progress) == {:error, :unknown_tool}
+    assert {:refused, _} = Tools.call("set_setting", %{}, progress)
     assert Tools.call("log_event", %{"kind" => 1}, progress) == {:error, :bad_arguments}
   end
 

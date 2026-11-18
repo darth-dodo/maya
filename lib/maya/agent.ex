@@ -68,11 +68,12 @@ defmodule Maya.Agent do
   defp loop({req, deadline} = client, model, messages, progress, round, turn) do
     case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
-        # A logged Event changes Progress, so later calls and rounds see the new Progress.
-        {results, progress} = Enum.map_reduce(calls, progress, &tool_message/2)
+        # A write changes Progress, so later calls, rounds and the system prompt see the new one.
+        {results, new_progress} = Enum.map_reduce(calls, progress, &tool_message/2)
         ran = Map.merge(turn.ran, Map.new(calls, &{&1["id"], get_in(&1, ["function", "name"])}))
         turn = %{turn | ran: ran, confirms: turn.confirms ++ confirms(results)}
-        loop(client, model, messages ++ [message | results], progress, round + 1, turn)
+        messages = if new_progress == progress, do: messages, else: system(messages, new_progress)
+        loop(client, model, messages ++ [message | results], new_progress, round + 1, turn)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         with {:ok, answer} <- Answer.parse(text),
@@ -93,6 +94,9 @@ defmodule Maya.Agent do
         give_up(turn, {:error, reason})
     end
   end
+
+  defp system([%{role: "system"} | rest], progress),
+    do: [%{role: "system", content: Prompt.system(progress)} | rest]
 
   defp confirms(results) do
     for %{content: content} <- results,
@@ -136,7 +140,7 @@ defmodule Maya.Agent do
 
   @doc """
   One tool call as its `role: \"tool\"` reply and the Progress after it (changed only by a
-  logged Event). Malformed arguments are a tool error.
+  logged Event or a set Dial). Malformed arguments are a tool error.
   """
   def tool_message(call, progress) do
     {content, progress} =
