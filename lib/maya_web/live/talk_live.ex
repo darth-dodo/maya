@@ -9,6 +9,7 @@ defmodule MayaWeb.TalkLive do
   use MayaWeb, :live_view
 
   alias Maya.Conversation
+  alias Maya.Events
   alias Maya.GameData
   alias Maya.Horizon
   alias Maya.Voice.Turn
@@ -71,7 +72,10 @@ defmodule MayaWeb.TalkLive do
        sample_rate: Application.fetch_env!(:maya, :voice)[:tts_sample_rate],
        post_roll_ms: @post_roll_ms,
        live_question: nil,
-       pending_question: nil
+       pending_question: nil,
+       editing: nil,
+       edit_line: nil,
+       can_undo: false
      )}
   end
 
@@ -151,9 +155,13 @@ defmodule MayaWeb.TalkLive do
     {:noreply, socket}
   end
 
-  # Only drives CSS and the status line; anything but a known state is ignored.
+  # Drives CSS and the status line, and a moment away from idle closes the Team editor, so a
+  # hold is never covered (team-edit); anything but a known state is ignored.
+  def handle_event("talk_state", %{"state" => "idle"}, socket),
+    do: {:noreply, assign(socket, talk_state: "idle")}
+
   def handle_event("talk_state", %{"state" => state}, socket) when state in @talk_states,
-    do: {:noreply, assign(socket, talk_state: state)}
+    do: {:noreply, socket |> assign(talk_state: state) |> close_editor()}
 
   def handle_event("talk_state", _params, socket), do: {:noreply, socket}
 
@@ -183,6 +191,46 @@ defmodule MayaWeb.TalkLive do
 
   def handle_event("keep_talking", _params, socket),
     do: {:noreply, assign(socket, confirm_fresh: false)}
+
+  # The Team editor (team-edit): idle only, and every action is the Event voice writes, through
+  # Events.log/3 with the member's slot, so a stale screen changes nothing.
+  def handle_event("edit_mon", %{"slot" => slot}, %{assigns: %{talk_state: "idle"}} = socket) do
+    with {n, ""} when n >= 1 <- Integer.parse(to_string(slot)),
+         %{"species" => species} <- Enum.at(socket.assigns.progress.team, n - 1) do
+      {:noreply,
+       assign(socket, editing: %{slot: n, species: species}, edit_line: nil, can_undo: false)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_mon", _params, socket), do: {:noreply, socket}
+
+  def handle_event("close_editor", _params, socket), do: {:noreply, close_editor(socket)}
+
+  def handle_event("save_level", %{"level" => level}, socket) do
+    # A non-number goes through as is, so Events gives its own refused line.
+    level =
+      case Integer.parse(level) do
+        {n, ""} -> n
+        _ -> level
+      end
+
+    {:noreply, edit(socket, "set_level", %{"level" => level})}
+  end
+
+  def handle_event("edit", %{"kind" => kind}, socket)
+      when kind in ~w(set_lead deposited released),
+      do: {:noreply, edit(socket, kind, %{})}
+
+  def handle_event(
+        "undo_edit",
+        _params,
+        %{assigns: %{talk_state: "idle", can_undo: true}} = socket
+      ),
+      do: {:noreply, log_edit(socket, "undo", %{}, socket.assigns.editing)}
+
+  def handle_event("undo_edit", _params, socket), do: {:noreply, socket}
 
   @impl true
   # A turn on screen replaces the pending Question.
@@ -221,6 +269,42 @@ defmodule MayaWeb.TalkLive do
      |> push_event("voice_down", %{})}
   end
 
+  defp close_editor(socket), do: assign(socket, editing: nil, edit_line: nil, can_undo: false)
+
+  defp edit(%{assigns: %{talk_state: "idle", editing: %{} = editing}} = socket, kind, extra) do
+    details = Map.merge(%{"species" => editing.species, "slot" => editing.slot}, extra)
+    # The lead moves to slot 1, so the editor follows it there.
+    editing = if kind == "set_lead", do: %{editing | slot: 1}, else: editing
+    log_edit(socket, kind, details, editing)
+  end
+
+  defp edit(socket, _kind, _extra), do: socket
+
+  defp log_edit(socket, kind, details, editing) do
+    case Events.log(socket.assigns.progress, kind, details) do
+      {:ok, line, progress} ->
+        assign(socket,
+          progress: progress,
+          card: trainer_card(progress),
+          editing: editing,
+          edit_line: line,
+          # Undo only after a confirm that wrote an Event; it undoes the Guest's last Event.
+          can_undo: kind != "undo" and progress != socket.assigns.progress
+        )
+
+      {:refused, line} ->
+        assign(socket, edit_line: line, can_undo: false)
+    end
+  end
+
+  # The member being edited, or nil once it left the Team (moved to the PC box, released).
+  defp edited(%{slot: slot, species: species}, team) do
+    case Enum.at(team, slot - 1) do
+      %{"species" => ^species} = member -> member
+      _gone -> nil
+    end
+  end
+
   defp ms_or_none(ms) when is_integer(ms) and ms >= 0, do: "#{ms} ms"
   defp ms_or_none(_missing), do: "none"
 
@@ -242,6 +326,84 @@ defmodule MayaWeb.TalkLive do
   defp status("recording"), do: "Listening to you…"
   defp status("speaking"), do: "Maya is speaking"
   defp status(_uploading_or_waiting), do: "Thinking…"
+
+  # A fixed overlay above the Talk dock, so opening it changes no layout height (#74). Focus
+  # moves to the heading (the level input would open the phone keyboard). Close and Escape focus
+  # the member's chip by its slot, which follows a new lead (a focus stack would return to the
+  # old position), or the Team summary once it left the Team.
+  attr :member, :map, doc: "the card member being edited, nil once it left the Team"
+  attr :slot, :integer
+  attr :line, :string
+  attr :can_undo, :boolean
+
+  defp team_editor(assigns) do
+    back = if assigns.member, do: "#mon-#{assigns.slot}", else: "#team-summary"
+
+    assigns =
+      assign(assigns,
+        form: assigns.member && to_form(%{"level" => assigns.member.level}),
+        close: JS.push("close_editor") |> JS.focus(to: back)
+      )
+
+    ~H"""
+    <section
+      id="team-editor"
+      class="team-editor"
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="team-editor-heading"
+      phx-mounted={JS.focus(to: "#team-editor-heading")}
+      phx-window-keydown={@close}
+      phx-key="Escape"
+    >
+      <h2 id="team-editor-heading" class="team-editor-heading" tabindex="-1">
+        {if @member, do: "#{@member.name} Lv #{@member.level}", else: "Team"}
+      </h2>
+      <p id="team-editor-line" class="team-editor-line" role="status" aria-live="polite">{@line}</p>
+      <.form
+        :if={@member}
+        for={@form}
+        id="level-form"
+        class="team-editor-level"
+        phx-submit="save_level"
+      >
+        <.input
+          field={@form[:level]}
+          id="team-level"
+          type="number"
+          inputmode="numeric"
+          label="Level"
+          class="input team-editor-input"
+        />
+        <button type="submit" class="btn btn-primary">Save level</button>
+      </.form>
+      <div class="team-editor-actions">
+        <button :if={@can_undo} type="button" class="btn" phx-click="undo_edit">Undo</button>
+        <%= if @member do %>
+          <button type="button" class="btn" phx-click="edit" phx-value-kind="set_lead">
+            Set as lead
+          </button>
+          <button type="button" class="btn" phx-click="edit" phx-value-kind="deposited">
+            Move to PC box
+          </button>
+          <button type="button" class="btn" phx-click="edit" phx-value-kind="released">
+            Remove
+          </button>
+          <%!-- The PC box list lands in part D (Issue 170) --%>
+          <button type="button" class="btn" disabled>PC box</button>
+        <% end %>
+        <button
+          id="team-editor-close"
+          type="button"
+          class="btn btn-ghost"
+          phx-click={@close}
+        >
+          Close
+        </button>
+      </div>
+    </section>
+    """
+  end
 
   @impl true
   def render(assigns) do
@@ -297,13 +459,29 @@ defmodule MayaWeb.TalkLive do
               <span class="team-chevron" aria-hidden="true"></span>
             </summary>
             <ul id="team" class="card-team" aria-label="Team">
-              <li :for={mon <- @card.team} class="mon">
-                <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
-                {mon.name} Lv {mon.level}
+              <li :for={{mon, slot} <- Enum.with_index(@card.team, 1)}>
+                <button
+                  type="button"
+                  class="mon"
+                  aria-label={"Edit #{mon.name} Lv #{mon.level}"}
+                  id={"mon-#{slot}"}
+                  phx-click={JS.push("edit_mon", value: %{slot: slot})}
+                >
+                  <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
+                  {mon.name} Lv {mon.level}
+                </button>
               </li>
             </ul>
           </details>
         </section>
+
+        <.team_editor
+          :if={@editing}
+          member={edited(@editing, @progress.team) && Enum.at(@card.team, @editing.slot - 1)}
+          slot={@editing.slot}
+          line={@edit_line}
+          can_undo={@can_undo}
+        />
 
         <p id="talk-status" class="talk-status" role="status" aria-live="polite">
           {status(@talk_state)}<span
