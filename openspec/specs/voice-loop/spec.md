@@ -56,6 +56,27 @@ When STT or TTS errors or times out, Maya SHALL show the Answer as text with a "
 - **THEN** the screen shows the note "voice is down"
 - **AND** the Talk button returns to idle
 
+### Requirement: Database outage is not a voice outage
+When Postgres fails during a turn, Maya SHALL name the real problem and SHALL NOT show "voice is down" or crash. If Progress cannot be read, the spoken Answer SHALL be "I can't reach my notes right now, ask again soon?" without calling the agent. If storing the turn or its timings fails, the turn SHALL stay on screen. Each failure SHALL be logged with its kind, never a query message.
+
+#### Scenario: Progress cannot be read
+- **WHEN** a Question is uploaded or held and the Progress read fails
+- **THEN** STT still runs and the Question shows
+- **AND** "I can't reach my notes right now, ask again soon?" is spoken, the agent is not called and no "voice is down" note shows
+- **AND** the log says `progress failed` with the error kind
+
+#### Scenario: Storing the turn fails
+- **WHEN** the Answer has streamed and storing the turn fails
+- **THEN** the turn stays on screen with its Answer, no "voice is down" note shows and the log says `store failed`
+
+#### Scenario: Storing the timings fails
+- **WHEN** a stored turn's playback timings arrive and the update fails
+- **THEN** the turn keeps the timings in memory and the Conversation keeps running
+
+#### Scenario: Conversation starts while Postgres is down
+- **WHEN** a Conversation starts and its recent turns cannot be read
+- **THEN** it starts with no turns instead of crashing
+
 ### Requirement: Per-stage latency
 Each stored turn SHALL hold milliseconds for the stages mic release (release to the server having the clip), STT, agent, TTS first byte, and playback start (release to first sound, the Answer time). `mix maya.latency` SHALL print p50 and p95 per stage over the stored turns. The turn row SHALL be written after the Answer starts streaming, never before TTS starts.
 

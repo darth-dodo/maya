@@ -24,6 +24,7 @@ defmodule Maya.Conversation do
   @nothing_heard "(nothing heard)"
   @not_heard "I did not catch that."
   @lost "Lost my train of thought, ask again?"
+  @notes_down "I can't reach my notes right now, ask again soon?"
   @idle :timer.minutes(30)
   # A 250 ms chunk is 8,000 bytes; the whole Question keeps the old 1 MB upload cap.
   @max_chunk 16_384
@@ -85,7 +86,8 @@ defmodule Maya.Conversation do
   @impl true
   def init(id) do
     idle = Application.get_env(:maya, :conversation_idle_ms, @idle)
-    {:ok, %{id: id, idle: idle, turns: Turn.recent(id), current: nil}, idle}
+    turns = db(:turns, fn -> Turn.recent(id) end, [])
+    {:ok, %{id: id, idle: idle, turns: turns, current: nil}, idle}
   end
 
   @impl true
@@ -120,8 +122,8 @@ defmodule Maya.Conversation do
   def handle_cast({:stream_start, turn_id}, state) do
     state = cut(state)
     ref = make_ref()
-    progress = GameData.progress(state.id)
-    terms = Vocabulary.bias_terms(progress)
+    progress = read_progress(state.id)
+    terms = terms(progress)
     relay = if Mistral.voice(:stt_realtime), do: Realtime.start(self(), ref, terms)
 
     noreply(%{
@@ -193,7 +195,15 @@ defmodule Maya.Conversation do
   def handle_cast({:timings, timings}, %{turns: turns} = state) do
     case List.last(turns) do
       %Turn{id: id} = last when is_integer(id) ->
-        {:ok, saved} = Turn.put_timings(last, timings)
+        saved =
+          db(
+            :timings,
+            fn ->
+              {:ok, saved} = Turn.put_timings(last, timings)
+              saved
+            end,
+            struct(last, timings)
+          )
 
         noreply(%{
           state
@@ -293,9 +303,15 @@ defmodule Maya.Conversation do
 
   # The turn's one Progress read: it biases STT toward the Team and horizon and goes on to the agent.
   defp transcribe(id, audio, filename) do
-    progress = GameData.progress(id)
-    transcribe(audio, filename, Vocabulary.bias_terms(progress), progress)
+    progress = read_progress(id)
+    transcribe(audio, filename, terms(progress), progress)
   end
+
+  # Postgres down or paused (#82): STT still runs, unbiased, and Maya says her notes are offline.
+  defp read_progress(id), do: db(:progress, fn -> GameData.progress(id) end, :notes_down)
+
+  defp terms(:notes_down), do: []
+  defp terms(progress), do: Vocabulary.bias_terms(progress)
 
   defp transcribe(audio, filename, terms, progress) do
     with {:ok, text} <- STT.transcribe(audio, filename, terms),
@@ -373,6 +389,12 @@ defmodule Maya.Conversation do
 
   defp finished(:stt, {:ok, "", _progress}, state),
     do: speak(%{state | current: stt_ms(state.current)}, @nothing_heard, @not_heard)
+
+  # A database problem, not a voice one: the honest line is spoken, never "voice is down" (#82).
+  defp finished(:stt, {:ok, question, :notes_down}, state) do
+    broadcast(state, {:question, question})
+    speak(%{state | current: stt_ms(state.current)}, question, @notes_down)
+  end
 
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
     c = stt_ms(c)
@@ -478,9 +500,19 @@ defmodule Maya.Conversation do
     end
   end
 
-  # Written after the Answer streamed, never on the path to first sound (ADR-006).
+  # Written after the Answer streamed, never on the path to first sound (ADR-006). With Postgres
+  # down the turn stays in memory only: Maya already answered (#82).
   defp store(state, turn) do
-    {:ok, saved} = Turn.insert(turn)
+    saved =
+      db(
+        :store,
+        fn ->
+          {:ok, saved} = Turn.insert(turn)
+          saved
+        end,
+        turn
+      )
+
     state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -20)}
     broadcast(state, {:turns, state.turns})
     state
@@ -497,6 +529,20 @@ defmodule Maya.Conversation do
     do: Logger.warning("#{stage} failed: #{Exception.message(e)}")
 
   defp warn(stage, reason), do: Logger.warning("#{stage} failed: #{inspect(reason)}")
+
+  # A failed database call logs its kind and returns `fallback`, so the turn goes on (#82).
+  defp db(stage, fun, fallback) do
+    fun.()
+  rescue
+    e ->
+      Logger.warning("#{stage} failed: #{db_reason(e)}")
+      fallback
+  end
+
+  # Never the message of a query error or a failed match: those can quote the turn's text.
+  defp db_reason(%DBConnection.ConnectionError{} = e), do: Exception.message(e)
+  defp db_reason(%Postgrex.Error{postgres: %{code: code}}), do: inspect(code)
+  defp db_reason(e), do: inspect(e.__struct__)
 
   defp run(fun), do: Task.Supervisor.async_nolink(Maya.TaskSupervisor, fun)
 

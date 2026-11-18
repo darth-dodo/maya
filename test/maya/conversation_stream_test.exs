@@ -85,6 +85,26 @@ defmodule Maya.ConversationStreamTest do
     assert [_one] = Turn.recent(id)
   end
 
+  test "Postgres down at the start of a hold: no crash, Maya says her notes are offline (#82)",
+       %{id: id} do
+    batch("Where is Ralts?")
+    {:ok, pid} = Conversation.start_or_find(id)
+    # The shared sandbox is switched off: every query fails the way a lost pool does.
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, :manual)
+
+    log =
+      capture_log(fn ->
+        hold(id, [<<1, 0, 2, 0>>])
+        assert_receive {:conversation, {:audio_done, 7}}
+      end)
+
+    assert [%Turn{answer: "I can't reach my notes right now" <> _}] = Conversation.turns(id)
+    assert {:ok, ^pid} = Conversation.start_or_find(id)
+    refute_received {:conversation, :voice_down}
+    refute_received {:agent_called, _}
+    assert log =~ "[warning] progress failed: DBConnection.OwnershipError"
+  end
+
   test "bad, oversized and over the cap chunks are dropped and logged without audio", %{id: id} do
     batch("Where is Ralts?")
 

@@ -270,6 +270,90 @@ defmodule Maya.ConversationTest do
     assert Turn.recent(id) == []
   end
 
+  # Postgres down or paused (#82): the shared sandbox is switched off, so every query from the
+  # Conversation and its Tasks fails the way a lost pool does, with no row data in the error.
+  defp db_down, do: Ecto.Adapters.SQL.Sandbox.mode(Repo, :manual)
+
+  test "Progress unreadable: Maya says her notes are offline, never voice down (#82)", %{id: id} do
+    stub(text("Where is Ralts"), &speak/1)
+    Req.Test.stub(Maya.OpenRouter, fn _conn -> flunk("the agent was called") end)
+    db_down()
+
+    log =
+      capture_log(fn ->
+        Conversation.question(id, "RIFF", "question.wav")
+        assert_receive {:conversation, {:question, "Where is Ralts"}}
+        assert_receive {:conversation, {:audio_done, nil}}
+
+        assert [
+                 %Turn{
+                   question: "Where is Ralts",
+                   answer: "I can't reach my notes right now" <> _
+                 }
+               ] =
+                 Conversation.turns(id)
+      end)
+
+    refute_received {:conversation, :voice_down}
+    assert log =~ "[warning] progress failed: DBConnection.OwnershipError"
+    assert log =~ "[warning] store failed: DBConnection.OwnershipError"
+    refute log =~ "Ralts"
+  end
+
+  test "storing the turn fails: Maya still answers and the turn stays on screen (#82)", %{id: id} do
+    me = self()
+
+    stub(text("Where is Ralts"), fn conn ->
+      send(me, {:tts_pid, self()})
+      assert_receive :go
+      speak(conn)
+    end)
+
+    Conversation.question(id, "RIFF", "question.wav")
+    assert_receive {:tts_pid, tts_pid}
+    db_down()
+
+    log =
+      capture_log(fn ->
+        send(tts_pid, :go)
+        assert_receive {:conversation, {:audio_done, nil}}
+        assert [%Turn{id: nil, answer: "Where is Ralts"}] = Conversation.turns(id)
+      end)
+
+    refute_received {:conversation, :voice_down}
+    assert log =~ "[warning] store failed: DBConnection.OwnershipError"
+  end
+
+  test "storing the timings fails: they stay in memory, never a crash (#82)", %{id: id} do
+    stub(text("Where is Ralts"), &speak/1)
+    Conversation.question(id, "RIFF", "question.wav")
+    assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+    db_down()
+
+    log =
+      capture_log(fn ->
+        Conversation.playback_started(id, %{mic_release_ms: 180, playback_start_ms: 2400})
+
+        assert [%Turn{id: ^turn_id, playback_start_ms: 2400}] = Conversation.turns(id)
+      end)
+
+    assert log =~ "[warning] timings failed: DBConnection.OwnershipError"
+  end
+
+  test "a Conversation that starts while Postgres is down starts with no turns (#82)" do
+    db_down()
+    other = "down-#{System.unique_integer([:positive])}"
+
+    log =
+      capture_log(fn ->
+        assert {:ok, _pid} = Conversation.start_or_find(other)
+        assert Conversation.turns(other) == []
+      end)
+
+    Conversation.stop(other)
+    assert log =~ "[warning] turns failed: DBConnection.OwnershipError"
+  end
+
   test "a crashed Conversation restarts under the same name and reloads its turns", %{id: id} do
     {:ok, _} = Turn.insert(%Turn{guest_id: id, question: "Where is Ralts", answer: "Route 102"})
     {:ok, pid} = Conversation.start_or_find(id)
