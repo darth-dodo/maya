@@ -40,6 +40,8 @@ defmodule MayaWeb.TalkLive do
 
   # How a hold can end (#76); lostpointercapture is only a flag, it never ends a hold.
   @hold_ends ~w(pointerup pointercancel)
+  # AudioContext states (Web Audio API), plus Safari's "interrupted".
+  @context_states ~w(suspended running closed interrupted)
   # Recording kept after release so a clipped last word is heard (#94); it is streamed too.
   @post_roll_ms 150
 
@@ -120,8 +122,11 @@ defmodule MayaWeb.TalkLive do
 
   # One hold is one Question: start, chunks, end. The Conversation validates each chunk.
   @impl true
-  def handle_event("stream_start", _params, socket) do
-    Conversation.stream_start(socket.assigns.guest_id)
+  # The hold's turn id comes back on its audio (#96); the client's value is untrusted, so only an
+  # integer is kept.
+  def handle_event("stream_start", params, socket) do
+    turn_id = if is_integer(params["turn"]), do: params["turn"]
+    Conversation.stream_start(socket.assigns.guest_id, turn_id)
     {:noreply, assign(socket, voice_down: false, live_question: nil, pending_question: nil)}
   end
 
@@ -140,6 +145,15 @@ defmodule MayaWeb.TalkLive do
   def handle_event("barge_in", _params, socket) do
     Conversation.barge_in(socket.assigns.guest_id)
     {:noreply, socket}
+  end
+
+  # The hook's watchdog (#96): Maya's audio clock froze, so the turn is cut and the screen shows
+  # voice down instead of a silent "speaking". Only a known AudioContext state is logged.
+  def handle_event("playback_stalled", params, socket) do
+    context = if params["context"] in @context_states, do: params["context"], else: "unknown"
+    Logger.warning("playback stalled, context: #{context}")
+    Conversation.barge_in(socket.assigns.guest_id)
+    {:noreply, assign(socket, voice_down: true)}
   end
 
   # Client numbers are untrusted: keep only the two known, non-negative integers.
@@ -257,11 +271,11 @@ defmodule MayaWeb.TalkLive do
   def handle_info({:conversation, {:question, text}}, socket),
     do: {:noreply, assign(socket, live_question: nil, pending_question: text)}
 
-  def handle_info({:conversation, {:audio, pcm}}, socket),
-    do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm)})}
+  def handle_info({:conversation, {:audio, turn_id, pcm}}, socket),
+    do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm), turn: turn_id})}
 
-  def handle_info({:conversation, :audio_done}, socket),
-    do: {:noreply, push_event(socket, "audio_done", %{})}
+  def handle_info({:conversation, {:audio_done, turn_id}}, socket),
+    do: {:noreply, push_event(socket, "audio_done", %{turn: turn_id})}
 
   # A failed TTS flags its turn; only a failed STT (no turn) needs the note on its own.
   def handle_info({:conversation, :voice_down}, socket) do

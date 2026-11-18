@@ -52,9 +52,9 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   # One hold: a stream start, two 200 ms chunks of silence and the end of the stream.
-  defp ask(view) do
+  defp ask(view, start \\ %{}) do
     button = element(view, "#talk-button")
-    render_hook(button, "stream_start", %{})
+    render_hook(button, "stream_start", start)
 
     for _ <- 1..2,
         do: render_hook(button, "audio_chunk", %{"audio" => Base.encode64(<<0::51_200>>)})
@@ -614,6 +614,35 @@ defmodule MayaWeb.TalkLiveTest do
 
     _ = Maya.Conversation.turns(guest)
     assert [%Turn{question: "Where is Ralts", stt_source: "batch"}] = Turn.recent(guest)
+  end
+
+  test "a hold's turn id comes back on its audio and audio_done (#96)", %{conn: conn} do
+    stub(text("Where is Ralts"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/talk")
+
+    ask(view, %{"turn" => 1_763_500_000_000})
+    assert_push_event(view, "audio", %{turn: 1_763_500_000_000})
+    assert_push_event(view, "audio_done", %{turn: 1_763_500_000_000})
+
+    # The client's value is untrusted: anything but an integer becomes no turn id.
+    ask(view, %{"turn" => "<script>"})
+    assert_push_event(view, "audio_done", %{turn: nil})
+  end
+
+  test "a playback stall cuts the turn and shows voice down (#96)", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    button = element(view, "#talk-button")
+
+    log =
+      capture_log(fn ->
+        render_hook(button, "playback_stalled", %{"context" => "interrupted"})
+      end)
+
+    assert log =~ "[warning] playback stalled, context: interrupted"
+    assert view |> element("#voice-down") |> render() =~ "voice is down"
+
+    log = capture_log(fn -> render_hook(button, "playback_stalled", %{"context" => "<b>"}) end)
+    assert log =~ "playback stalled, context: unknown"
   end
 
   test "partial text shows in the live bubble, then the final Question is pending", %{conn: conn} do
