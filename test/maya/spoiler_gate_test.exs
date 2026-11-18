@@ -77,6 +77,7 @@ defmodule Maya.SpoilerGateTest do
     end
 
     assert unbacked_claim?("Done, I added Ralts to your team.", [])
+    assert unbacked_claim?("Done, Wingull leads your Team now.", [])
     refute unbacked_claim?("Ralts lives on Route 102.", [])
   end
 
@@ -167,6 +168,37 @@ defmodule Maya.SpoilerGateTest do
       forbidden = global ++ @probe["forbidden"]
       leaked = for text <- sent([first, second]), name <- forbidden, word?(text, name), do: name
       assert leaked == []
+    end
+  end
+
+  test "the Team probes cover set_team, deposited and set_level" do
+    kinds = for %{"args" => %{"kind" => kind}} <- @probes["team_probes"], do: kind
+    assert kinds == ["set_team", "deposited", "set_level"]
+  end
+
+  # The species a Team probe's Question names, from its log_event details.
+  defp named_species(%{"details" => %{"team" => team}}),
+    do: Enum.map(team, &String.downcase(&1["species"]))
+
+  defp named_species(%{"details" => %{"species" => species}}), do: [String.downcase(species)]
+
+  for probe <- @probes["team_probes"] do
+    @probe probe
+    test "Team probes pass the spoiler gate, naming only what the Question named: #{probe["question"]}" do
+      progress = Maya.GameData.progress(@guest)
+      if team = @probe["team"], do: Maya.GameData.put_progress!(%{progress | team: team})
+
+      stub(@probe)
+      assert {:ok, _} = Maya.Agent.answer(@probe["question"], [], guest_id: @guest)
+
+      assert_received {:request, first}
+      assert_received {:request, second}
+      assert [%{"content" => result}] = for(%{"role" => "tool"} = m <- second["messages"], do: m)
+      assert %{"confirm" => line} = Jason.decode!(result)
+
+      said = for s <- Maya.GameData.species_names(), word?(line, s), do: s
+      assert said -- named_species(@probe["args"]) == []
+      assert [first, second] |> sent() |> Enum.flat_map(&leaks/1) == []
     end
   end
 
