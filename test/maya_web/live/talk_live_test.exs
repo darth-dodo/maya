@@ -307,7 +307,7 @@ defmodule MayaWeb.TalkLiveTest do
       view = open_editor(conn, guest, @pair, "Wingull")
       view |> element("#editor-pc-box") |> render_click()
 
-      assert has_element?(view, "#team-editor h2", "PC box")
+      assert has_element?(view, "#team-editor-heading", "PC box")
       assert has_element?(view, "#pc-box li", "Lotad Lv 6")
       view |> element(~s(#pc-box button[aria-label="Withdraw Lotad Lv 6"])) |> render_click()
 
@@ -330,7 +330,8 @@ defmodule MayaWeb.TalkLiveTest do
       refute has_element?(view, "#trainer-card #pc-box")
       view |> element("#pc-box-open") |> render_click()
 
-      assert has_element?(view, "#team-editor #pc-box li", "Ralts Lv 5")
+      box = view |> element("#pc-box") |> render() |> texts("li span")
+      assert box == ["Lotad Lv 6", "Ralts Lv 5"]
       assert has_element?(view, ~s(#team-editor-close[phx-click*="#pc-box-open"]))
     end
 
@@ -429,6 +430,7 @@ defmodule MayaWeb.TalkLiveTest do
       view = open_editor(conn, guest, @pair, "Wingull")
       render_click(view, "edit", %{"kind" => "caught"})
       render_click(view, "save_level", %{})
+      render_click(view, "edit_mon", %{"slot" => [1]})
       assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
       assert events(guest, "caught") == 0
     end

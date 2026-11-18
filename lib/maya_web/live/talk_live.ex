@@ -214,7 +214,8 @@ defmodule MayaWeb.TalkLive do
 
   # The Team editor (team-edit): idle only, and every action is the Event voice writes, through
   # Events.log/3 with the member's slot, so a stale screen changes nothing.
-  def handle_event("edit_mon", %{"slot" => slot}, %{assigns: %{talk_state: "idle"}} = socket) do
+  def handle_event("edit_mon", %{"slot" => slot}, %{assigns: %{talk_state: "idle"}} = socket)
+      when is_integer(slot) or is_binary(slot) do
     with {n, ""} when n >= 1 <- Integer.parse(to_string(slot)),
          %{"species" => species} <- Enum.at(socket.assigns.progress.team, n - 1) do
       {:noreply,
@@ -430,7 +431,9 @@ defmodule MayaWeb.TalkLive do
             type="button"
             class="btn"
             aria-label={"Withdraw #{mon.name} Lv #{mon.level}"}
-            phx-click={JS.push("withdraw", value: %{slot: slot})}
+            phx-click={
+              JS.push("withdraw", value: %{slot: slot}) |> JS.focus(to: "#team-editor-heading")
+            }
           >
             Withdraw
           </button>
