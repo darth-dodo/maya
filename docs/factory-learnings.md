@@ -56,6 +56,8 @@ Read from each repo's origin/main. Items 1 to 7 are tracked as code changes in #
 11. **Opt out of provider data use and write down what leaves the server** (habla-hermano `provider.data_collection = "deny"`, Deepgram `mip_opt_out`). Maya: check Mistral's training opt-out and record it in ARCHITECTURE.md (privacy idea in PHASE_2.md).
 12. **Cost:** Voxtral TTS is about $16 per million characters and about 70 ms model latency (cantastorie ADR-008 appendix), so a 2 to 3 sentence Answer (about 250 characters) costs about $0.004. ADR-008 also confirms calling Mistral directly beats OpenRouter's Voxtral (preset voices only).
 
+13. **iOS does not resume other apps' audio after a web page used the mic** (Abhishek's iPhone, Chrome, Spotify, 2026-11-18). #145 suspends the AudioContext and sets `navigator.audioSession` back after the turn, so tapping play works, but Spotify never resumes on its own. #181's `/talk?audio_debug=1` tried `auto`, `transient` and `ambient` after the turn: none resumed it. Only a native app can send iOS's "you may resume" signal (`AVAudioSession` `notifyOthersOnDeactivation`); WebKit exposes nothing for it, and cantastorie (ADR-010) accepted the same limit. Known gap: the Guest taps play once after talking. A native wrapper is in PHASE_2.md.
+
 No evidence in either repo on pronouncing Pokémon or place names, SSML, or cleaning markdown and emoji before TTS: Maya needs its own listening test.
 
 Not copied: the `<audio>`/REST whole-clip fallback and OpenRouter or Gemini TTS (break ADR-005 streaming and the frozen stack), cantastorie's precomputed narration cache (Maya's Answers are live), browser speech fallbacks and silent keep-alive loops.
