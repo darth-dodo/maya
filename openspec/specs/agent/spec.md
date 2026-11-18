@@ -225,7 +225,7 @@ The model's final reply SHALL be a JSON object with a non-empty string `answer` 
 - **THEN** the reply is rejected and handled as a rejected Answer
 
 ### Requirement: Honesty check with one corrective request
-Maya SHALL reject an Answer that cites a tool call id not run this turn, talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn, cited or not. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm line of a write that ran, else the fallback line.
+Maya SHALL reject an Answer that cites a tool call id not run this turn, talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn, cited or not. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
 
 #### Scenario: Claimed refusal without a tool call
 - **WHEN** the Question is "Can you add Ralts to my team?" and the stubbed model replies `{"answer": "I refused Ralts because your team is full.", "used_tool_calls": []}` with no tool call in this turn
@@ -246,18 +246,18 @@ Maya SHALL reject an Answer that cites a tool call id not run this turn, talks a
 
 #### Scenario: Ordinary words with no write
 - **WHEN** no write ran and the Answer is "Got it, Brawly uses Fighting types." or "Noted, Brawly is tough."
-- **THEN** the Answer passes: "updated", "changed", "noted", "saved" and "recorded" are a claim only in a sentence with a Progress noun (team, badge, level, lead, PC, box, location)
+- **THEN** the Answer passes: "updated", "changed", "noted", "saved" and "recorded" are a claim only in a sentence with a Progress noun (team, badge, badges, PC, box, location)
 
 #### Scenario: A write is never silent
 - **WHEN** `log_event` ran and then both replies are rejected, the round cap is hit or OpenRouter fails
-- **THEN** the Answer is that call's confirm line
+- **THEN** the Answer is that call's confirm line, or its refused line
 
 #### Scenario: The Guest asks about tools
 - **WHEN** the Question is "What tools do you have?" and the Answer names tools
 - **THEN** the Answer passes
 
 #### Scenario: Only one corrective request
-- **WHEN** the model's first and corrected replies are both rejected
+- **WHEN** the model's first and corrected replies are both rejected and no write ran
 - **THEN** Maya makes no third attempt and the Answer is the fallback line
 
 #### Scenario: Slateport claimed, then tool talk

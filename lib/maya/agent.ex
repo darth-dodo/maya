@@ -96,12 +96,13 @@ defmodule Maya.Agent do
 
   defp confirms(results) do
     for %{content: content} <- results,
-        %{"confirm" => line} <- [Jason.decode!(content)],
+        {:ok, %{} = result} <- [Jason.decode(content)],
+        line = result["confirm"] || result["refused"],
         do: line
   end
 
-  # The fallback line or an error after a write ran would hide a real change, so the write's
-  # confirm line is said instead. Only the outcome's tag is logged, never the Answer.
+  # The fallback line or an error after a write ran would hide a real change (or refusal), so
+  # the write's confirm or refused line is said instead. Only the outcome's tag is logged, never the Answer.
   defp give_up(%{confirms: []}, outcome), do: outcome
 
   defp give_up(%{confirms: lines}, outcome) do

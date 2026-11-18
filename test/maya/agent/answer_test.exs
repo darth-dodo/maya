@@ -71,8 +71,10 @@ defmodule Maya.Agent.AnswerTest do
     assert {:error, {:unbacked_claim, "updated"}} =
              Answer.check(answer("Your Team is updated."), %{})
 
+    assert {:ok, _} = Answer.check(answer("Noted, Mudkip learns it at level 10."), %{})
+
     assert {:error, {:unbacked_claim, "saved"}} =
-             Answer.check(answer("Saved, Mudkip is level 14."), %{})
+             Answer.check(answer("Saved, Mudkip is on your Team."), %{})
   end
 
   test "tool talk passes when the Question asks about tools" do

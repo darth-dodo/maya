@@ -64,7 +64,7 @@ defmodule Maya.Agent.Answer do
   # Everyday words, a claim only in a sentence with a Progress noun ("Your Team is updated"),
   # so "Noted, Brawly is tough." passes (#183).
   @change_words ["updated", "changed", "noted", "saved", "recorded"]
-  @progress_nouns ["team", "badge", "badges", "level", "lead", "PC", "box", "location"]
+  @progress_nouns ["team", "badge", "badges", "PC", "box", "location"]
 
   # Maya never tells the Guest about her own machinery (#118, phone 2026-11-18).
   @tool_words ["tool", "tools", "function call", "tool call"]

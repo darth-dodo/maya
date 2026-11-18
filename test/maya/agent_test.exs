@@ -451,6 +451,17 @@ defmodule Maya.AgentTest do
       refute line == @fallback
     end
 
+    test "a refused write, then an Answer rejected twice, says the refused line" do
+      script([
+        calls([{"team", "log_event", ~s({"kind":"set_team","details":{}})}]),
+        text("I need to check the tool."),
+        text("I need to check the tool.")
+      ])
+
+      assert Agent.answer("My Team is nobody", [], guest_id: "honesty-refused") ==
+               {:ok, "A Team holds 1 to 6 Pokémon."}
+    end
+
     # #183, phone 20:17 "Lost my train of thought": a Team update hit the round cap after its write.
     test "a write that ran, then the round cap, says the confirm line, not an error" do
       loop = calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])
