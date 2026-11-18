@@ -37,7 +37,9 @@ defmodule Maya.ConversationTest do
   end
 
   defp reply(content),
-    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
+    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => answer(content)}}]}
+
+  defp answer(text), do: Jason.encode!(%{answer: text, used_tool_calls: []})
 
   defp text(text), do: &Req.Test.json(&1, %{"text" => text})
 
@@ -58,9 +60,9 @@ defmodule Maya.ConversationTest do
 
     Conversation.question(id, "RIFF", "question.wav")
 
-    assert_receive {:conversation, {:audio, <<1, 2>>}}
-    assert_receive {:conversation, {:audio, <<3, 4>>}}
-    assert_receive {:conversation, :audio_done}
+    assert_receive {:conversation, {:audio, nil, <<1, 2>>}}
+    assert_receive {:conversation, {:audio, nil, <<3, 4>>}}
+    assert_receive {:conversation, {:audio_done, nil}}
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
 
     [turn] = Turn.recent(id)
@@ -125,7 +127,7 @@ defmodule Maya.ConversationTest do
     _ = Conversation.turns(id)
     send(tts_pid, :go)
 
-    assert_receive {:conversation, :audio_done}
+    assert_receive {:conversation, {:audio_done, nil}}
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
     assert %Turn{mic_release_ms: 90, playback_start_ms: 1500} = Repo.get!(Turn, turn_id)
   end
@@ -138,7 +140,7 @@ defmodule Maya.ConversationTest do
       capture_log(fn ->
         Conversation.question(id, "RIFF", "question.wav")
 
-        assert_receive {:conversation, {:audio, _}}
+        assert_receive {:conversation, {:audio, _, _}}
         assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
         assert %Turn{answer: "Lost my train of thought, ask again?"} = Repo.get!(Turn, turn_id)
       end)
@@ -215,7 +217,7 @@ defmodule Maya.ConversationTest do
                    when is_integer(turn_id)
 
     assert %Turn{cut: true, answer: "Where is Ralts"} = Repo.get!(Turn, turn_id)
-    refute_receive {:conversation, {:audio, _}}, 100
+    refute_receive {:conversation, {:audio, _, _}}, 100
   end
 
   test "TTS down: the Answer stays as text with the voice down flag, and is stored", %{id: id} do
@@ -227,10 +229,31 @@ defmodule Maya.ConversationTest do
         assert_receive {:conversation, :voice_down}
       end)
 
-    assert log =~ "[warning] tts failed: {:http, 503}"
+    # The provider's error body is logged (#96): it says why, the status alone does not.
+    assert log =~ ~s([warning] tts failed: {:http, 503, "down"})
     refute log =~ "Ralts"
     assert [%Turn{answer: "Where is Ralts", voice_down: true}] = Conversation.turns(id)
     assert [%Turn{answer: "Where is Ralts"}] = Turn.recent(id)
+  end
+
+  test "TTS fails mid-stream after chunks were pushed: voice down, never nothing (#96)", %{id: id} do
+    # The second delta is not base64, so the stream's Task crashes after the first chunk went out.
+    stub(text("Where is Ralts"), fn conn ->
+      body =
+        sse("speech.audio.delta", %{"audio_data" => Base.encode64(<<1, 2>>)}) <>
+          sse("speech.audio.delta", %{"audio_data" => "not base64!"})
+
+      Plug.Conn.send_resp(conn, 200, body)
+    end)
+
+    capture_log(fn ->
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:audio, nil, <<1, 2>>}}
+      assert_receive {:conversation, :voice_down}
+    end)
+
+    refute_received {:conversation, {:audio_done, _}}
+    assert [%Turn{answer: "Where is Ralts", voice_down: true}] = Conversation.turns(id)
   end
 
   test "STT down: voice down and no turn", %{id: id} do

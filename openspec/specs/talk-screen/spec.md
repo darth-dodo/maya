@@ -85,7 +85,7 @@ The Talk button SHALL open the mic on a press when it is closed and enter `recor
 
 #### Scenario: Phone audio handed back after the mic closes
 - **WHEN** the mic closes (idle delay, hidden page or destroyed) while the button is `idle` and no Answer audio is playing
-- **THEN** the hook suspends its AudioContext and, where `navigator.audioSession` exists, sets its type back to `"auto"` (it is `"play-and-record"` while the mic is open), so music another app was playing can resume
+- **THEN** the hook suspends its AudioContext and, where `navigator.audioSession` exists, sets its type back to `"auto"` (it is `"play-and-record"` while the mic is open; the `?audio_debug=1` picker can choose another after-turn type), so music another app was playing can resume
 - **AND** the next press resumes the AudioContext inside the gesture, before the mic opens
 
 #### Scenario: Cold press
@@ -95,6 +95,42 @@ The Talk button SHALL open the mic on a press when it is closed and enter `recor
 #### Scenario: Hidden page closes the mic
 - **WHEN** the mic is open and the page becomes hidden
 - **THEN** every mic track is stopped at once
+
+### Requirement: Audio session follows the mic
+Where `navigator.audioSession` exists the Talk hook SHALL set its type to `"play-and-record"` while the mic is open, `"playback"` while Maya talks with the mic closed, and the after-turn type (`"auto"` by default) once the mic closes (#96). A missing API or a throwing setter SHALL change nothing.
+
+#### Scenario: Silent switch
+- **WHEN** Maya talks with the mic closed and `navigator.audioSession` exists
+- **THEN** its type is `"playback"`, which the iOS silent switch does not mute; with the mic open it stays `"play-and-record"`
+
+#### Scenario: After-turn type picker (music spike)
+- **WHEN** `/talk` is opened with `?audio_debug=1`
+- **THEN** a fixed readout shows whether `navigator.audioSession` exists, its type and the AudioContext state, with a picker for the after-turn type (`auto`, `transient`, `ambient`) kept in sessionStorage for the tab
+- **AND** without the flag no readout is shown and the after-turn type is `"auto"`
+
+### Requirement: Answer audio never hangs silent
+Every press, release and pushed chunk SHALL resume the AudioContext from any state but `running` or `closed`, Safari's `interrupted` included, and swallow a refused resume. The button SHALL never stay in `speaking` with no sound (#96).
+
+#### Scenario: Wake from interrupted
+- **WHEN** the AudioContext is `interrupted` (a call, Siri or other audio) and a Guest presses
+- **THEN** the hook calls `resume()` inside the gesture, and a refused resume throws nothing
+
+#### Scenario: Playback stall
+- **WHEN** Answer audio is queued, the page is visible and the AudioContext clock has not moved for 2.5 s
+- **THEN** the hook stops the audio, reports `playback_stalled` with the context state and returns to `idle`
+- **AND** the server cuts the turn, logs "playback stalled, context: <state>" (an unknown state as "unknown") and shows the note "voice is down"
+
+#### Scenario: Hidden mid-Answer
+- **WHEN** the page becomes hidden while the button is `waiting` or `speaking`, or a chunk arrives while hidden
+- **THEN** the hook stops the audio, sends `barge_in` and returns to `idle`; the Answer stays as text
+
+### Requirement: Answer audio by turn id
+Each hold SHALL send its own turn id with the stream start, the server SHALL echo it on that turn's `audio` and `audio_done`, and the hook SHALL play only audio carrying the current turn id (#96).
+
+#### Scenario: Late chunks of a cut turn
+- **WHEN** a Guest cuts in and the old turn's `audio` or `audio_done` arrives after the new hold's Answer started
+- **THEN** the hook drops it by turn id, so no old words play and the new turn does not end early
+- **AND** a `stream_start` turn id that is not an integer is dropped by the server, and that hold's audio carries no turn id
 
 ### Requirement: Voice down note
 When the voice is down the Talk screen SHALL show the note "voice is down" next to the affected turn, or on its own when no Question was heard.

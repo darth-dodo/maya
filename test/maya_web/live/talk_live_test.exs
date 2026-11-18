@@ -19,8 +19,11 @@ defmodule MayaWeb.TalkLiveTest do
     Req.Test.stub(Maya.OpenRouter, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       question = List.last(Jason.decode!(body)["messages"])["content"]
-      message = %{"role" => "assistant", "content" => question}
-      Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+      answer = Jason.encode!(%{answer: question, used_tool_calls: []})
+
+      Req.Test.json(conn, %{
+        "choices" => [%{"message" => %{"role" => "assistant", "content" => answer}}]
+      })
     end)
 
     guest = "talk-#{System.unique_integer([:positive])}"
@@ -49,9 +52,9 @@ defmodule MayaWeb.TalkLiveTest do
   end
 
   # One hold: a stream start, two 200 ms chunks of silence and the end of the stream.
-  defp ask(view) do
+  defp ask(view, start \\ %{}) do
     button = element(view, "#talk-button")
-    render_hook(button, "stream_start", %{})
+    render_hook(button, "stream_start", start)
 
     for _ <- 1..2,
         do: render_hook(button, "audio_chunk", %{"audio" => Base.encode64(<<0::51_200>>)})
@@ -181,12 +184,12 @@ defmodule MayaWeb.TalkLiveTest do
       view = open_editor(conn, guest, @pair, "Wingull")
       # Close and Escape focus the chip that opened the editor, by its slot id.
       assert has_element?(view, "#mon-2", "Wingull")
-      assert view |> element("#team-editor-close") |> render() =~ "#mon-2"
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-2"]))
       view |> element("#team-editor-close") |> render_click()
       refute has_element?(view, "#team-editor")
 
-      view |> element("#team .mon", "Wingull") |> render_click()
-      assert view |> element("#team-editor") |> render() =~ "Escape"
+      view |> element("#mon-2") |> render_click()
+      assert has_element?(view, ~s(#team-editor[phx-key="Escape"][phx-window-keydown*="#mon-2"]))
       render_keydown(view, "close_editor", %{"key" => "Escape"})
       refute has_element?(view, "#team-editor")
     end
@@ -328,7 +331,7 @@ defmodule MayaWeb.TalkLiveTest do
       view |> element("#pc-box-open") |> render_click()
 
       assert has_element?(view, "#team-editor #pc-box li", "Ralts Lv 5")
-      assert view |> element("#team-editor-close") |> render() =~ "#pc-box-open"
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#pc-box-open"]))
     end
 
     test "Withdraw with a full Team", %{conn: conn, guest: guest} do
@@ -405,9 +408,29 @@ defmodule MayaWeb.TalkLiveTest do
       view |> element(~s(#pc-box button[aria-label="Withdraw Lotad Lv 6"])) |> render_click()
       render_click(view, "withdraw", %{"slot" => "9"})
       render_click(view, "withdraw", %{})
+      render_click(view, "withdraw", %{"slot" => %{"x" => 1}})
 
       assert has_element?(view, "#team-editor-line", "That Pokémon moved, so nothing changed.")
       assert events(guest, "withdrawn") == 0
+    end
+
+    test "Undo after Set as lead keeps the member in the editor", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Set as lead") |> render_click()
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-1"]))
+      view |> element("#team-editor button", "Undo") |> render_click()
+
+      assert chips(view) == ["Mudkip Lv 16", "Wingull Lv 9"]
+      assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-2"]))
+    end
+
+    test "unknown edit params are ignored", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      render_click(view, "edit", %{"kind" => "caught"})
+      render_click(view, "save_level", %{})
+      assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
+      assert events(guest, "caught") == 0
     end
 
     test "a stale chip changes nothing", %{conn: conn, guest: guest} do
@@ -712,6 +735,35 @@ defmodule MayaWeb.TalkLiveTest do
     assert [%Turn{question: "Where is Ralts", stt_source: "batch"}] = Turn.recent(guest)
   end
 
+  test "a hold's turn id comes back on its audio and audio_done (#96)", %{conn: conn} do
+    stub(text("Where is Ralts"), &speak/1)
+    {:ok, view, _html} = live(conn, ~p"/talk")
+
+    ask(view, %{"turn" => 1_763_500_000_000})
+    assert_push_event(view, "audio", %{turn: 1_763_500_000_000})
+    assert_push_event(view, "audio_done", %{turn: 1_763_500_000_000})
+
+    # The client's value is untrusted: anything but an integer becomes no turn id.
+    ask(view, %{"turn" => "<script>"})
+    assert_push_event(view, "audio_done", %{turn: nil})
+  end
+
+  test "a playback stall cuts the turn and shows voice down (#96)", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    button = element(view, "#talk-button")
+
+    log =
+      capture_log(fn ->
+        render_hook(button, "playback_stalled", %{"context" => "interrupted"})
+      end)
+
+    assert log =~ "[warning] playback stalled, context: interrupted"
+    assert view |> element("#voice-down") |> render() =~ "voice is down"
+
+    log = capture_log(fn -> render_hook(button, "playback_stalled", %{"context" => "<b>"}) end)
+    assert log =~ "playback stalled, context: unknown"
+  end
+
   test "partial text shows in the live bubble, then the final Question is pending", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/talk")
 
@@ -756,7 +808,8 @@ defmodule MayaWeb.TalkLiveTest do
       message =
         case {last["role"], last["content"]} do
           {"tool", content} ->
-            %{"role" => "assistant", "content" => content}
+            answer = %{answer: content, used_tool_calls: [last["tool_call_id"]]}
+            %{"role" => "assistant", "content" => Jason.encode!(answer)}
 
           {"user", question} ->
             %{"role" => "assistant", "content" => nil, "tool_calls" => [log_call(question)]}

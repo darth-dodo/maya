@@ -40,6 +40,8 @@ defmodule MayaWeb.TalkLive do
 
   # How a hold can end (#76); lostpointercapture is only a flag, it never ends a hold.
   @hold_ends ~w(pointerup pointercancel)
+  # AudioContext states (Web Audio API), plus Safari's "interrupted".
+  @context_states ~w(suspended running closed interrupted)
   # Recording kept after release so a clipped last word is heard (#94); it is streamed too.
   @post_roll_ms 150
 
@@ -126,8 +128,11 @@ defmodule MayaWeb.TalkLive do
 
   # One hold is one Question: start, chunks, end. The Conversation validates each chunk.
   @impl true
-  def handle_event("stream_start", _params, socket) do
-    Conversation.stream_start(socket.assigns.guest_id)
+  # The hold's turn id comes back on its audio (#96); the client's value is untrusted, so only an
+  # integer is kept.
+  def handle_event("stream_start", params, socket) do
+    turn_id = if is_integer(params["turn"]), do: params["turn"]
+    Conversation.stream_start(socket.assigns.guest_id, turn_id)
     {:noreply, assign(socket, voice_down: false, live_question: nil, pending_question: nil)}
   end
 
@@ -146,6 +151,15 @@ defmodule MayaWeb.TalkLive do
   def handle_event("barge_in", _params, socket) do
     Conversation.barge_in(socket.assigns.guest_id)
     {:noreply, socket}
+  end
+
+  # The hook's watchdog (#96): Maya's audio clock froze, so the turn is cut and the screen shows
+  # voice down instead of a silent "speaking". Only a known AudioContext state is logged.
+  def handle_event("playback_stalled", params, socket) do
+    context = if params["context"] in @context_states, do: params["context"], else: "unknown"
+    Logger.warning("playback stalled, context: #{context}")
+    Conversation.barge_in(socket.assigns.guest_id)
+    {:noreply, assign(socket, voice_down: true)}
   end
 
   # Client numbers are untrusted: keep only the two known, non-negative integers.
@@ -229,6 +243,10 @@ defmodule MayaWeb.TalkLive do
       when kind in ~w(set_lead deposited released),
       do: {:noreply, edit(socket, kind, %{})}
 
+  # Client params are untrusted: anything else is ignored, never a crash of the voice session.
+  def handle_event(event, _params, socket) when event in ~w(save_level edit),
+    do: {:noreply, socket}
+
   # The PC box view of the editor: the band's "PC box (N)" or the editor's PC box button.
   def handle_event("open_box", _params, %{assigns: %{talk_state: "idle"}} = socket),
     do: {:noreply, assign(socket, editing: :box, edit_line: nil, can_undo: false)}
@@ -241,7 +259,8 @@ defmodule MayaWeb.TalkLive do
         "withdraw",
         %{"slot" => slot},
         %{assigns: %{talk_state: "idle", editing: :box}} = socket
-      ) do
+      )
+      when is_integer(slot) or is_binary(slot) do
     with {n, ""} when n >= 1 <- Integer.parse(to_string(slot)),
          %{"species" => species} <- Enum.at(socket.assigns.progress.box, n - 1) do
       {:noreply, log_edit(socket, "withdrawn", %{"species" => species, "slot" => n}, :box)}
@@ -282,11 +301,11 @@ defmodule MayaWeb.TalkLive do
   def handle_info({:conversation, {:question, text}}, socket),
     do: {:noreply, assign(socket, live_question: nil, pending_question: text)}
 
-  def handle_info({:conversation, {:audio, pcm}}, socket),
-    do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm)})}
+  def handle_info({:conversation, {:audio, turn_id, pcm}}, socket),
+    do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm), turn: turn_id})}
 
-  def handle_info({:conversation, :audio_done}, socket),
-    do: {:noreply, push_event(socket, "audio_done", %{})}
+  def handle_info({:conversation, {:audio_done, turn_id}}, socket),
+    do: {:noreply, push_event(socket, "audio_done", %{turn: turn_id})}
 
   # A failed TTS flags its turn; only a failed STT (no turn) needs the note on its own.
   def handle_info({:conversation, :voice_down}, socket) do
@@ -302,8 +321,6 @@ defmodule MayaWeb.TalkLive do
 
   defp edit(%{assigns: %{talk_state: "idle", editing: %{} = editing}} = socket, kind, extra) do
     details = Map.merge(%{"species" => editing.species, "slot" => editing.slot}, extra)
-    # The lead moves to slot 1, so the editor follows it there.
-    editing = if kind == "set_lead", do: %{editing | slot: 1}, else: editing
     log_edit(socket, kind, details, editing)
   end
 
@@ -315,7 +332,7 @@ defmodule MayaWeb.TalkLive do
         assign(socket,
           progress: progress,
           card: trainer_card(progress),
-          editing: editing,
+          editing: follow(editing, progress.team),
           edit_line: line,
           # Undo only after a confirm that wrote an Event; it undoes the Guest's last Event.
           can_undo: kind != "undo" and progress != socket.assigns.progress
@@ -323,6 +340,17 @@ defmodule MayaWeb.TalkLive do
 
       {:refused, line} ->
         assign(socket, edit_line: line, can_undo: false)
+    end
+  end
+
+  # The editor follows its member to a new slot (a new lead, an Undo).
+  # shortcut: with two of one species it follows the first; upgrade to a member id if that bites.
+  defp follow(editing, _team) when editing in [nil, :box], do: editing
+
+  defp follow(editing, team) do
+    case {edited(editing, team), Enum.find_index(team, &(&1["species"] == editing.species))} do
+      {nil, i} when is_integer(i) -> %{editing | slot: i + 1}
+      _same_or_gone -> editing
     end
   end
 
@@ -524,7 +552,10 @@ defmodule MayaWeb.TalkLive do
                   class="mon"
                   aria-label={"Edit #{mon.name} Lv #{mon.level}"}
                   id={"mon-#{slot}"}
-                  phx-click={JS.push("edit_mon", value: %{slot: slot})}
+                  phx-click={
+                    JS.push("edit_mon", value: %{slot: slot})
+                    |> JS.focus(to: "#team-editor-heading")
+                  }
                 >
                   <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
                   {mon.name} Lv {mon.level}

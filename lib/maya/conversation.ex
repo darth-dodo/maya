@@ -2,14 +2,16 @@ defmodule Maya.Conversation do
   @moduledoc """
   One guest's Conversation (ARCHITECTURE.md 2, ADR-008), found by `guest_id`. It owns the
   turn in flight: STT, then the agent (with the last 5 turns), then a streamed TTS Answer.
-  A held Question streams in as audio chunks (`stream_start/1`, `audio_chunk/2`,
+  A held Question streams in as audio chunks (`stream_start/2`, `audio_chunk/2`,
   `stream_end/1`); with realtime on, a relay to Voxtral realtime shows partial text while
   held, and batch STT on the buffered audio gives the final text or takes over when realtime
   fails (ADR-009).
   After 30 idle minutes it stops normally; the next start reloads its turns from Postgres.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
-  `{:partial, text}`, `{:question, text}`, `{:audio, pcm}`, `:audio_done` and `:voice_down`.
+  `{:partial, text}`, `{:question, text}`, `{:audio, turn_id, pcm}`, `{:audio_done, turn_id}`
+  and `:voice_down`. `turn_id` is the id the hold sent with `stream_start/2` (nil for an upload),
+  so the screen can drop a cut turn's late audio (#96).
   """
   # Transient: a crash restarts it, an idle stop does not.
   use GenServer, restart: :transient
@@ -57,9 +59,9 @@ defmodule Maya.Conversation do
   end
 
   @doc "A hold began: cuts the turn in flight and opens the realtime session when it is on."
-  def stream_start(id) do
+  def stream_start(id, turn_id \\ nil) do
     {:ok, pid} = start_or_find(id)
-    GenServer.cast(pid, :stream_start)
+    GenServer.cast(pid, {:stream_start, turn_id})
   end
 
   @doc "One base64 chunk of 16 kHz mono 16-bit PCM from the hold."
@@ -109,12 +111,13 @@ defmodule Maya.Conversation do
           ref: ref,
           task: task,
           stage: :stt,
+          turn_id: nil,
           turn: %Turn{guest_id: state.id, stt_source: "batch"}
         }
     })
   end
 
-  def handle_cast(:stream_start, state) do
+  def handle_cast({:stream_start, turn_id}, state) do
     state = cut(state)
     ref = make_ref()
     progress = GameData.progress(state.id)
@@ -126,6 +129,7 @@ defmodule Maya.Conversation do
       | current: %{
           ref: ref,
           stage: :listening,
+          turn_id: turn_id,
           relay: relay,
           audio: [],
           bytes: 0,
@@ -226,7 +230,7 @@ defmodule Maya.Conversation do
         %{c | turn: %{turn | tts_first_byte_ms: ms}}
       end
 
-    broadcast(state, {:audio, pcm})
+    broadcast(state, {:audio, c.turn_id, pcm})
     noreply(%{state | current: c})
   end
 
@@ -409,7 +413,7 @@ defmodule Maya.Conversation do
   end
 
   defp finished(:tts, :ok, state) do
-    broadcast(state, :audio_done)
+    broadcast(state, {:audio_done, state.current.turn_id})
     store(state, state.current.turn)
   end
 

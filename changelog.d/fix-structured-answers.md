@@ -1,0 +1,2 @@
+Fixed: Maya only claims tool results she received: every Answer is structured `{answer, used_tool_calls}` (OpenRouter structured output with `require_parameters`, checked by `Maya.Agent.Answer`), and a cited call that did not run, a write claim without `log_event`, or talk about tools gets one corrective request, then "Not sure I got that right, ask me again?"
+Changed: Spoken Answers are trimmed to 3 sentences, and the prompt tells Maya never to mention tools and to state corrections plainly

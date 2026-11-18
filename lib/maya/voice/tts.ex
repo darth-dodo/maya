@@ -8,6 +8,11 @@ defmodule Maya.Voice.TTS do
 
   alias Maya.Voice.{Mistral, SSE}
 
+  # The logged error body is cut to @error_bytes only after the Answer is redacted, so up to
+  # @error_buffer bytes are read first (an Answer is about 250 characters).
+  @error_bytes 500
+  @error_buffer 8_192
+
   @doc "Streams `text` as PCM, calling `on_chunk` with each decoded chunk in the calling process."
   @spec stream(String.t(), (binary() -> any())) :: :ok | {:error, term()}
   def stream(text, on_chunk) do
@@ -26,7 +31,7 @@ defmodule Maya.Voice.TTS do
       )
       |> case do
         {:ok, %{status: 200}} -> :ok
-        {:ok, %{status: status}} -> {:error, {:http, status}}
+        {:ok, %{status: status} = resp} -> {:error, {:http, status, error_body(resp, text)}}
         {:error, reason} -> {:error, reason}
       end
     end
@@ -41,6 +46,27 @@ defmodule Maya.Voice.TTS do
     {:cont, {req, Req.Response.put_private(resp, :sse, rest)}}
   end
 
-  # An error body is not audio: drop it, the status says what went wrong.
-  defp relay({:data, _}, acc, _on_chunk), do: {:cont, acc}
+  # An error body is not audio: it is kept for the log, since the status alone does not say
+  # why (#96, cantastorie 7869d98).
+  defp relay({:data, data}, {req, resp}, _on_chunk) do
+    {:cont,
+     {req, Req.Response.put_private(resp, :error, cut(get_error(resp) <> data, @error_buffer))}}
+  end
+
+  # A validation error can echo the input, raw or JSON escaped: both are redacted before the
+  # cut, so no part of the Answer reaches the log. The cut never leaves half a character.
+  defp error_body(resp, text) do
+    json = Jason.encode!(text)
+    echoes = Enum.reject([text, binary_part(json, 1, byte_size(json) - 2)], &(&1 == ""))
+
+    resp
+    |> get_error()
+    |> String.replace(echoes, "[input]")
+    |> cut(@error_bytes)
+    |> String.replace_invalid("")
+  end
+
+  defp get_error(resp), do: Req.Response.get_private(resp, :error, "")
+
+  defp cut(bin, max), do: binary_part(bin, 0, min(byte_size(bin), max))
 end

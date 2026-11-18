@@ -102,11 +102,71 @@ defmodule Maya.Voice.MistralTest do
       refute_received {:pcm, _}
     end
 
-    test "an HTTP error is an error tuple and hands over nothing" do
+    test "an HTTP error is an error tuple with the provider's reason and hands over nothing" do
       Req.Test.stub(Maya.Mistral, &Plug.Conn.send_resp(&1, 401, ~s({"message":"no"})))
       me = self()
-      assert TTS.stream("Hello", &send(me, {:pcm, &1})) == {:error, {:http, 401}}
+
+      assert TTS.stream("Hello", &send(me, {:pcm, &1})) ==
+               {:error, {:http, 401, ~s({"message":"no"})}}
+
       refute_received {:pcm, _}
+    end
+
+    test "keeps only the first 500 bytes of an error body (#96)" do
+      Req.Test.stub(Maya.Mistral, fn conn ->
+        conn = Plug.Conn.send_chunked(conn, 400)
+        {:ok, conn} = Plug.Conn.chunk(conn, String.duplicate("a", 300))
+        {:ok, conn} = Plug.Conn.chunk(conn, String.duplicate("b", 300))
+        conn
+      end)
+
+      assert {:error, {:http, 400, body}} = TTS.stream("Hello", fn _ -> :ok end)
+      assert body == String.duplicate("a", 300) <> String.duplicate("b", 200)
+    end
+
+    test "a JSON escaped echo past byte 500 is redacted before the cut, and the cut stays UTF-8" do
+      answer = ~s(Ralts says "hi"\non Route 102)
+      echo = String.duplicate("é", 240) <> Jason.encode!(%{input: answer})
+      Req.Test.stub(Maya.Mistral, &Plug.Conn.send_resp(&1, 422, echo))
+
+      assert {:error, {:http, 422, body}} = TTS.stream(answer, fn _ -> :ok end)
+      assert String.valid?(body)
+      refute body =~ "Ralts"
+      assert body =~ "[input]"
+
+      # A cut through a two byte character drops its first byte.
+      Req.Test.stub(
+        Maya.Mistral,
+        &Plug.Conn.send_resp(&1, 400, "a" <> String.duplicate("é", 300))
+      )
+
+      assert {:error, {:http, 400, body}} = TTS.stream("x", fn _ -> :ok end)
+      assert String.valid?(body) and byte_size(body) == 499
+    end
+
+    test "an error body that echoes the input never carries the Answer" do
+      Req.Test.stub(
+        Maya.Mistral,
+        &Plug.Conn.send_resp(&1, 422, ~s({"input":"Ralts is on Route 102"}))
+      )
+
+      assert TTS.stream("Ralts is on Route 102", fn _ -> :ok end) ==
+               {:error, {:http, 422, ~s({"input":"[input]"})}}
+    end
+
+    # Voxtral speech is mono 24 kHz; `pcm` streams float32 little-endian samples
+    # (https://docs.mistral.ai/studio-api/audio, the 2026-11-14 spike in #48). The hook plays
+    # pushed PCM at this rate, so a wrong value is garbled or pitched audio (#96).
+    test "the configured TTS sample rate and format match the Voxtral docs" do
+      assert Application.fetch_env!(:maya, :voice)[:tts_sample_rate] == 24_000
+
+      Req.Test.stub(Maya.Mistral, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        assert %{"response_format" => "pcm", "stream" => true} = Jason.decode!(body)
+        Plug.Conn.send_resp(conn, 200, sse("speech.audio.done", %{}))
+      end)
+
+      assert TTS.stream("Hello", fn _ -> :ok end) == :ok
     end
   end
 end

@@ -20,7 +20,8 @@ defmodule Maya.ConversationStreamTest do
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       question = List.last(Jason.decode!(body)["messages"])["content"]
       send(me, {:agent_called, question})
-      message = %{"role" => "assistant", "content" => question}
+      answer = Jason.encode!(%{answer: question, used_tool_calls: []})
+      message = %{"role" => "assistant", "content" => answer}
       Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
     end)
 
@@ -56,13 +57,14 @@ defmodule Maya.ConversationStreamTest do
   end
 
   defp hold(id, chunks) do
-    Conversation.stream_start(id)
+    Conversation.stream_start(id, 7)
     for pcm <- chunks, do: Conversation.audio_chunk(id, Base.encode64(pcm))
     Conversation.stream_end(id)
   end
 
+  # The hold's turn id comes back on its audio_done (#96).
   defp stored do
-    assert_receive {:conversation, :audio_done}
+    assert_receive {:conversation, {:audio_done, 7}}
     assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
     Repo.get!(Turn, turn_id)
   end
@@ -141,7 +143,7 @@ defmodule Maya.ConversationStreamTest do
     FakeMistralRealtime.serve(:ok)
     batch("Where do I catch Ralts?")
 
-    Conversation.stream_start(id)
+    Conversation.stream_start(id, 7)
     Conversation.audio_chunk(id, Base.encode64(<<0::3200*16>>))
     assert_receive {:conversation, {:partial, "where do"}}
     Conversation.stream_end(id)
@@ -204,7 +206,7 @@ defmodule Maya.ConversationStreamTest do
 
     log =
       capture_log(fn ->
-        Conversation.stream_start(id)
+        Conversation.stream_start(id, 7)
         assert_receive {:fake_socket, socket}
         mon = Process.monitor(socket)
         Conversation.audio_chunk(id, Base.encode64(<<0::3200*16>>))

@@ -4,7 +4,13 @@
 // (ADR-009: stream_start, audio_chunk, stream_end) and plays the server's pushed PCM (32-bit
 // float little-endian, at data-sample-rate) as it arrives.
 
+import {safeStorage} from "./safe_storage.js"
+
 const STT_RATE = 16000
+// Playback watchdog (#96, cantastorie ADR-010): polled every 500 ms, a clock frozen 2.5 s stalls.
+const STALL_MS = 2500
+const STALL_POLL_MS = 500
+const AFTER_TURN_KEY = "maya:after_turn_session"
 // 200 ms per chunk: the spec allows 100 to 250 ms (1600 to 4000 samples); only the last is shorter.
 const CHUNK_SAMPLES = 3200
 // Warm mic (#94): audio kept from just before a press, and how long the mic stays open once
@@ -123,10 +129,52 @@ export function audioCanSleep(micOpen, state, playing) {
   return !micOpen && state === "idle" && playing === 0
 }
 
-// W3C Audio Session (Safari 16.4+): "play-and-record" while the mic is open, "auto" after, so
-// the browser picks no exclusive type once the page is silent. Feature detected.
+// W3C Audio Session (Safari 16.4+, https://w3c.github.io/audio-session/). Feature detected, and
+// a throwing setter never breaks the press path.
 export function setAudioSession(nav, type) {
-  if (nav.audioSession) nav.audioSession.type = type
+  try {
+    if (nav.audioSession && nav.audioSession.type !== type) nav.audioSession.type = type
+  } catch (_err) { /* no session control: the browser's default */ }
+}
+
+// The session type for the moment (#96). An open mic keeps "play-and-record": any other type
+// but "auto" stops capture (W3C Audio Session, the type attribute). With the mic closed while
+// Maya talks, "playback", which the iOS silent switch does not mute (cantastorie ADR-010). After
+// the turn "auto" (#145), or the type the music spike picked (?audio_debug=1).
+export function audioSessionType(micOpen, state, afterTurn) {
+  if (micOpen) return "play-and-record"
+  return state === "speaking" || state === "waiting" ? "playback" : afterTurn
+}
+
+// Resumes a context in any state but "running" or "closed", Safari's "interrupted" (calls, Siri,
+// other audio) included, and swallows a refused resume: outside a gesture iOS may say no
+// (https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/resume, cantastorie ADR-010).
+export function wakeAudio(ctx) {
+  if (ctx && ctx.state !== "running" && ctx.state !== "closed") return ctx.resume().catch(() => {})
+}
+
+// The playback watchdog (#96): [ms timestamp the AudioContext clock last moved, stalled?]. A
+// suspended or interrupted context freezes currentTime and never fires onended
+// (https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend), so "speaking" would hang.
+export function playbackStalled(prevTime, time, since, now, limitMs) {
+  const moved = time !== prevTime ? now : since
+  return [moved, now - moved >= limitMs]
+}
+
+// A pushed chunk plays only for the hold that asked for it, by turn id, and only while waiting
+// or speaking: a cut turn's chunks can still be on the socket after the next hold starts (#96).
+export function keepChunk(state, currentTurn, chunkTurn) {
+  return (state === "waiting" || state === "speaking") && chunkTurn === currentTurn
+}
+
+// Music spike (2026-11-18): the session type set after a turn, picked on the debug readout.
+export const AFTER_TURN_TYPES = ["auto", "transient", "ambient"]
+export function afterTurnType(stored) {
+  return AFTER_TURN_TYPES.includes(stored) ? stored : "auto"
+}
+
+export function audioDebugOn(search) {
+  return new URLSearchParams(search).get("audio_debug") === "1"
 }
 
 // Stops every track and unhooks the capture nodes, so the phone's mic indicator goes off (#79).
@@ -164,17 +212,30 @@ export const TalkHook = {
     // iOS: keep the touch from starting a scroll or the text loupe under the finger.
     this.el.addEventListener("touchstart", e => e.preventDefault(), {passive: false})
     this.el.addEventListener("contextmenu", e => e.preventDefault())
-    // A phone in a pocket never keeps the mic.
-    this.onVisibility = () => this.scheduleMicClose()
+    // A phone in a pocket never keeps the mic, and a hidden page cuts Maya's turn (#96): iOS
+    // freezes its audio, so the Answer stays as text. Back in view, a context that still has
+    // something to play is woken (best effort, not a gesture); an idle one stays asleep (#145).
+    this.onVisibility = () => {
+      if (document.hidden && (this.state === "waiting" || this.state === "speaking")) this.cut()
+      if (!document.hidden && !audioCanSleep(!!this.mic, this.state, this.sources.length)) wakeAudio(this.ctx)
+      this.scheduleMicClose()
+    }
     document.addEventListener("visibilitychange", this.onVisibility)
+
+    this.afterTurn = "auto"
+    if (audioDebugOn(window.location.search)) this.mountAudioDebug()
 
     this.handleEvent("heard", () => {
       if (this.state !== "uploading") return
       this.marks.heard = performance.now()
       this.set("waiting")
     })
-    this.handleEvent("audio", ({pcm}) => this.play(pcm))
-    this.handleEvent("audio_done", () => { this.done = true; this.maybeIdle() })
+    this.handleEvent("audio", ({pcm, turn}) => this.play(pcm, turn))
+    this.handleEvent("audio_done", ({turn}) => {
+      if (turn !== this.turn) return // a cut turn's end never ends the current one
+      this.done = true
+      this.maybeIdle()
+    })
     this.handleEvent("voice_down", () => { this.stopAudio(); this.set("idle") })
   },
 
@@ -182,9 +243,48 @@ export const TalkHook = {
     document.removeEventListener("visibilitychange", this.onVisibility)
     this.unlistenPointerEnd()
     clearTimeout(this.tailTimer)
+    clearInterval(this.debugTimer)
+    this.debugBox?.remove()
     this.stopAudio()
     this.dropMic()
     this.ctx?.close()
+  },
+
+  // Music spike (?audio_debug=1): whether navigator.audioSession exists, its type and the
+  // context's state, and a picker for the after-turn type, kept for the tab in sessionStorage.
+  // Fixed on the body, outside the LiveView container: no patch touches it, no layout moves.
+  mountAudioDebug() {
+    const store = safeStorage(window, "sessionStorage")
+    this.afterTurn = afterTurnType(store.getItem(AFTER_TURN_KEY))
+    const box = (this.debugBox = document.createElement("div"))
+    box.id = "audio-debug"
+    box.style.cssText = "position:fixed;top:4px;left:4px;z-index:100;padding:4px 6px;font:12px monospace;" +
+      "background:var(--color-base-100,#fff);color:var(--color-base-content,#000);border:1px solid currentColor"
+    const readout = document.createElement("div")
+    const select = document.createElement("select")
+    select.id = "audio-debug-after-turn"
+    AFTER_TURN_TYPES.forEach(t => select.add(new Option(t, t, false, t === this.afterTurn)))
+    select.onchange = () => {
+      this.afterTurn = afterTurnType(select.value)
+      store.setItem(AFTER_TURN_KEY, this.afterTurn)
+      this.syncSession()
+    }
+    const label = document.createElement("label")
+    label.append("after turn: ", select)
+    box.append(readout, label)
+    document.body.append(box)
+    const show = () => {
+      const s = navigator.audioSession
+      readout.textContent = `audioSession: ${s ? s.type : "none"}, context: ${this.ctx?.state || "none"}`
+    }
+    show()
+    this.debugTimer = setInterval(show, 500)
+  },
+
+  // The audio session follows the mic and the button (audioSessionType); a press opening a mic
+  // counts as open, so nothing stops the capture it is about to get.
+  syncSession() {
+    setAudioSession(navigator, audioSessionType(!!this.mic || !!this.pressed, this.state, this.afterTurn))
   },
 
   unlistenPointerEnd() {
@@ -196,17 +296,18 @@ export const TalkHook = {
   dropMic() {
     clearTimeout(this.micTimer)
     closeMic(this.mic)
-    if (this.mic) setAudioSession(navigator, "auto")
+    const hadMic = !!this.mic
     this.mic = null
     this.preRoll = []
+    if (hadMic) this.syncSession()
     this.maybeSleep()
   },
 
-  // A cold press that got no mic (denied, or released first): back to "auto" unless a newer
-  // press is opening one.
+  // A cold press that got no mic (denied, or released first): back to the after-turn type
+  // unless a newer press is opening one.
   micNotOpened() {
     if (this.mic || this.pressed) return
-    setAudioSession(navigator, "auto")
+    this.syncSession()
     this.maybeSleep()
   },
 
@@ -230,9 +331,11 @@ export const TalkHook = {
   // The button's labels follow its own data-state at once (CSS); the screen root (ring, card,
   // status) follows the server's copy, so a push only when the state changes.
   set(state) {
-    if (state !== this.state) this.pushEvent("talk_state", {state})
+    const changed = state !== this.state
+    if (changed) this.pushEvent("talk_state", {state})
     this.state = state
     this.el.dataset.state = state
+    if (changed) this.syncSession()
     this.scheduleMicClose()
   },
 
@@ -250,21 +353,17 @@ export const TalkHook = {
   async press(e) {
     e.preventDefault()
     if (this.pressed || this.state === "uploading") return
-    if (this.state === "speaking") {
-      // Barge-in: silence at once, then tell the server to cancel the stream. Idle drops the cut
-      // turn's late chunks while the mic opens.
-      this.stopAudio()
-      this.pushEvent("barge_in", {})
-      this.set("idle")
-    }
+    // Barge-in: silence at once, then tell the server to cancel the stream. The cut turn's late
+    // chunks are dropped by state while the mic opens, then by turn id.
+    if (this.state === "speaking") this.cut()
     this.el.setPointerCapture?.(e.pointerId)
     this.pointerId = e.pointerId
     document.addEventListener("pointerup", this.onPointerEnd, true)
     document.addEventListener("pointercancel", this.onPointerEnd, true)
     // Created and resumed inside the gesture, or iOS keeps it suspended. Also wakes it after
-    // maybeSleep; on a warm press it is already running, so this costs nothing.
+    // maybeSleep, or from "interrupted"; on a warm press it is already running, so a no-op.
     this.ctx ||= new (window.AudioContext || window.webkitAudioContext)()
-    this.ctx.resume()
+    wakeAudio(this.ctx)
     const hold = (this.hold = {})
     this.pressed = true
     this.pressedAt = performance.now()
@@ -299,7 +398,10 @@ export const TalkHook = {
 
   // One hold is one stream: start, then the pre-roll (empty on a cold press), then live blocks.
   beginStream() {
-    this.pushEvent("stream_start", {})
+    // Each hold's own turn id, echoed on its audio (#96). A timestamp, so a reloaded page never
+    // reuses the id of a turn still streaming.
+    this.turn = Math.max(Date.now(), (this.turn || 0) + 1)
+    this.pushEvent("stream_start", {turn: this.turn})
     this.pending = new Float32Array(0)
     this.recording = true
     const preRoll = this.preRoll
@@ -341,6 +443,9 @@ export const TalkHook = {
     const wasRecording = this.recording
     const tail = wasRecording ? this.postRollMs : 0
     this.pressed = false
+    // A touch press only activates on the lift (HTML Standard, activation-triggering input
+    // event), so the wake in press() may not take on iOS; this one runs inside pointerup.
+    wakeAudio(this.ctx)
     this.pushEvent("hold_ended",
       holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt, this.warm, tail))
     if (!wasRecording) return this.set("idle")
@@ -365,9 +470,13 @@ export const TalkHook = {
     this.pushEvent("stream_end", {})
   },
 
-  play(b64) {
-    // A cut turn's late chunks arrive while recording or idle: drop them.
-    if (this.state !== "waiting" && this.state !== "speaking") return
+  play(b64, turn) {
+    // A cut turn's late chunks: dropped by turn id, and while recording or idle by state.
+    if (!keepChunk(this.state, this.turn, turn)) return
+    // Hidden after the release: iOS would freeze this audio, so the Answer stays as text.
+    if (document.hidden) return this.cut()
+    // Suspended or interrupted plays nothing; a refused wake ends in the watchdog, not dead air.
+    wakeAudio(this.ctx)
     const [bytes, rest] = alignF32(this.leftover, Uint8Array.from(atob(b64), c => c.charCodeAt(0)))
     this.leftover = rest
     const samples = pcmF32ToFloat(bytes)
@@ -382,6 +491,7 @@ export const TalkHook = {
     src.start(at)
     this.nextTime = at + buffer.duration
     this.sources.push(src)
+    this.watch()
     src.onended = () => {
       this.sources = this.sources.filter(s => s !== src)
       this.maybeIdle()
@@ -403,7 +513,38 @@ export const TalkHook = {
     }
   },
 
+  // Ends Maya's turn here and on the server (both events cut it there): silence, then idle.
+  cut(event = "barge_in", payload = {}) {
+    this.stopAudio()
+    this.pushEvent(event, payload)
+    this.set("idle")
+  },
+
+  // The playback watchdog (#96): while audio is queued and the page is visible, a clock frozen
+  // for STALL_MS means onended will never fire. The turn ends and the screen shows voice down.
+  watch() {
+    if (this.watchdog) return
+    this.clockAt = this.ctx.currentTime
+    this.clockMovedAt = performance.now()
+    this.watchdog = setInterval(() => {
+      if (this.sources.length === 0) return this.unwatch()
+      const time = this.ctx.currentTime
+      const now = performance.now()
+      const [movedAt, stalled] = playbackStalled(this.clockAt, time, this.clockMovedAt, now, STALL_MS)
+      this.clockAt = time
+      this.clockMovedAt = document.hidden ? now : movedAt
+      if (!stalled || document.hidden) return
+      this.cut("playback_stalled", {context: this.ctx.state})
+    }, STALL_POLL_MS)
+  },
+
+  unwatch() {
+    clearInterval(this.watchdog)
+    this.watchdog = null
+  },
+
   stopAudio() {
+    this.unwatch()
     for (const s of this.sources) {
       s.onended = null
       try { s.stop() } catch (_err) { /* already stopped */ }
