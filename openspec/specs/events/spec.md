@@ -6,7 +6,7 @@ Turns what the Guest tells Maya about their game (a badge earned, a catch, an ev
 ## Requirements
 
 ### Requirement: Log an Event
-The agent SHALL have a `log_event` tool with a `kind` (`badge_earned`, `caught`, `evolved`, `set_level`, `moved`, `released`, `deposited`, `withdrawn`, `set_lead`, `set_team` or `undo`) and `details`. Events SHALL also accept `level_up` (as before) from other callers, but the tool SHALL NOT offer it. A valid Event SHALL be written to the Guest's Events and applied to the Guest's Progress in one transaction, and the tool SHALL return a one line confirm that names only what the Guest said and the data confirms. Another Guest's Progress SHALL NOT change.
+The agent SHALL have a `log_event` tool with a `kind` (`badge_earned`, `caught`, `evolved`, `set_level`, `moved`, `released`, `deposited`, `withdrawn`, `set_lead`, `set_team` or `undo`) and `details`. Events SHALL also accept `level_up` (as before) from other callers, but the tool SHALL NOT offer it. The tool SHALL return a one line confirm that names only what the Guest said and the data confirms.
 
 #### Scenario: Roxanne's badge
 - **WHEN** a Guest with 0 badges logs `badge_earned` with leader Roxanne
@@ -42,6 +42,9 @@ The agent SHALL have a `log_event` tool with a `kind` (`badge_earned`, `caught`,
 - **WHEN** a Guest with 1 badge logs `moved` to Dewford Town
 - **THEN** the Guest's location is Dewford Town
 
+### Requirement: An Event is written for one Guest in one transaction
+A valid Event SHALL be written to the Guest's Events and applied to the Guest's Progress in one transaction. Another Guest's Progress SHALL NOT change.
+
 #### Scenario: Other Guests untouched
 - **WHEN** one Guest logs Roxanne's badge
 - **THEN** another Guest still has 0 badges
@@ -54,11 +57,14 @@ A badge SHALL be logged only when it is the Next gym's badge. A badge past the N
 - **THEN** each is refused with "I can only log Roxanne's badge next." and Progress keeps 0 badges
 
 ### Requirement: Events are validated against Maya's data
-An Event that Maya's data does not confirm SHALL be refused with one polite line, leaving Progress and Events unchanged. Species come from game data, levels are whole numbers 1 to 100, the Team holds at most 6 (a catch past 6 goes to the PC box, never refused), `deposited` and `set_team` never leave the Team empty, level ups and evolutions name a species on the Team, evolutions are ones the game data lists, and moves name a location inside the Spoiler horizon. A refusal SHALL NOT contain "beat" or "defeat".
+An Event that Maya's data does not confirm SHALL be refused with one polite line, leaving Progress and Events unchanged. A refusal SHALL NOT contain "beat" or "defeat".
 
 #### Scenario: A badge already earned
 - **WHEN** a Guest with badge 1 logs Roxanne's badge again
 - **THEN** it is refused with "You already have the Stone Badge." and no Event is written
+
+### Requirement: Event validation rules
+Species SHALL come from game data, levels SHALL be whole numbers 1 to 100, and the Team SHALL hold at most 6 (a catch past 6 goes to the PC box, never refused). `deposited` and `set_team` SHALL never leave the Team empty, level ups and evolutions SHALL name a species on the Team, evolutions SHALL be ones the game data lists, and moves SHALL name a location inside the Spoiler horizon.
 
 #### Scenario: Unknown species
 - **WHEN** a Guest logs `caught` with species Agumon, or `set_team` naming Agumon
@@ -73,7 +79,7 @@ An Event that Maya's data does not confirm SHALL be refused with one polite line
 - **THEN** it is refused with a line that names no place and the location is unchanged
 
 ### Requirement: A repeated catch is logged once
-A `caught` Event with the same species and level as a catch the Guest logged in the last 2 minutes, while that Pokémon is still on the Team or in the PC box, SHALL NOT be written again: Progress and Events stay as they are and the confirm says it is already logged. A `deposited` or `withdrawn` Event with the same kind and species as the Guest's last Event, written in the last 2 minutes, SHALL NOT be written again either. This holds whether the repeat comes in the same turn or a later one. Other kinds SHALL always apply, apart from the no-change rule for Team changes.
+A `caught` Event with the same species and level as a catch the Guest logged in the last 2 minutes, while that Pokémon is still on the Team or in the PC box, SHALL NOT be written again: Progress and Events stay as they are and the confirm says it is already logged. This holds whether the repeat comes in the same turn or a later one.
 
 #### Scenario: The same catch twice
 - **WHEN** a Guest logs `caught` Poochyena level 9 and the agent logs it again in the same or the next turn
@@ -86,6 +92,9 @@ A `caught` Event with the same species and level as a catch the Guest logged in 
 #### Scenario: A catch after a release
 - **WHEN** a Guest releases Poochyena level 9 and then logs a catch of Poochyena level 9 inside the window
 - **THEN** the catch is logged, because that Poochyena is no longer on the Team or in the PC box
+
+### Requirement: A repeated deposit or withdraw is logged once
+A `deposited` or `withdrawn` Event with the same kind and species as the Guest's last Event, written in the last 2 minutes, SHALL NOT be written again, in the same turn or a later one. Other kinds SHALL always apply, apart from the no-change rule for Team changes.
 
 #### Scenario: The same deposit twice
 - **WHEN** a Guest whose Team has Wingull twice logs `deposited` Wingull and the agent logs it again in the same turn

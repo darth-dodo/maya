@@ -74,7 +74,7 @@ Maya SHALL send the last 5 turns of the Conversation as context between the syst
 - **THEN** it prints one line per model with its name, milliseconds and Answer
 
 ### Requirement: Progress reported in a Question becomes an Event
-The system prompt SHALL tell the model to call `log_event` when the Guest reports a badge, a catch, an evolution, a level or a move, to call it with `undo` when the Guest says "no" or "undo that" right after a logged Event, to call it with `released` when the Guest released a Pokémon or has one on the Team twice, and to say the tool's confirm or refusal line. It SHALL also carry one line each for `deposited` (a Pokémon put in the PC), `withdrawn` (one taken out of the PC), `set_lead` (a new lead), `set_team` (the Guest says their whole Team, in one call, never one call per member) and `set_level` (any level, up or down), and SHALL say never to claim a Team change unless `log_event` confirmed it. The prompt SHALL show the Guest's latest Progress row, and tools later in the same turn SHALL use the Progress the Event produced.
+The system prompt SHALL tell the model to call `log_event` when the Guest reports a badge, a catch, an evolution, a level or a move, to call it with `undo` when the Guest says "no" or "undo that" right after a logged Event, to call it with `released` when the Guest released a Pokémon or has one on the Team twice, and to say the tool's confirm or refusal line. The prompt SHALL show the Guest's latest Progress row, and tools later in the same turn SHALL use the Progress the Event produced.
 
 #### Scenario: "I just earned Roxanne's badge"
 - **WHEN** the model answers that Question with a `log_event` call for Roxanne's badge and then text
@@ -91,6 +91,9 @@ The system prompt SHALL tell the model to call `log_event` when the Guest report
 #### Scenario: Prompt asks for log_event
 - **WHEN** the system prompt is built
 - **THEN** it names `log_event`, "undo", `deposited`, `withdrawn`, `set_lead`, `set_team` and `set_level`, and contains neither "beat" nor "defeat"
+
+### Requirement: Team changes by voice in the prompt
+The system prompt SHALL carry one line each for `deposited` (a Pokémon put in the PC), `withdrawn` (one taken out of the PC), `set_lead` (a new lead), `set_team` (the Guest says their whole Team, in one call, never one call per member) and `set_level` (any level, up or down), and SHALL say never to claim a Team change unless `log_event` confirmed it.
 
 #### Scenario: "My Team is Mudkip 16, Taillow 12"
 - **WHEN** the stubbed model answers that Question with one `log_event` call of kind `set_team`
