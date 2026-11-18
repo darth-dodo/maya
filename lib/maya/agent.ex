@@ -6,8 +6,9 @@ defmodule Maya.Agent do
   only to endpoints that honour both (https://openrouter.ai/docs/guides/routing/provider-selection).
   Each `tool_calls[].function.arguments` is a JSON string parsed per call, and each call gets
   one `role: "tool"` message with its `tool_call_id`. The final reply must pass
-  `Maya.Agent.Answer.check/2`; a rejected one gets one corrective request, then the fallback
-  line. At most 4 requests per Question.
+  `Maya.Agent.Answer.check/3`; a rejected one gets one corrective request, then the fallback
+  line. At most 4 requests per Question. A write that ran is never silent: when the turn
+  would end in the fallback line or an error, its confirm line is said instead (#183).
   """
 
   require Logger
@@ -39,7 +40,8 @@ defmodule Maya.Agent do
         model,
         messages(Prompt.system(progress), turns, question),
         progress,
-        1
+        1,
+        %{ran: %{}, corrected: false, question: question, confirms: []}
       )
     end
   end
@@ -57,12 +59,11 @@ defmodule Maya.Agent do
     [%{role: "system", content: system}] ++ history ++ [%{role: "user", content: question}]
   end
 
-  # `turn` holds this turn's tool calls (`ran`, id => name) and whether the one corrective
-  # request was sent; after it, running out of requests or time gives the fallback line.
-  defp loop(client, model, messages, progress, round, turn \\ %{ran: %{}, corrected: false})
-
+  # `turn` holds this turn's tool calls (`ran`, id => name), whether the one corrective request
+  # was sent, the Question and the confirm lines of writes that ran. After the correction,
+  # running out of requests or time gives the fallback line.
   defp loop(_client, _model, _messages, _progress, round, turn) when round > @max_rounds,
-    do: if(turn.corrected, do: {:ok, @fallback}, else: {:error, :round_cap})
+    do: give_up(turn, if(turn.corrected, do: {:ok, @fallback}, else: {:error, :round_cap}))
 
   defp loop({req, deadline} = client, model, messages, progress, round, turn) do
     case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
@@ -70,12 +71,12 @@ defmodule Maya.Agent do
         # A logged Event changes Progress, so later calls and rounds see the new Progress.
         {results, progress} = Enum.map_reduce(calls, progress, &tool_message/2)
         ran = Map.merge(turn.ran, Map.new(calls, &{&1["id"], get_in(&1, ["function", "name"])}))
-        turn = %{turn | ran: ran}
+        turn = %{turn | ran: ran, confirms: turn.confirms ++ confirms(results)}
         loop(client, model, messages ++ [message | results], progress, round + 1, turn)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         with {:ok, answer} <- Answer.parse(text),
-             {:ok, spoken} <- Answer.check(answer, turn.ran) do
+             {:ok, spoken} <- Answer.check(answer, turn.ran, turn.question) do
           {:ok, spoken}
         else
           {:error, reason} ->
@@ -83,21 +84,39 @@ defmodule Maya.Agent do
         end
 
       _empty_or_error when turn.corrected ->
-        {:ok, @fallback}
+        give_up(turn, {:ok, @fallback})
 
       {:ok, _empty} ->
-        {:error, :bad_reply}
+        give_up(turn, {:error, :bad_reply})
 
       {:error, reason} ->
-        {:error, reason}
+        give_up(turn, {:error, reason})
     end
   end
 
+  defp confirms(results) do
+    for %{content: content} <- results,
+        %{"confirm" => line} <- [Jason.decode!(content)],
+        do: line
+  end
+
+  # The fallback line or an error after a write ran would hide a real change, so the write's
+  # confirm line is said instead. Only the outcome's tag is logged, never the Answer.
+  defp give_up(%{confirms: []}, outcome), do: outcome
+
+  defp give_up(%{confirms: lines}, outcome) do
+    Logger.info("agent said the confirm line instead of: #{outcome_tag(outcome)}")
+    {:ok, Enum.join(lines, " ")}
+  end
+
+  defp outcome_tag({:ok, _fallback}), do: :fallback
+  defp outcome_tag({:error, reason}), do: reason_tag(reason)
+
   # A rejected Answer is never said: one corrective request naming the reason, then the fallback.
   # Only the reason's name is logged, never the Answer.
-  defp rejected(reason, _text, _state, %{corrected: true}) do
+  defp rejected(reason, _text, _state, %{corrected: true} = turn) do
     Logger.info("agent fallback after correction: #{reason_tag(reason)}")
-    {:ok, @fallback}
+    give_up(turn, {:ok, @fallback})
   end
 
   defp rejected(reason, text, {client, model, messages, progress, round}, turn) do

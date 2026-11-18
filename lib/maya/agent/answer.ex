@@ -36,15 +36,11 @@ defmodule Maya.Agent.Answer do
     do: %{type: "json_schema", json_schema: %{name: "answer", strict: true, schema: @json_schema}}
 
   # A claim that something was written (an Event logged or refused, a Team, place or Dial
-  # changed). Moved here from test/fixtures/spoiler_probes.json (#118).
+  # changed). Moved here from test/fixtures/spoiler_probes.json (#118). No "got it": the prompt
+  # itself suggests it for a correction, and "Got it, Brawly uses Fighting types." is chat (#183).
   @claim_words [
     "refused",
     "logged",
-    "recorded",
-    "noted",
-    "saved",
-    "updated",
-    "changed",
     "added to your team",
     "I added",
     "I have added",
@@ -62,16 +58,20 @@ defmodule Maya.Agent.Answer do
     "withdrawn",
     "withdrew",
     "undone",
-    "off the record",
-    "got it"
+    "off the record"
   ]
+
+  # Everyday words, a claim only in a sentence with a Progress noun ("Your Team is updated"),
+  # so "Noted, Brawly is tough." passes (#183).
+  @change_words ["updated", "changed", "noted", "saved", "recorded"]
+  @progress_nouns ["team", "badge", "badges", "level", "lead", "PC", "box", "location"]
 
   # Maya never tells the Guest about her own machinery (#118, phone 2026-11-18).
   @tool_words ["tool", "tools", "function call", "tool call"]
 
   @write_tools ["log_event", "set_setting"]
 
-  def claim_words, do: @claim_words
+  def claim_words, do: @claim_words ++ @change_words
   def tool_words, do: @tool_words
 
   @doc "Parses the model's `content` into an Answer, or `{:error, :not_schema}`."
@@ -94,23 +94,43 @@ defmodule Maya.Agent.Answer do
   end
 
   @doc """
-  The honesty check against `ran`, this turn's tool calls as `%{id => tool name}`. Checks the
+  The honesty check against `ran`, this turn's tool calls as `%{id => tool name}`, and the
+  Guest's `question` (talk about tools is fine when the Guest asked about them). Checks the
   spoken text, so a claim trimmed away by `spoken/1` is never said and needs no correction.
   """
-  def check(%__MODULE__{answer: text, used_tool_calls: ids}, ran) do
+  def check(%__MODULE__{answer: text, used_tool_calls: ids}, ran, question \\ "") do
     spoken = spoken(text)
+    asked_tools? = Enum.any?(@tool_words, &said?(question, &1))
 
     cond do
-      id = Enum.find(ids, &(not Map.has_key?(ran, &1))) -> {:error, {:unknown_call, id}}
-      word = Enum.find(@tool_words, &said?(spoken, &1)) -> {:error, {:tool_talk, word}}
-      word = unbacked_claim(spoken, ids, ran) -> {:error, {:unbacked_claim, word}}
-      true -> {:ok, spoken}
+      id = Enum.find(ids, &(not Map.has_key?(ran, &1))) ->
+        {:error, {:unknown_call, id}}
+
+      word = !asked_tools? && Enum.find(@tool_words, &said?(spoken, &1)) ->
+        {:error, {:tool_talk, word}}
+
+      word = unbacked_claim(spoken, ran) ->
+        {:error, {:unbacked_claim, word}}
+
+      true ->
+        {:ok, spoken}
     end
   end
 
-  defp unbacked_claim(text, ids, ran) do
-    if not Enum.any?(ids, &(ran[&1] in @write_tools)),
-      do: Enum.find(@claim_words, &said?(text, &1))
+  # A write claim is backed by any write that ran this turn, cited or not (#183): the model
+  # often leaves `used_tool_calls` empty after log_event, and the write really happened.
+  defp unbacked_claim(text, ran) do
+    if not Enum.any?(Map.values(ran), &(&1 in @write_tools)),
+      do: Enum.find(@claim_words, &said?(text, &1)) || change_claim(text)
+  end
+
+  defp change_claim(text) do
+    text
+    |> String.split(~r/(?<=[.!?])\s+/u)
+    |> Enum.find_value(fn sentence ->
+      Enum.any?(@progress_nouns, &said?(sentence, &1)) &&
+        Enum.find(@change_words, &said?(sentence, &1))
+    end)
   end
 
   @doc "Word boundaries and any letter case, so `noted` never matches `denoted`."

@@ -70,6 +70,16 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "Never say a Team change happened unless log_event confirmed it."
   end
 
+  # #183, phone 20:17: "Lotad level 14." became set_team with only Lotad, so Mudkip left the Team.
+  test "set_team only for the whole Team; one member or a level is set_level" do
+    prompt = Prompt.system(@progress)
+
+    assert prompt =~
+             ~s(Only when the player lists every member of their Team, call kind "set_team")
+
+    assert prompt =~ ~s(One member with a level, like "Lotad level 14", is kind "set_level")
+  end
+
   test "where to go comes only from search_guide's note" do
     prompt = Prompt.system(@progress)
     assert prompt =~ "call search_guide"
