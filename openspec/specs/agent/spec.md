@@ -90,7 +90,18 @@ The system prompt SHALL tell the model to call `log_event` when the Guest report
 
 #### Scenario: Prompt asks for log_event
 - **WHEN** the system prompt is built
-- **THEN** it names `log_event` and "undo", and contains neither "beat" nor "defeat"
+- **THEN** it names `log_event`, "undo", `deposited`, `withdrawn`, `set_lead`, `set_team` and `set_level`, and contains neither "beat" nor "defeat"
+
+### Requirement: Team changes by voice in the prompt
+The system prompt SHALL carry one line each for `deposited` (a Pokémon put in the PC), `withdrawn` (one taken out of the PC), `set_lead` (a new lead), `set_team` (the Guest says their whole Team, in one call, never one call per member) and `set_level` (any level, up or down), and SHALL say never to claim a Team change unless `log_event` confirmed it.
+
+#### Scenario: "My Team is Mudkip 16, Taillow 12"
+- **WHEN** the stubbed model answers that Question with one `log_event` call of kind `set_team`
+- **THEN** the tool message holds the confirm, and the next turn's system prompt says "Team: mudkip level 16, taillow level 12"
+
+#### Scenario: Gym counter after a new lead
+- **WHEN** the stubbed model logs `set_lead` Wingull and then calls `gym_counter` for Roxanne in the same turn
+- **THEN** the `gym_counter` result lists the player's Team with Wingull first
 
 ### Requirement: No Fact for a Pokémon met only past the horizon
 `find_pokemon` SHALL return `past_horizon` for a species with no wild place inside the Spoiler horizon, including a species with no wild places at all (a gift, legendary or fossil Pokémon), unless the species is on the player's Team.
@@ -173,6 +184,25 @@ The spoiler probe set SHALL gain move cases beyond the 20 Sunday goal Questions,
 
 ### Requirement: Move tool latency
 Adding `move_learnset` SHALL keep Answer time p95 at most 8 s, and its build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
+
+#### Scenario: Latency before and after
+- **WHEN** 10 Questions run on the phone before and after the change
+- **THEN** the PR lists agent-stage p50 and p95 for both runs
+- **AND** Answer time p95 after the change is at most 8 s
+
+### Requirement: Team change probe cases
+The spoiler probe set SHALL gain Team change cases for Progress at 0 badges and a Team of Mudkip, each with its tool call: "My Team is Mudkip 16 and Poochyena 9" (`set_team`), "I put Poochyena in the PC" (`deposited`) and "Poochyena is level 9" (`set_level`). Their confirms SHALL name only species the Question named, and the honesty set (#118) SHALL hold a stubbed reply that claims a Team change with no tool call.
+
+#### Scenario: Team probes pass the spoiler gate
+- **WHEN** the Team change cases run through the agent with the model stubbed
+- **THEN** no forbidden name appears in any system or tool message sent to the model
+
+#### Scenario: A claimed Team change without a tool call is flagged
+- **WHEN** the stubbed model replies "Done, Wingull leads your Team now." with no tool call in that turn
+- **THEN** the honesty check flags the reply
+
+### Requirement: Team tool latency
+Adding the Team kinds to the `log_event` schema SHALL keep Answer time p95 at most 8 s, and the build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after.
 
 #### Scenario: Latency before and after
 - **WHEN** 10 Questions run on the phone before and after the change

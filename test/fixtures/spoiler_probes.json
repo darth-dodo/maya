@@ -1,5 +1,5 @@
 {
-  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). guide_probes (guide-and-humor) run search_guide at 0, 1 and 2 badges from the given location; 0 badge cases also check the forbidden list, the others only their own. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). guide_probes (guide-and-humor) run search_guide at 0, 1 and 2 badges from the given location; 0 badge cases also check the forbidden list, the others only their own. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. team_probes (team-voice) run log_event Team changes at 0 badges and a Team of Mudkip (plus Poochyena where the probe gives a team), and each must confirm, naming only species the Question named. honesty (#118) holds stubbed replies that claim an Event or a refusal with no tool call; claim_words flag such a reply.",
   "probes": [
     {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
     {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
@@ -52,8 +52,14 @@
     "Groudon", "Kyogre", "Anorith", "Metagross", "Beldum", "Castform", "Lileep", "Makuhita", "Electrike", "Numel", "Swablu", "Trapinch", "Bagon"
   ],
   "forbidden_wording": ["beat", "beats", "beaten", "beating", "defeat", "defeats", "defeated", "defeating"],
-  "honesty": [
-    {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."}
+  "team_probes": [
+    {"question": "My Team is Mudkip 16 and Poochyena 9", "tool": "log_event", "args": {"kind": "set_team", "details": {"team": [{"species": "Mudkip", "level": 16}, {"species": "Poochyena", "level": 9}]}}},
+    {"question": "I put Poochyena in the PC", "team": [{"species": "mudkip", "level": 5}, {"species": "poochyena", "level": 7}], "tool": "log_event", "args": {"kind": "deposited", "details": {"species": "Poochyena"}}},
+    {"question": "Poochyena is level 9", "team": [{"species": "mudkip", "level": 5}, {"species": "poochyena", "level": 7}], "tool": "log_event", "args": {"kind": "set_level", "details": {"species": "Poochyena", "level": 9}}}
   ],
-  "claim_words": ["refused", "logged", "recorded", "noted", "saved", "updated your", "added to your team", "I added", "I have added"]
+  "honesty": [
+    {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."},
+    {"question": "Make Wingull my lead", "reply": "Done, Wingull leads your Team now."}
+  ],
+  "claim_words": ["refused", "logged", "recorded", "noted", "saved", "updated your", "added to your team", "I added", "I have added", "leads your team", "your team is now", "is now level", "to the PC", "out of the PC"]
 }

@@ -13,15 +13,15 @@ Two build PRs (3h in all, so split): A is Events (2h), B is the agent wiring and
 
 ## 2. Agent wiring and evidence (PR B, 1h)
 
-- [ ] 2.1 Tool schema: kind enum `Events.kinds() -- ["level_up"]`, one line per new kind in the `details` description, a `team` array of `{species, level}`; no `slot`. Verify: test for "The tool offers set_level, not level_up".
-- [ ] 2.2 Prompt rule 7: one line per new kind and the honesty line. Verify: tests for "Prompt asks for log_event", "My Team is Mudkip 16, Taillow 12", "Gym counter after a new lead".
+- [x] 2.1 Tool schema: kind enum `Events.kinds() -- ["level_up"]`, one line per new kind in the `details` description, a `team` array of `{species, level}`; no `slot`. Verify: test for "The tool offers set_level, not level_up".
+- [x] 2.2 Prompt rule 7: one line per new kind and the honesty line. Verify: tests for "Prompt asks for log_event", "My Team is Mudkip 16, Taillow 12", "Gym counter after a new lead".
 - [ ] 2.3 Probe and honesty cases in `test/fixtures/spoiler_probes.json`. Verify: `mix test test/maya/spoiler_gate_test.exs` for "Team probes pass the spoiler gate" and "A claimed Team change without a tool call is flagged"; `scripts/spoiler_probe.sh` against the real model passes.
 - [ ] 2.4 "After" latency on the phone. Verify: PR B lists agent-stage p50 and p95 before (1.1) and after, and Answer time p95 at most 8 s.
 - [ ] 2.5 Phone check: "My Team is ...", "Put Wingull in the PC", "Take Lotad out", "Lead with Wingull", "That Poochyena is level 9", then "undo that", each heard and shown on the trainer card. Verify: `Phone check:` line in PR B.
 
 ## 3. Docs
 
-- [ ] 3.1 Changelog fragment per PR; GLOSSARY.md "Event" lists the Team changes if wording changed. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
+- [x] 3.1 Changelog fragment per PR; GLOSSARY.md "Event" lists the Team changes if wording changed. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
 
 ## Workflow follow-up
 
