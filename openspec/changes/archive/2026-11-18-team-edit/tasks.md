@@ -10,13 +10,13 @@ Two build PRs (3h in all, so split): C is the editor (2h), D is the PC box view 
 
 ## 2. PC box and evidence (PR D, 1h)
 
-- [ ] 2.1 PC box list with Withdraw buttons and the empty line. Verify: tests for "View and withdraw", "Withdraw with a full Team", "Empty PC box".
-- [ ] 2.2 Playwright at 375x667 in both themes: control heights and names, no sideways scroll, band and button heights with and without the editor, reduced motion, the Team summary open while editing. Verify: computed values for "Targets and labels", "Steady band", "Both themes on tokens", "With the Team summary" in PR D.
+- [x] 2.1 PC box list with Withdraw buttons and the empty line. Verify: tests for "View and withdraw", "Withdraw with a full Team", "Empty PC box".
+- [x] 2.2 Playwright at 375x667 in both themes: control heights and names, no sideways scroll, band and button heights with and without the editor, reduced motion, the Team summary open while editing. Verify: computed values for "Targets and labels", "Steady band", "Both themes on tokens", "With the Team summary" in PR D.
 - [ ] 2.3 Screenshots of the editor and PC box in both themes; `Phone check:` line from a real phone (E4). Verify: in PR D's body.
 
 ## 3. Docs
 
-- [ ] 3.1 Changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
+- [x] 3.1 Changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
 
 ## Workflow follow-up
 

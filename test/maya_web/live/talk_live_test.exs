@@ -141,6 +141,13 @@ defmodule MayaWeb.TalkLiveTest do
     {1, _} = Maya.Repo.update_all(query, [])
   end
 
+  defp put_box(guest, members) do
+    _ = Maya.GameData.progress(guest)
+    box = for {s, l} <- members, do: %{"species" => s, "level" => l}
+    query = from p in "progress", where: p.guest_id == ^guest, update: [set: [box: ^box]]
+    {1, _} = Maya.Repo.update_all(query, [])
+  end
+
   defp events(guest, kind) do
     Maya.Repo.aggregate(
       from(e in "events", where: e.guest_id == ^guest and e.kind == ^kind),
@@ -295,6 +302,119 @@ defmodule MayaWeb.TalkLiveTest do
       assert {screen.team, screen.box} == {by_voice.team, by_voice.box}
     end
 
+    test "View and withdraw", %{conn: conn, guest: guest} do
+      put_box(guest, [{"lotad", 6}])
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#editor-pc-box") |> render_click()
+
+      assert has_element?(view, "#team-editor-heading", "PC box")
+      assert has_element?(view, "#pc-box li", "Lotad Lv 6")
+      view |> element(~s(#pc-box button[aria-label="Withdraw Lotad Lv 6"])) |> render_click()
+
+      assert List.last(chips(view)) == "Lotad Lv 6"
+      assert has_element?(view, "#team-editor-line", "Lotad level 6 joined the Team.")
+      assert events(guest, "withdrawn") == 1
+      assert has_element?(view, "#pc-box-empty", "The PC box is empty.")
+
+      view |> element("#team-editor button", "Undo") |> render_click()
+      assert chips(view) == ["Mudkip Lv 16", "Wingull Lv 9"]
+      assert has_element?(view, "#pc-box li", "Lotad Lv 6")
+    end
+
+    test "the band opens the PC box with its count", %{conn: conn, guest: guest} do
+      put_team(guest, @pair)
+      put_box(guest, [{"lotad", 6}, {"ralts", 5}])
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      assert has_element?(view, "#team-details #pc-box-open", "PC box (2)")
+      refute has_element?(view, "#trainer-card #pc-box")
+      view |> element("#pc-box-open") |> render_click()
+
+      box = view |> element("#pc-box") |> render() |> texts("li span")
+      assert box == ["Lotad Lv 6", "Ralts Lv 5"]
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#pc-box-open"]))
+    end
+
+    test "Withdraw with a full Team", %{conn: conn, guest: guest} do
+      full = [
+        {"mudkip", 16},
+        {"wingull", 9},
+        {"zigzagoon", 4},
+        {"ralts", 7},
+        {"seedot", 8},
+        {"lotad", 10}
+      ]
+
+      put_team(guest, full)
+      put_box(guest, [{"poochyena", 5}])
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      view |> element("#pc-box-open") |> render_click()
+      view |> element(~s(#pc-box button[aria-label="Withdraw Poochyena Lv 5"])) |> render_click()
+
+      assert has_element?(
+               view,
+               "#team-editor-line",
+               "The Team is full at 6. Deposit one first, maybe Zigzagoon."
+             )
+
+      assert length(chips(view)) == 6
+      assert events(guest, "withdrawn") == 0
+      refute has_element?(view, "#team-editor button", "Undo")
+    end
+
+    test "Empty PC box", %{conn: conn, guest: guest} do
+      put_team(guest, @pair)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      assert has_element?(view, "#pc-box-open", "PC box (0)")
+      view |> element("#pc-box-open") |> render_click()
+
+      assert has_element?(view, "#pc-box-empty", "The PC box is empty.")
+      refute has_element?(view, "#pc-box")
+    end
+
+    test "the PC box only while idle", %{conn: conn, guest: guest} do
+      put_team(guest, @pair)
+      put_box(guest, [{"lotad", 6}])
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
+      view |> element("#pc-box-open") |> render_click()
+      refute has_element?(view, "#team-editor")
+      render_click(view, "withdraw", %{"slot" => 1})
+      assert events(guest, "withdrawn") == 0
+
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "idle"})
+      view |> element("#pc-box-open") |> render_click()
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
+      refute has_element?(view, "#team-editor")
+    end
+
+    test "the PC box follows a voice Event live", %{conn: conn, guest: guest} do
+      put_team(guest, @pair)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+      view |> element("#pc-box-open") |> render_click()
+
+      {:ok, _line, progress} =
+        Maya.Events.log(Maya.GameData.progress(guest), "deposited", %{"species" => "wingull"})
+
+      send(view.pid, {:conversation, {:progress, progress}})
+      assert has_element?(view, "#pc-box li", "Wingull Lv 9")
+      assert has_element?(view, "#pc-box-open", "PC box (1)")
+    end
+
+    test "a stale or unknown withdraw changes nothing", %{conn: conn, guest: guest} do
+      put_box(guest, [{"lotad", 6}])
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#editor-pc-box") |> render_click()
+      put_box(guest, [{"ralts", 5}])
+      view |> element(~s(#pc-box button[aria-label="Withdraw Lotad Lv 6"])) |> render_click()
+      render_click(view, "withdraw", %{"slot" => "9"})
+      render_click(view, "withdraw", %{})
+      render_click(view, "withdraw", %{"slot" => %{"x" => 1}})
+
+      assert has_element?(view, "#team-editor-line", "That Pokémon moved, so nothing changed.")
+      assert events(guest, "withdrawn") == 0
+    end
+
     test "Undo after Set as lead keeps the member in the editor", %{conn: conn, guest: guest} do
       view = open_editor(conn, guest, @pair, "Wingull")
       view |> element("#team-editor button", "Set as lead") |> render_click()
@@ -310,6 +430,7 @@ defmodule MayaWeb.TalkLiveTest do
       view = open_editor(conn, guest, @pair, "Wingull")
       render_click(view, "edit", %{"kind" => "caught"})
       render_click(view, "save_level", %{})
+      render_click(view, "edit_mon", %{"slot" => [1]})
       assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
       assert events(guest, "caught") == 0
     end

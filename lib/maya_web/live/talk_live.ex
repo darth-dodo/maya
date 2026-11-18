@@ -98,6 +98,12 @@ defmodule MayaWeb.TalkLive do
           %{"species" => s, "level" => l} <- progress.team,
           do: %{name: String.capitalize(s), level: l, types: types(s)}
         ),
+      # Listed only in the editor; the band shows just its count (team-edit).
+      box:
+        for(
+          %{"species" => s, "level" => l} <- progress.box,
+          do: %{name: String.capitalize(s), level: l}
+        ),
       badges: progress.badges,
       earned: Horizon.badges_earned(progress)
     }
@@ -208,7 +214,8 @@ defmodule MayaWeb.TalkLive do
 
   # The Team editor (team-edit): idle only, and every action is the Event voice writes, through
   # Events.log/3 with the member's slot, so a stale screen changes nothing.
-  def handle_event("edit_mon", %{"slot" => slot}, %{assigns: %{talk_state: "idle"}} = socket) do
+  def handle_event("edit_mon", %{"slot" => slot}, %{assigns: %{talk_state: "idle"}} = socket)
+      when is_integer(slot) or is_binary(slot) do
     with {n, ""} when n >= 1 <- Integer.parse(to_string(slot)),
          %{"species" => species} <- Enum.at(socket.assigns.progress.team, n - 1) do
       {:noreply,
@@ -240,6 +247,30 @@ defmodule MayaWeb.TalkLive do
   # Client params are untrusted: anything else is ignored, never a crash of the voice session.
   def handle_event(event, _params, socket) when event in ~w(save_level edit),
     do: {:noreply, socket}
+
+  # The PC box view of the editor: the band's "PC box (N)" or the editor's PC box button.
+  def handle_event("open_box", _params, %{assigns: %{talk_state: "idle"}} = socket),
+    do: {:noreply, assign(socket, editing: :box, edit_line: nil, can_undo: false)}
+
+  def handle_event("open_box", _params, socket), do: {:noreply, socket}
+
+  # The species comes from this screen's PC box with its slot, so Events refuses a stale one;
+  # the full Team line is the voice one (team-voice).
+  def handle_event(
+        "withdraw",
+        %{"slot" => slot},
+        %{assigns: %{talk_state: "idle", editing: :box}} = socket
+      )
+      when is_integer(slot) or is_binary(slot) do
+    with {n, ""} when n >= 1 <- Integer.parse(to_string(slot)),
+         %{"species" => species} <- Enum.at(socket.assigns.progress.box, n - 1) do
+      {:noreply, log_edit(socket, "withdrawn", %{"species" => species, "slot" => n}, :box)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("withdraw", _params, socket), do: {:noreply, socket}
 
   def handle_event(
         "undo_edit",
@@ -315,7 +346,7 @@ defmodule MayaWeb.TalkLive do
 
   # The editor follows its member to a new slot (a new lead, an Undo).
   # shortcut: with two of one species it follows the first; upgrade to a member id if that bites.
-  defp follow(nil, _team), do: nil
+  defp follow(editing, _team) when editing in [nil, :box], do: editing
 
   defp follow(editing, team) do
     case {edited(editing, team), Enum.find_index(team, &(&1["species"] == editing.species))} do
@@ -358,13 +389,19 @@ defmodule MayaWeb.TalkLive do
   # moves to the heading (the level input would open the phone keyboard). Close and Escape focus
   # the member's chip by its slot, which follows a new lead (a focus stack would return to the
   # old position), or the Team summary once it left the Team.
-  attr :member, :map, doc: "the card member being edited, nil once it left the Team"
-  attr :slot, :integer
+  attr :member, :map, default: nil, doc: "the card member being edited, nil once it left the Team"
+  attr :slot, :integer, default: nil
+  attr :box, :list, default: nil, doc: "the card PC box, set only for the PC box view"
   attr :line, :string
   attr :can_undo, :boolean
 
   defp team_editor(assigns) do
-    back = if assigns.member, do: "#mon-#{assigns.slot}", else: "#team-summary"
+    back =
+      cond do
+        assigns.box -> "#pc-box-open"
+        assigns.member -> "#mon-#{assigns.slot}"
+        true -> "#team-summary"
+      end
 
     assigns =
       assign(assigns,
@@ -384,9 +421,25 @@ defmodule MayaWeb.TalkLive do
       phx-key="Escape"
     >
       <h2 id="team-editor-heading" class="team-editor-heading" tabindex="-1">
-        {if @member, do: "#{@member.name} Lv #{@member.level}", else: "Team"}
+        {heading(@box, @member)}
       </h2>
       <p id="team-editor-line" class="team-editor-line" role="status" aria-live="polite">{@line}</p>
+      <ul :if={@box not in [nil, []]} id="pc-box" class="pc-box" aria-label="PC box">
+        <li :for={{mon, slot} <- Enum.with_index(@box, 1)} class="pc-box-member">
+          <span>{mon.name} Lv {mon.level}</span>
+          <button
+            type="button"
+            class="btn"
+            aria-label={"Withdraw #{mon.name} Lv #{mon.level}"}
+            phx-click={
+              JS.push("withdraw", value: %{slot: slot}) |> JS.focus(to: "#team-editor-heading")
+            }
+          >
+            Withdraw
+          </button>
+        </li>
+      </ul>
+      <p :if={@box == []} id="pc-box-empty" class="pc-box-empty">The PC box is empty.</p>
       <.form
         :if={@member}
         for={@form}
@@ -416,8 +469,14 @@ defmodule MayaWeb.TalkLive do
           <button type="button" class="btn" phx-click="edit" phx-value-kind="released">
             Remove
           </button>
-          <%!-- The PC box list lands in part D (Issue 170) --%>
-          <button type="button" class="btn" disabled>PC box</button>
+          <button
+            id="editor-pc-box"
+            type="button"
+            class="btn"
+            phx-click={JS.push("open_box") |> JS.focus(to: "#team-editor-heading")}
+          >
+            PC box
+          </button>
         <% end %>
         <button
           id="team-editor-close"
@@ -431,6 +490,10 @@ defmodule MayaWeb.TalkLive do
     </section>
     """
   end
+
+  defp heading(box, _member) when is_list(box), do: "PC box"
+  defp heading(_box, %{name: name, level: level}), do: "#{name} Lv #{level}"
+  defp heading(_box, nil), do: "Team"
 
   @impl true
   def render(assigns) do
@@ -502,11 +565,21 @@ defmodule MayaWeb.TalkLive do
                 </button>
               </li>
             </ul>
+            <%!-- The way into the PC box, one tap behind the Team; only the editor lists it --%>
+            <button
+              id="pc-box-open"
+              type="button"
+              class="btn btn-ghost pc-box-open"
+              phx-click={JS.push("open_box") |> JS.focus(to: "#team-editor-heading")}
+            >
+              PC box ({length(@card.box)})
+            </button>
           </details>
         </section>
 
+        <.team_editor :if={@editing == :box} box={@card.box} line={@edit_line} can_undo={@can_undo} />
         <.team_editor
-          :if={@editing}
+          :if={is_map(@editing)}
           member={edited(@editing, @progress.team) && Enum.at(@card.team, @editing.slot - 1)}
           slot={@editing.slot}
           line={@edit_line}
