@@ -343,6 +343,7 @@ defmodule Maya.ConversationTest do
   test "a Conversation that starts while Postgres is down starts with no turns (#82)" do
     db_down()
     other = "down-#{System.unique_integer([:positive])}"
+    on_exit(fn -> Conversation.stop(other) end)
 
     log =
       capture_log(fn ->
@@ -350,7 +351,6 @@ defmodule Maya.ConversationTest do
         assert Conversation.turns(other) == []
       end)
 
-    Conversation.stop(other)
     assert log =~ "[warning] turns failed: DBConnection.OwnershipError"
   end
 

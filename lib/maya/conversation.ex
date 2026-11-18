@@ -195,15 +195,7 @@ defmodule Maya.Conversation do
   def handle_cast({:timings, timings}, %{turns: turns} = state) do
     case List.last(turns) do
       %Turn{id: id} = last when is_integer(id) ->
-        saved =
-          db(
-            :timings,
-            fn ->
-              {:ok, saved} = Turn.put_timings(last, timings)
-              saved
-            end,
-            struct(last, timings)
-          )
+        saved = db(:timings, fn -> Turn.put_timings(last, timings) end, struct(last, timings))
 
         noreply(%{
           state
@@ -448,11 +440,13 @@ defmodule Maya.Conversation do
 
   # The agent may have logged or undone Events, so the screen redraws its card (#89). Read once TTS
   # is already streaming, off the path to first sound; a failed read keeps the turn going.
-  defp progress_news(state) do
-    broadcast(state, {:progress, GameData.progress(state.id)})
-  rescue
-    e -> warn(:progress, e)
-  end
+  defp progress_news(state),
+    do:
+      db(
+        :progress_news,
+        fn -> broadcast(state, {:progress, GameData.progress(state.id)}) end,
+        :ok
+      )
 
   # Starts streaming the Answer; the turn shows on screen from here.
   defp speak(%{current: c} = state, question, answer) do
@@ -503,15 +497,7 @@ defmodule Maya.Conversation do
   # Written after the Answer streamed, never on the path to first sound (ADR-006). With Postgres
   # down the turn stays in memory only: Maya already answered (#82).
   defp store(state, turn) do
-    saved =
-      db(
-        :store,
-        fn ->
-          {:ok, saved} = Turn.insert(turn)
-          saved
-        end,
-        turn
-      )
+    saved = db(:store, fn -> Turn.insert(turn) end, turn)
 
     state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -20)}
     broadcast(state, {:turns, state.turns})
@@ -530,16 +516,27 @@ defmodule Maya.Conversation do
 
   defp warn(stage, reason), do: Logger.warning("#{stage} failed: #{inspect(reason)}")
 
-  # A failed database call logs its kind and returns `fallback`, so the turn goes on (#82).
+  # A failed database call logs its kind and returns `fallback`, so the turn goes on (#82). Only
+  # database errors are caught (OwnershipError is how tests take the pool away); a code bug crashes.
   defp db(stage, fun, fallback) do
-    fun.()
+    case fun.() do
+      {:ok, value} ->
+        value
+
+      {:error, _changeset} ->
+        Logger.warning("#{stage} failed: :invalid")
+        fallback
+
+      value ->
+        value
+    end
   rescue
-    e ->
+    e in [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error] ->
       Logger.warning("#{stage} failed: #{db_reason(e)}")
       fallback
   end
 
-  # Never the message of a query error or a failed match: those can quote the turn's text.
+  # Never a query error's message: Postgres can quote the failing row (the turn's text).
   defp db_reason(%DBConnection.ConnectionError{} = e), do: Exception.message(e)
   defp db_reason(%Postgrex.Error{postgres: %{code: code}}), do: inspect(code)
   defp db_reason(e), do: inspect(e.__struct__)
