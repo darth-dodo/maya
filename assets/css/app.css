@@ -379,6 +379,20 @@
 .team-editor-input { width: 6rem; }
 .team-editor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .team-editor :is(.btn, .team-editor-input) { min-height: 2.75rem; height: 2.75rem; }
+/* The PC box: its way in sits under the open Team chips; the list is only in the editor. */
+.pc-box-open { min-height: 2.75rem; height: 2.75rem; margin-top: 0.25rem; padding-inline: 0.5rem; }
+.pc-box { display: grid; gap: 0.25rem; }
+.pc-box-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block: 0.25rem;
+  border-bottom: 1px solid var(--maya-line);
+  font-size: var(--maya-text-sm);
+  font-weight: 600;
+}
+.pc-box-empty { font-size: var(--maya-text-sm); color: var(--maya-muted); }
 .type-dot { width: 0.5rem; height: 0.5rem; border-radius: var(--maya-radius-pill); background: var(--type); }
 .type-chip {
   padding: 0.125rem 0.5rem;

@@ -1,0 +1,1 @@
+Added: the PC box on the Talk screen: a "PC box (N)" button under the open Team lists the PC box with a Withdraw button each, the same `withdrawn` Event as voice, with Undo and the full Team line (team-edit part D).

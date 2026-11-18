@@ -52,7 +52,7 @@ Each editor action SHALL write exactly the Event the same voice request writes (
 - **THEN** both Guests have the same Team and PC box
 
 ### Requirement: PC box in the editor
-The "PC box" button SHALL list the Guest's PC box members in order, each with its name, level and a "Withdraw" button whose accessible name is "Withdraw " then the name and level; an empty PC box SHALL read "The PC box is empty." Withdraw SHALL write a `withdrawn` Event with that member's PC box slot. The trainer card itself SHALL still never show the PC box.
+The "PC box" button SHALL list the Guest's PC box members in order, each with its name, level and a "Withdraw" button whose accessible name is "Withdraw " then the name and level; an empty PC box SHALL read "The PC box is empty." Withdraw SHALL write a `withdrawn` Event with that member's PC box slot, only while idle, with the confirm line and Undo of the other editor actions.
 
 #### Scenario: View and withdraw
 - **WHEN** the PC box holds Lotad 6, the Team has 2 members, and the Guest taps PC box then Withdraw Lotad Lv 6
@@ -65,6 +65,14 @@ The "PC box" button SHALL list the Guest's PC box members in order, each with it
 #### Scenario: Empty PC box
 - **WHEN** the PC box is empty and the Guest taps PC box
 - **THEN** the editor reads "The PC box is empty."
+
+### Requirement: PC box from the Team list
+The open Team list SHALL end with a `#pc-box-open` button reading "PC box (N)", N the PC box size, that opens the editor's PC box view, so the PC box is reachable without editing a member (Abhishek, 2026-11-18: "I can't see the box"). The trainer card SHALL never list the PC box members, and the collapsed Team summary SHALL not change.
+
+#### Scenario: PC box from the Team list
+- **WHEN** the PC box holds Lotad 6 and Ralts 5 and the Guest opens the Team summary
+- **THEN** `#pc-box-open` reads "PC box (2)" and tapping it opens the editor on the PC box list
+- **AND** Close focuses `#pc-box-open` again
 
 ### Requirement: Editor is accessible and steady
 Every editor control SHALL be a real button or labelled input at least 44px tall; opening the editor SHALL move focus into it. The editor SHALL use only `--maya-*` tokens in both themes, have no transition or animation under reduced motion, and open as an overlay that does not change the height of `#trainer-card` or `#talk-button`. It SHALL work with the Team summary collapsed or open, and `assets/js/talk_hook.js` SHALL have no diff.
