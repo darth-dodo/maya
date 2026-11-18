@@ -223,6 +223,10 @@ defmodule MayaWeb.TalkLive do
       when kind in ~w(set_lead deposited released),
       do: {:noreply, edit(socket, kind, %{})}
 
+  # Client params are untrusted: anything else is ignored, never a crash of the voice session.
+  def handle_event(event, _params, socket) when event in ~w(save_level edit),
+    do: {:noreply, socket}
+
   def handle_event(
         "undo_edit",
         _params,
@@ -273,8 +277,6 @@ defmodule MayaWeb.TalkLive do
 
   defp edit(%{assigns: %{talk_state: "idle", editing: %{} = editing}} = socket, kind, extra) do
     details = Map.merge(%{"species" => editing.species, "slot" => editing.slot}, extra)
-    # The lead moves to slot 1, so the editor follows it there.
-    editing = if kind == "set_lead", do: %{editing | slot: 1}, else: editing
     log_edit(socket, kind, details, editing)
   end
 
@@ -286,7 +288,7 @@ defmodule MayaWeb.TalkLive do
         assign(socket,
           progress: progress,
           card: trainer_card(progress),
-          editing: editing,
+          editing: follow(editing, progress.team),
           edit_line: line,
           # Undo only after a confirm that wrote an Event; it undoes the Guest's last Event.
           can_undo: kind != "undo" and progress != socket.assigns.progress
@@ -294,6 +296,17 @@ defmodule MayaWeb.TalkLive do
 
       {:refused, line} ->
         assign(socket, edit_line: line, can_undo: false)
+    end
+  end
+
+  # The editor follows its member to a new slot (a new lead, an Undo).
+  # shortcut: with two of one species it follows the first; upgrade to a member id if that bites.
+  defp follow(nil, _team), do: nil
+
+  defp follow(editing, team) do
+    case {edited(editing, team), Enum.find_index(team, &(&1["species"] == editing.species))} do
+      {nil, i} when is_integer(i) -> %{editing | slot: i + 1}
+      _same_or_gone -> editing
     end
   end
 
@@ -465,7 +478,10 @@ defmodule MayaWeb.TalkLive do
                   class="mon"
                   aria-label={"Edit #{mon.name} Lv #{mon.level}"}
                   id={"mon-#{slot}"}
-                  phx-click={JS.push("edit_mon", value: %{slot: slot})}
+                  phx-click={
+                    JS.push("edit_mon", value: %{slot: slot})
+                    |> JS.focus(to: "#team-editor-heading")
+                  }
                 >
                   <span :for={type <- mon.types} class={"type-dot type-#{type}"} aria-hidden="true"></span>
                   {mon.name} Lv {mon.level}
