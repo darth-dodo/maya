@@ -174,12 +174,12 @@ defmodule MayaWeb.TalkLiveTest do
       view = open_editor(conn, guest, @pair, "Wingull")
       # Close and Escape focus the chip that opened the editor, by its slot id.
       assert has_element?(view, "#mon-2", "Wingull")
-      assert view |> element("#team-editor-close") |> render() =~ "#mon-2"
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-2"]))
       view |> element("#team-editor-close") |> render_click()
       refute has_element?(view, "#team-editor")
 
-      view |> element("#team .mon", "Wingull") |> render_click()
-      assert view |> element("#team-editor") |> render() =~ "Escape"
+      view |> element("#mon-2") |> render_click()
+      assert has_element?(view, ~s(#team-editor[phx-key="Escape"][phx-window-keydown*="#mon-2"]))
       render_keydown(view, "close_editor", %{"key" => "Escape"})
       refute has_element?(view, "#team-editor")
     end
@@ -290,6 +290,25 @@ defmodule MayaWeb.TalkLiveTest do
       screen = Maya.GameData.progress(guest)
       by_voice = Maya.GameData.progress(voice)
       assert {screen.team, screen.box} == {by_voice.team, by_voice.box}
+    end
+
+    test "Undo after Set as lead keeps the member in the editor", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Set as lead") |> render_click()
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-1"]))
+      view |> element("#team-editor button", "Undo") |> render_click()
+
+      assert chips(view) == ["Mudkip Lv 16", "Wingull Lv 9"]
+      assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
+      assert has_element?(view, ~s(#team-editor-close[phx-click*="#mon-2"]))
+    end
+
+    test "unknown edit params are ignored", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      render_click(view, "edit", %{"kind" => "caught"})
+      render_click(view, "save_level", %{})
+      assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
+      assert events(guest, "caught") == 0
     end
 
     test "a stale chip changes nothing", %{conn: conn, guest: guest} do
