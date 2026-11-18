@@ -41,7 +41,7 @@ The import task SHALL load the game data tables only from `priv/data/` and SHALL
 - **THEN** one row is returned with rate 4 percent at level 4
 
 ### Requirement: Hand-written locations
-The `locations` table SHALL list, with badges required 0, Littleroot Town, Routes 101 to 104, Oldale Town, Petalburg City, Petalburg Woods and Rustboro City; with 1, Route 116, Rusturf Tunnel, Routes 105, 106 and 109, Dewford Town, Granite Cave (first floor only) and Slateport City; with 2, Routes 107, 108 and 110 and Mauville City. Every other location stays unlisted, so it is past the Spoiler horizon (fail closed). Every deploy reloads the table from the committed file.
+The `locations` table SHALL list, with badges required 0, Littleroot Town, Routes 101 to 104, Oldale Town, Petalburg City, Petalburg Woods and Rustboro City; with 1, Route 116, Rusturf Tunnel, Routes 105, 106 and 109, Dewford Town, Granite Cave and Slateport City; with 2, Routes 107, 108 and 110 and Mauville City. Granite Cave SHALL map to its first floor only. Every other location stays unlisted, so past the Spoiler horizon (fail closed). Every deploy reloads it from the committed file.
 
 #### Scenario: Locations up to Rustboro City
 - **WHEN** the committed data is imported

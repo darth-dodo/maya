@@ -90,6 +90,7 @@ defmodule Maya.Agent.PromptTest do
     prompt = Prompt.system(@progress)
     assert prompt =~ "call set_setting"
     assert prompt =~ "Never say a Dial changed unless set_setting confirmed it in this turn."
+    assert prompt =~ ~s("undo that" after a Dial change is set_setting again with the old value)
   end
 
   test "moves a Pokémon learns come only from move_learnset" do
