@@ -513,10 +513,10 @@ export const TalkHook = {
     }
   },
 
-  // Ends Maya's turn here and on the server: silence, barge_in, idle.
-  cut() {
+  // Ends Maya's turn here and on the server (both events cut it there): silence, then idle.
+  cut(event = "barge_in", payload = {}) {
     this.stopAudio()
-    this.pushEvent("barge_in", {})
+    this.pushEvent(event, payload)
     this.set("idle")
   },
 
@@ -534,10 +534,7 @@ export const TalkHook = {
       this.clockAt = time
       this.clockMovedAt = document.hidden ? now : movedAt
       if (!stalled || document.hidden) return
-      const context = this.ctx.state
-      this.stopAudio()
-      this.pushEvent("playback_stalled", {context})
-      this.set("idle")
+      this.cut("playback_stalled", {context: this.ctx.state})
     }, STALL_POLL_MS)
   },
 

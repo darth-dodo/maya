@@ -124,6 +124,26 @@ defmodule Maya.Voice.MistralTest do
       assert body == String.duplicate("a", 300) <> String.duplicate("b", 200)
     end
 
+    test "a JSON escaped echo past byte 500 is redacted before the cut, and the cut stays UTF-8" do
+      answer = ~s(Ralts says "hi"\non Route 102)
+      echo = String.duplicate("é", 240) <> Jason.encode!(%{input: answer})
+      Req.Test.stub(Maya.Mistral, &Plug.Conn.send_resp(&1, 422, echo))
+
+      assert {:error, {:http, 422, body}} = TTS.stream(answer, fn _ -> :ok end)
+      assert String.valid?(body)
+      refute body =~ "Ralts"
+      assert body =~ "[input]"
+
+      # A cut through a two byte character drops its first byte.
+      Req.Test.stub(
+        Maya.Mistral,
+        &Plug.Conn.send_resp(&1, 400, "a" <> String.duplicate("é", 300))
+      )
+
+      assert {:error, {:http, 400, body}} = TTS.stream("x", fn _ -> :ok end)
+      assert String.valid?(body) and byte_size(body) == 499
+    end
+
     test "an error body that echoes the input never carries the Answer" do
       Req.Test.stub(
         Maya.Mistral,
