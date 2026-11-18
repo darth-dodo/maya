@@ -17,6 +17,7 @@ Every Fact in an Answer comes from a tool (`find_pokemon`, `gym_counter`, `searc
 - The agent's system prompt forbids game facts that are not in a tool result for this turn.
 - Tools apply the Spoiler horizon before returning data, so out-of-horizon facts never reach the model.
 - The spoiler probe set and the Sunday test check both rules.
+- The server checks every Answer (#118, structured-answers): the model replies `{answer, used_tool_calls}` through OpenRouter structured output, and `Maya.Agent.Answer` rejects a cited call that did not run this turn or a write claim without a cited `log_event` or `set_setting` call. One corrective request, then "Not sure I got that right, ask me again?"; a rejected Answer is never spoken.
 
 ## Consequences
 

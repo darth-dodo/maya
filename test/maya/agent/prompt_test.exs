@@ -34,6 +34,17 @@ defmodule Maya.Agent.PromptTest do
     refute Prompt.system(@progress) =~ ~r/\b(beat|defeat)/i
   end
 
+  test "the honesty rule: the Answer schema, no unreturned tool claims, no tool talk (#118)" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "used_tool_calls"
+
+    assert prompt =~
+             "Never claim a tool call, its result or a refusal unless that tool result was returned in this turn."
+
+    assert prompt =~ "Never mention tools"
+    assert prompt =~ "State a correction plainly"
+  end
+
   test "humor follows Progress and badges are counted" do
     prompt = Prompt.system(%{@progress | humor: 20, badges: [1]})
     assert prompt =~ "humor 20"

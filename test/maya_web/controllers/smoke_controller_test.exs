@@ -26,7 +26,9 @@ defmodule MayaWeb.SmokeControllerTest do
     |> post(~p"/health/ask", %{question: @question})
   end
 
-  defp stub_answer(content) do
+  defp stub_answer(answer) do
+    content = Jason.encode!(%{answer: answer, used_tool_calls: []})
+
     Req.Test.stub(Maya.OpenRouter, fn conn ->
       Req.Test.json(conn, %{
         "choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]

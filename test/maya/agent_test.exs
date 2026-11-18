@@ -25,7 +25,11 @@ defmodule Maya.AgentTest do
     end)
   end
 
-  defp text(content),
+  # A structured Answer citing `ids`, or raw `content` when it is not a string Answer.
+  defp text(answer, ids \\ []),
+    do: raw(Jason.encode!(%{answer: answer, used_tool_calls: ids}))
+
+  defp raw(content),
     do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
 
   defp calls(calls) do
@@ -51,7 +55,10 @@ defmodule Maya.AgentTest do
     answer =
       "Roxanne's ace is Nosepass at level 15. Lead with Mudkip, its water moves hit rock twice as hard. Mudkip would approve."
 
-    script([calls([{"call_1", "gym_counter", ~s({"leader":"Roxanne"})}]), text(answer)])
+    script([
+      calls([{"call_1", "gym_counter", ~s({"leader":"Roxanne"})}]),
+      text(answer, ["call_1"])
+    ])
 
     assert Agent.answer(@roxanne, [], guest_id: @guest) == {:ok, answer}
 
@@ -70,6 +77,15 @@ defmodule Maya.AgentTest do
              ]
 
       refute Map.has_key?(body, "temperature")
+      assert body["provider"] == %{"require_parameters" => true}
+
+      assert %{"type" => "json_schema", "json_schema" => %{"name" => "answer", "strict" => true}} =
+               body["response_format"]
+
+      assert body["response_format"]["json_schema"]["schema"]["required"] == [
+               "answer",
+               "used_tool_calls"
+             ]
     end
 
     assert [%{"role" => "system"}, %{"role" => "user", "content" => @roxanne}] = first["messages"]
@@ -173,9 +189,9 @@ defmodule Maya.AgentTest do
 
     script([
       calls([{"rox", "gym_counter", ~s({"leader":"Roxanne"})}]),
-      text(roxanne),
+      text(roxanne, ["rox"]),
       calls([{"ralts", "find_pokemon", ~s({"name":"Ralts"})}]),
-      text(ralts)
+      text(ralts, ["ralts"])
     ])
 
     assert {:ok, ^roxanne} = Agent.answer(@roxanne, [], guest_id: @guest)
@@ -239,7 +255,7 @@ defmodule Maya.AgentTest do
 
       script([
         calls([{"log", "log_event", @badge}, {"brawly", "gym_counter", ~s({"leader":"Brawly"})}]),
-        text("Stone Badge logged. Mudkip would approve.")
+        text("Stone Badge logged. Mudkip would approve.", ["log"])
       ])
 
       assert {:ok, "Stone Badge logged. Mudkip would approve."} =
@@ -264,10 +280,10 @@ defmodule Maya.AgentTest do
 
     test "\"No, undo that\" in the next turn reverts the last Event" do
       guest = "events-undo"
-      script([calls([{"log", "log_event", @badge}]), text("Stone Badge logged.")])
+      script([calls([{"log", "log_event", @badge}]), text("Stone Badge logged.", ["log"])])
       assert {:ok, _} = Agent.answer("I just earned Roxanne's badge", [], guest_id: guest)
 
-      script([calls([{"undo", "log_event", ~s({"kind":"undo"})}]), text("Undone.")])
+      script([calls([{"undo", "log_event", ~s({"kind":"undo"})}]), text("Undone.", ["undo"])])
       assert {:ok, _} = Agent.answer("No, undo that", [], guest_id: guest)
 
       assert Maya.GameData.progress(guest).badges == []
@@ -297,7 +313,7 @@ defmodule Maya.AgentTest do
       team =
         ~s({"kind":"set_team","details":{"team":[{"species":"Mudkip","level":16},{"species":"Taillow","level":12}]}})
 
-      script([calls([{"team", "log_event", team}]), text("Team set.")])
+      script([calls([{"team", "log_event", team}]), text("Team set.", ["team"])])
 
       assert {:ok, _} = Agent.answer("My Team is Mudkip 16, Taillow 12", [], guest_id: guest)
       assert_received {:request, _, _}
@@ -320,7 +336,7 @@ defmodule Maya.AgentTest do
           {"lead", "log_event", ~s({"kind":"set_lead","details":{"species":"Wingull"}})},
           {"roxanne", "gym_counter", ~s({"leader":"Roxanne"})}
         ]),
-        text("Wingull leads the Team now.")
+        text("Wingull leads the Team now.", ["lead"])
       ])
 
       assert {:ok, _} = Agent.answer("Make Wingull my lead", [], guest_id: guest)
@@ -331,6 +347,102 @@ defmodule Maya.AgentTest do
 
       assert %{"fact" => %{"team" => [%{"species" => "wingull"}, %{"species" => "mudkip"}]}} =
                Jason.decode!(roxanne)
+    end
+  end
+
+  describe "honesty check (#118)" do
+    @fallback "Not sure I got that right, ask me again?"
+    @ralts "Can you add Ralts to my team?"
+
+    # The last user message of a request: the corrective one names the reason.
+    defp last_user(%{"messages" => messages}),
+      do: messages |> Enum.filter(&(&1["role"] == "user")) |> List.last() |> Map.get("content")
+
+    test "a claimed refusal with no tool call gets one corrective request, then the corrected Answer" do
+      script([
+        text("I refused Ralts because your team is full."),
+        text("Not sure, tell me if you caught Ralts.")
+      ])
+
+      assert Agent.answer(@ralts, [], guest_id: @guest) ==
+               {:ok, "Not sure, tell me if you caught Ralts."}
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, corrective}
+      assert last_user(corrective) =~ ~s("refused")
+      assert last_user(corrective) =~ "no log_event"
+      refute_received {:request, _, _}
+    end
+
+    test "a claimed refusal rejected twice is the fallback line, with no third request" do
+      script([text("I refused Ralts because your team is full.")])
+
+      assert Agent.answer(@ralts, [], guest_id: @guest) == {:ok, @fallback}
+      for _ <- 1..2, do: assert_received({:request, _, _})
+      refute_received {:request, _, _}
+    end
+
+    test "citing call_9, which never ran, is rejected" do
+      script([text("Ralts is on Route 102.", ["call_9"]), text("Ralts is on Route 102.")])
+
+      assert Agent.answer("Where is Ralts?", [], guest_id: @guest) ==
+               {:ok, "Ralts is on Route 102."}
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, corrective}
+      assert last_user(corrective) =~ "call_9"
+    end
+
+    test "a confirm backed by its log_event call passes with no corrective request" do
+      caught = ~s({"kind":"caught","details":{"species":"Ralts","level":4}})
+
+      script([
+        calls([{"catch", "log_event", caught}]),
+        text("Ralts level 4 logged on the Team.", ["catch"])
+      ])
+
+      assert {:ok, "Ralts level 4 logged on the Team."} =
+               Agent.answer("I caught a Ralts at level 4", [], guest_id: "honesty-catch")
+
+      for _ <- 1..2, do: assert_received({:request, _, _})
+      refute_received {:request, _, _}
+    end
+
+    # Phone, 2026-11-18: "Slateport was logged" with no log_event, then talk about the tool.
+    test "Slateport: a location claimed without log_event, then tool talk, ends in the fallback" do
+      script([
+        text("Slateport is logged as your location."),
+        text("I need to correct myself, I never actually called the tool for Slateport.")
+      ])
+
+      assert Agent.answer("I'm in Slateport", [], guest_id: @guest) == {:ok, @fallback}
+    end
+
+    test "plain text, missing answer or an empty answer is rejected like any bad Answer" do
+      for bad <- [
+            "Ralts is on Route 102.",
+            ~s({"used_tool_calls":[]}),
+            ~s({"answer":"","used_tool_calls":[]})
+          ] do
+        script([raw(bad)])
+        assert Agent.answer("Where is Ralts?", [], guest_id: @guest) == {:ok, @fallback}
+      end
+    end
+
+    test "a long Answer is trimmed to 3 spoken sentences, with no extra request" do
+      script([text("One. Two at Mt. Pyre? Three! Four. Five.")])
+      assert Agent.answer("Hi", [], guest_id: @guest) == {:ok, "One. Two at Mt. Pyre? Three!"}
+      assert_received {:request, _, _}
+      refute_received {:request, _, _}
+    end
+
+    test "a corrective request with no request left is the fallback, not a round cap error" do
+      loop = calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])
+      script([loop, loop, loop, text("I refused that."), loop])
+
+      assert Agent.answer(@roxanne, [], guest_id: @guest) == {:ok, @fallback}
+      for _ <- 1..4, do: assert_received({:request, _, _})
+      refute_received {:request, _, _}
     end
   end
 end

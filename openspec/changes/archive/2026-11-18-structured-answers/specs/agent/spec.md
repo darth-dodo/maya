@@ -55,13 +55,27 @@ Maya SHALL reject an Answer that cites a tool call id not run this turn, or that
 - **WHEN** the model's first and corrected replies are both rejected
 - **THEN** Maya makes no third attempt and the Answer is the fallback line
 
+#### Scenario: Slateport claimed, then tool talk
+- **WHEN** the Question is "I'm in Slateport", the model replies that Slateport is logged with no tool call, and the corrected reply says it never called the tool
+- **THEN** neither reply is spoken: talk about tools is rejected like an unbacked claim
+- **AND** the Answer is "Not sure I got that right, ask me again?"
+
 ### Requirement: Honesty rule in the system prompt
-The system prompt SHALL tell the model to reply in the Answer schema, to list in `used_tool_calls` the id of every tool call whose result the Answer uses, never to claim a tool call, its result or a refusal unless it happened in this turn, and to say plainly when unsure.
+The system prompt SHALL tell the model to reply in the Answer schema, to list in `used_tool_calls` the id of every tool call whose result the Answer uses, never to claim a tool call, its result or a refusal unless it happened in this turn, and to say plainly when unsure. It SHALL tell the model never to mention tools, calling or its own steps to the Guest, and to state a correction plainly ("You're in Petalburg City, got it.").
 
 #### Scenario: Prompt carries the honesty rule
 - **WHEN** the system prompt is built for any Progress
 - **THEN** it contains `used_tool_calls` and the rule never to claim a tool result not returned in this turn
+- **AND** it contains the rule never to mention tools and to state a correction plainly
 - **AND** it contains neither "beat" nor "defeat"
+
+### Requirement: Spoken Answer length
+Maya SHALL speak at most 3 sentences of an Answer. A longer `answer` SHALL be trimmed to its first 3 sentences, without another request, and the honesty check SHALL run on the trimmed text.
+
+#### Scenario: Five sentences
+- **WHEN** the model's `answer` has five sentences
+- **THEN** the Answer is its first three sentences and no further request is sent
+- **AND** an abbreviation such as "Mt. Pyre" does not end a sentence
 
 ### Requirement: Structured Answer latency
 The structured Answer SHALL keep Answer time p95 at most 8 s. The build PR SHALL show agent-stage p50 and p95 from `mix maya.latency` before and after, and how many of the measured Questions needed the corrective request.

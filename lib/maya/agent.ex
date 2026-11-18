@@ -1,16 +1,23 @@
 defmodule Maya.Agent do
   @moduledoc """
   The hand-written agent loop (ARCHITECTURE.md 3) over OpenRouter chat completions
-  (https://openrouter.ai/docs/guides/features/tool-calling). Every request carries `tools`;
-  each `tool_calls[].function.arguments` is a JSON string parsed per call, and each call gets
-  one `role: "tool"` message with its `tool_call_id`. At most 4 requests per Question.
+  (https://openrouter.ai/docs/guides/features/tool-calling). Every request carries `tools`, the
+  structured Answer `response_format` and `provider.require_parameters`, so OpenRouter routes
+  only to endpoints that honour both (https://openrouter.ai/docs/guides/routing/provider-selection).
+  Each `tool_calls[].function.arguments` is a JSON string parsed per call, and each call gets
+  one `role: "tool"` message with its `tool_call_id`. The final reply must pass
+  `Maya.Agent.Answer.check/2`; a rejected one gets one corrective request, then the fallback
+  line. At most 4 requests per Question.
   """
 
-  alias Maya.Agent.{Prompt, Tools}
+  require Logger
+
+  alias Maya.Agent.{Answer, Prompt, Tools}
   alias Maya.GameData
 
   @max_rounds 4
   @history 5
+  @fallback "Not sure I got that right, ask me again?"
 
   @doc """
   Answers one Question for the guest in `opts[:guest_id]`, against that guest's Progress
@@ -50,18 +57,33 @@ defmodule Maya.Agent do
     [%{role: "system", content: system}] ++ history ++ [%{role: "user", content: question}]
   end
 
-  defp loop(_req, _model, _messages, _progress, round) when round > @max_rounds,
-    do: {:error, :round_cap}
+  # `turn` holds this turn's tool calls (`ran`, id => name) and whether the one corrective
+  # request was sent; after it, running out of requests or time gives the fallback line.
+  defp loop(client, model, messages, progress, round, turn \\ %{ran: %{}, corrected: false})
 
-  defp loop({req, deadline} = client, model, messages, progress, round) do
+  defp loop(_client, _model, _messages, _progress, round, turn) when round > @max_rounds,
+    do: if(turn.corrected, do: {:ok, @fallback}, else: {:error, :round_cap})
+
+  defp loop({req, deadline} = client, model, messages, progress, round, turn) do
     case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
         # A logged Event changes Progress, so later calls and rounds see the new Progress.
         {results, progress} = Enum.map_reduce(calls, progress, &tool_message/2)
-        loop(client, model, messages ++ [message | results], progress, round + 1)
+        ran = Map.merge(turn.ran, Map.new(calls, &{&1["id"], get_in(&1, ["function", "name"])}))
+        turn = %{turn | ran: ran}
+        loop(client, model, messages ++ [message | results], progress, round + 1, turn)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
-        {:ok, String.trim(text)}
+        with {:ok, answer} <- Answer.parse(text),
+             {:ok, spoken} <- Answer.check(answer, turn.ran) do
+          {:ok, spoken}
+        else
+          {:error, reason} ->
+            rejected(reason, text, {client, model, messages, progress, round}, turn)
+        end
+
+      _empty_or_error when turn.corrected ->
+        {:ok, @fallback}
 
       {:ok, _empty} ->
         {:error, :bad_reply}
@@ -70,6 +92,27 @@ defmodule Maya.Agent do
         {:error, reason}
     end
   end
+
+  # A rejected Answer is never said: one corrective request naming the reason, then the fallback.
+  # Only the reason's name is logged, never the Answer.
+  defp rejected(reason, _text, _state, %{corrected: true}) do
+    Logger.info("agent fallback after correction: #{reason_tag(reason)}")
+    {:ok, @fallback}
+  end
+
+  defp rejected(reason, text, {client, model, messages, progress, round}, turn) do
+    Logger.info("agent corrective request: #{reason_tag(reason)}")
+
+    correction = [
+      %{role: "assistant", content: text},
+      %{role: "user", content: Answer.correction(reason)}
+    ]
+
+    loop(client, model, messages ++ correction, progress, round + 1, %{turn | corrected: true})
+  end
+
+  defp reason_tag({tag, _detail}), do: tag
+  defp reason_tag(tag), do: tag
 
   @doc """
   One tool call as its `role: \"tool\"` reply and the Progress after it (changed only by a
@@ -108,7 +151,13 @@ defmodule Maya.Agent do
     |> Req.post(
       receive_timeout: left_ms,
       url: "/v1/chat/completions",
-      json: %{model: model, messages: messages, tools: Tools.definitions()}
+      json: %{
+        model: model,
+        messages: messages,
+        tools: Tools.definitions(),
+        response_format: Answer.response_format(),
+        provider: %{require_parameters: true}
+      }
     )
     |> case do
       {:ok, %{status: 200, body: %{"choices" => [%{"message" => message} | _]}}} -> {:ok, message}
