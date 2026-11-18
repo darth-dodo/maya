@@ -37,7 +37,18 @@ The Talk button SHALL run as a state machine (`idle`, `recording`, `uploading`, 
 - **THEN** every chunk but the last holds 1600 to 4000 samples (100 to 250 ms at 16 kHz)
 
 ### Requirement: Hold end
-The first `pointerup` or `pointercancel` of the pressing pointer, wherever on the page it lands, SHALL end a hold and any later one SHALL do nothing; another pointer's SHALL NOT end it, and a lost pointer capture alone SHALL NOT end a hold. A server re-render SHALL NOT change the button's own state. Each hold SHALL report how it ended (`pointerup` or `pointercancel`), its length in ms, whether capture was lost first, whether the press was warm and its post-roll, and the server SHALL log that report at info level with no audio or text; any other report is ignored.
+The first `pointerup` or `pointercancel` of the pressing pointer, wherever on the page it lands, SHALL end a hold and any later one SHALL do nothing; another pointer's SHALL NOT end it, and a lost pointer capture alone SHALL NOT end a hold. A server re-render SHALL NOT change the button's own state.
+
+#### Scenario: Lift off the button after a lost capture
+- **WHEN** the Talk button is recording, its pointer capture is lost, and the same finger lifts over another element
+- **THEN** the hold ends once by `pointerup` with lost capture true, the clip is sent, the button leaves `recording`, and the mic closes after the normal idle delay once the turn is back to idle
+
+#### Scenario: Server moment does not drive the button
+- **WHEN** the Talk button reports the moment `recording`
+- **THEN** `#talk-screen` has `data-state="recording"` and the server renders `#talk-button` only with its static `data-state="idle"`, which the Talk hook replaces with its own
+
+### Requirement: Hold end report
+Each hold SHALL report how it ended (`pointerup` or `pointercancel`), its length in ms, whether capture was lost first, whether the press was warm and its post-roll, and the server SHALL log that report at info level with no audio or text; any other report is ignored.
 
 #### Scenario: Hold end logged
 - **WHEN** the Talk button reports a hold that ended by `pointercancel` after 840 ms with capture lost, a cold press, the mic live after 120 ms and a 150 ms post-roll
@@ -51,17 +62,9 @@ The first `pointerup` or `pointercancel` of the pressing pointer, wherever on th
 - **WHEN** the Talk button reports a cold hold that ended by `pointerup` after 60 ms with no mic open time and no post-roll
 - **THEN** the server logs "hold ended by pointerup after 60 ms, lost capture: false, mic open: none, warm: false, post roll: 0 ms"
 
-#### Scenario: Lift off the button after a lost capture
-- **WHEN** the Talk button is recording, its pointer capture is lost, and the same finger lifts over another element
-- **THEN** the hold ends once by `pointerup` with lost capture true, the clip is sent, the button leaves `recording`, and the mic closes after the normal idle delay once the turn is back to idle
-
 #### Scenario: Bad hold end report ignored
 - **WHEN** the Talk button reports a hold with an unknown ending, a length that is not a non-negative integer, a `warm` that is not a boolean, or a `post_roll_ms` that is not a non-negative integer
 - **THEN** nothing is logged and the screen is unchanged
-
-#### Scenario: Server moment does not drive the button
-- **WHEN** the Talk button reports the moment `recording`
-- **THEN** `#talk-screen` has `data-state="recording"` and the server renders `#talk-button` only with its static `data-state="idle"`, which the Talk hook replaces with its own
 
 ### Requirement: Mic only while held
 The Talk button SHALL open the mic on a press when it is closed and enter `recording` only once the stream is live. An open mic SHALL stay open while a turn is in flight and stop every track 4 s after the button is back to `idle` with no new press, and at once when the page is hidden or destroyed. While open with no hold it SHALL keep only a 300 ms pre-roll and send nothing; a press on an open mic SHALL start with it. A hold that ends before the mic is live SHALL send no Question.
@@ -385,3 +388,61 @@ The Talk screen SHALL sit directly on the page: `#talk-screen` SHALL have no bor
 #### Scenario: Nothing changes size between moments
 - **WHEN** `/talk` renders at 375px wide and `#talk-screen` `data-state` is set to `idle`, `recording`, `waiting` and `speaking` in turn
 - **THEN** the computed heights of `#site-header`, `#trainer-card` and `#talk-button` are the same in every moment
+
+### Requirement: Collapsible Team in the trainer band
+The Team in `#trainer-card` SHALL be collapsed by default into one summary line with id `team-summary`, followed by a chevron hidden from screen readers. The line lists Team names in Team order with no levels: up to the first 3 names comma separated, then "+N" for the N remaining members; 3 or fewer members show all names with no "+N"; an empty Team shows "No Team yet". A tap on the summary SHALL show the full Team as `.mon` chips in `#team` and a second tap SHALL fold it back.
+
+#### Scenario: Six members collapsed
+- **WHEN** a Guest whose Team is Mudkip, Poochyena, Wingull, Ralts, Zigzagoon and Lotad opens `/talk`
+- **THEN** `#team-summary` reads "Mudkip, Poochyena, Wingull +3" and the Team is collapsed
+- **AND** `#team` still holds 6 `.mon` elements in the page
+
+#### Scenario: Two members
+- **WHEN** a Guest whose Team is Mudkip and Wingull opens `/talk`
+- **THEN** `#team-summary` reads "Mudkip, Wingull" with no "+"
+
+#### Scenario: Empty Team
+- **WHEN** a Guest whose Team is empty opens `/talk`
+- **THEN** `#team-summary` reads "No Team yet"
+
+#### Scenario: Tap to open and close
+- **WHEN** a Guest with 6 Team members taps `#team-summary` at 375x667
+- **THEN** all 6 `.mon` chips are visible and the summary reports expanded
+- **AND** a second tap hides them and the summary reports collapsed
+
+### Requirement: Team summary fits one line and names everyone
+The summary SHALL stay one line: when the names do not fit, they SHALL truncate with an ellipsis while the "+N" and the chevron stay fully visible. The summary's accessible name SHALL list the whole Team in order, "Team: " then every name comma separated, so screen readers get every name. It SHALL expose its expanded or collapsed state and be at least 44px tall.
+
+#### Scenario: Six members at 375px
+- **WHEN** `/talk` renders at 375x667 for a Guest with 6 Team members whose names do not fit the line
+- **THEN** `#team-summary` is one line tall, its names part shows an ellipsis, and the "+3" and the chevron are fully inside the viewport
+- **AND** the document scroll width is not larger than 375px
+
+#### Scenario: Accessible name lists the whole Team
+- **WHEN** a Guest whose Team is Mudkip, Poochyena, Wingull, Ralts, Zigzagoon and Lotad opens `/talk`
+- **THEN** the accessible name of `#team-summary` is "Team: Mudkip, Poochyena, Wingull, Ralts, Zigzagoon, Lotad"
+
+#### Scenario: Tap target and motion
+- **WHEN** `/talk` renders at 375px wide in either theme
+- **THEN** `#team-summary` has a computed height of at least 44px
+- **AND** under `prefers-reduced-motion: reduce` nothing in `#trainer-card` has a transition duration above 0 or an animation
+- **AND** `assets/js/talk_hook.js` has no diff
+
+### Requirement: Team open state and steady band
+Once open, the Team SHALL stay open through LiveView updates for the rest of the page view; each visit starts collapsed and nothing is stored. A change to the Team SHALL update the summary and the chips and SHALL NOT open or close the list. The Team SHALL use only `--maya-*` tokens in both themes and SHALL NOT animate its height.
+
+#### Scenario: Open survives an update
+- **WHEN** the Team is open and the page receives a LiveView update (a Talk moment change, a new turn or a Team change)
+- **THEN** the Team is still open after the update
+
+#### Scenario: A catch while collapsed updates the names
+- **WHEN** the Team is collapsed as Mudkip and Wingull and the Guest catches Ralts
+- **THEN** `#team-summary` reads "Mudkip, Wingull, Ralts" and the Team stays collapsed
+
+#### Scenario: Collapsed band stays short
+- **WHEN** `/talk` renders at 375x667 with the Team collapsed, once for a Guest with 1 Team member and once with 6
+- **THEN** `#trainer-card` has the same computed height in both, and it is shorter than with the 6 member Team open
+
+#### Scenario: Band steady in every moment
+- **WHEN** `/talk` renders at 375px wide, with the Team collapsed and again open, and `#talk-screen` `data-state` is set to `idle`, `recording`, `waiting` and `speaking` in turn
+- **THEN** the computed heights of `#trainer-card` and `#talk-button` are the same in every moment within each case

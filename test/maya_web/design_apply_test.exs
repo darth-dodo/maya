@@ -129,7 +129,9 @@ defmodule MayaWeb.DesignApplyTest do
   end
 
   test "sticky card stays compact with a full Team: chips wrap across the card's full width (#117)" do
-    assert rule(".card-team")["grid-column"] == "1 / -1"
+    # team-collapse: the folding details element now spans the band; the chips inside still wrap.
+    assert rule(".card-team-details")["grid-column"] == "1 / -1"
+    assert rule(".card-team")["flex-wrap"] == "wrap"
   end
 
   # tide-cohesion: the new headline

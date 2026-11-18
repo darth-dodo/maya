@@ -35,4 +35,4 @@ None.
 - Code: `lib/maya_web/live/talk_live.ex` (the `#team` markup inside the band), the Talk block of `assets/css/app.css`. No new dependency, no JS file, no server event.
 - Tests: `test/maya_web/live/talk_live_test.exs` (one test per scenario), Playwright computed checks at 375x667 in both themes.
 - Voice loop: not touched; the Talk button and `talk_hook.js` do not change.
-- Issue: to be filed after the spec PR (factory:plan step 6).
+- Issue: #159.

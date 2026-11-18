@@ -308,7 +308,33 @@
   font-size: var(--maya-text-lg);
   line-height: 1.2;
 }
-.card-team { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.2rem 0.3rem; }
+.card-team-details { grid-column: 1 / -1; min-width: 0; }
+/* One 44px line: only the names give way (ellipsis), "+N" and the chevron never shrink. */
+.team-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--maya-text-sm);
+  font-weight: 600;
+}
+.team-summary::-webkit-details-marker { display: none; }
+.team-names { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.team-more, .team-chevron { flex-shrink: 0; }
+.team-more { color: var(--maya-muted); }
+.team-chevron {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline: 0.25rem;
+  border-right: 2px solid var(--maya-muted);
+  border-bottom: 2px solid var(--maya-muted);
+  transform: rotate(45deg);
+  transition: transform var(--maya-duration) var(--maya-ease);
+}
+.card-team-details[open] .team-chevron { transform: rotate(-135deg); }
+.card-team { display: flex; flex-wrap: wrap; gap: 0.2rem 0.3rem; }
 .mon {
   display: inline-flex;
   align-items: center;
