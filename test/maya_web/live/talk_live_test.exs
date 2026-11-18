@@ -130,6 +130,178 @@ defmodule MayaWeb.TalkLiveTest do
     end
   end
 
+  # team-edit: the editor writes the same Events as voice.
+  defp put_team(guest, members) do
+    _ = Maya.GameData.progress(guest)
+    team = for {s, l} <- members, do: %{"species" => s, "level" => l}
+    query = from p in "progress", where: p.guest_id == ^guest, update: [set: [team: ^team]]
+    {1, _} = Maya.Repo.update_all(query, [])
+  end
+
+  defp events(guest, kind) do
+    Maya.Repo.aggregate(
+      from(e in "events", where: e.guest_id == ^guest and e.kind == ^kind),
+      :count
+    )
+  end
+
+  defp chips(view), do: view |> element("#team") |> render() |> texts(".mon")
+
+  defp open_editor(conn, guest, members, name) do
+    put_team(guest, members)
+    {:ok, view, _html} = live(conn, ~p"/talk")
+    view |> element("#team .mon", name) |> render_click()
+    view
+  end
+
+  @pair [{"mudkip", 16}, {"wingull", 9}]
+
+  describe "Team editor" do
+    test "Open the editor", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+
+      assert has_element?(view, ~s(#team .mon[aria-label="Edit Wingull Lv 9"]))
+      assert has_element?(view, "#team-editor[role=dialog] h2", "Wingull Lv 9")
+
+      for label <- ["Save level", "Set as lead", "Move to PC box", "Remove", "PC box", "Close"],
+          do: assert(has_element?(view, "#team-editor button", label))
+
+      assert has_element?(view, "#team-editor input[name=level][value='9']")
+      assert has_element?(view, "#team-editor label", "Level")
+    end
+
+    test "Close the editor", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      # Close and Escape focus the chip that opened the editor, by its slot id.
+      assert has_element?(view, "#mon-2", "Wingull")
+      assert view |> element("#team-editor-close") |> render() =~ "#mon-2"
+      view |> element("#team-editor-close") |> render_click()
+      refute has_element?(view, "#team-editor")
+
+      view |> element("#team .mon", "Wingull") |> render_click()
+      assert view |> element("#team-editor") |> render() =~ "Escape"
+      render_keydown(view, "close_editor", %{"key" => "Escape"})
+      refute has_element?(view, "#team-editor")
+    end
+
+    test "a tap on another chip switches the editor", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team .mon", "Mudkip") |> render_click()
+      assert has_element?(view, "#team-editor h2", "Mudkip Lv 16")
+    end
+
+    test "Not while talking", %{conn: conn, guest: guest} do
+      put_team(guest, @pair)
+      {:ok, view, _html} = live(conn, ~p"/talk")
+
+      for state <- ~w(recording waiting speaking) do
+        view |> element("#talk-button") |> render_hook("talk_state", %{"state" => state})
+        view |> element("#team .mon", "Wingull") |> render_click()
+        refute has_element?(view, "#team-editor")
+      end
+
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "idle"})
+      view |> element("#team .mon", "Wingull") |> render_click()
+      assert has_element?(view, "#team-editor")
+      view |> element("#talk-button") |> render_hook("talk_state", %{"state" => "recording"})
+      refute has_element?(view, "#team-editor")
+    end
+
+    test "Change a level", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> form("#level-form", %{"level" => "11"}) |> render_submit()
+
+      assert events(guest, "set_level") == 1
+      assert has_element?(view, "#team .mon", "Wingull Lv 11")
+      assert has_element?(view, "#team-editor-line[role=status]", "Wingull is level 11 now.")
+      assert has_element?(view, "#team-editor button", "Undo")
+    end
+
+    test "Level out of range", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+
+      for level <- ~w(0 101) do
+        view |> form("#level-form", %{"level" => level}) |> render_submit()
+        assert has_element?(view, "#team-editor-line", "Levels go from 1 to 100.")
+      end
+
+      assert events(guest, "set_level") == 0
+      refute has_element?(view, "#team-editor button", "Undo")
+    end
+
+    test "Set as lead", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Set as lead") |> render_click()
+
+      assert chips(view) == ["Wingull Lv 9", "Mudkip Lv 16"]
+      assert has_element?(view, "#team-summary .team-names", ~r/^\s*Wingull/)
+      assert has_element?(view, "#team-editor h2", "Wingull Lv 9")
+      assert events(guest, "set_lead") == 1
+    end
+
+    test "Move to the PC box", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Move to PC box") |> render_click()
+
+      assert chips(view) == ["Mudkip Lv 16"]
+      assert events(guest, "deposited") == 1
+      assert has_element?(view, "#team-editor-line", "Wingull sent to the PC.")
+    end
+
+    test "Remove", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Remove") |> render_click()
+
+      assert events(guest, "released") == 1
+      assert chips(view) == ["Mudkip Lv 16"]
+      assert has_element?(view, "#team-editor-line", "Wingull released from the Team.")
+    end
+
+    test "Undo", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Move to PC box") |> render_click()
+      view |> element("#team-editor button", "Undo") |> render_click()
+
+      assert chips(view) == ["Mudkip Lv 16", "Wingull Lv 9"]
+      assert Maya.GameData.progress(guest).box == []
+      assert has_element?(view, "#team-editor-line", "Undone, that Event is off the record.")
+      refute has_element?(view, "#team-editor button", "Undo")
+    end
+
+    test "The last Team member", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, [{"mudkip", 16}], "Mudkip")
+      view |> element("#team-editor button", "Move to PC box") |> render_click()
+
+      assert has_element?(view, "#team-editor-line", "Your Team needs at least one Pokémon.")
+      assert chips(view) == ["Mudkip Lv 16"]
+      assert events(guest, "deposited") == 0
+    end
+
+    test "Same result as voice", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      view |> element("#team-editor button", "Move to PC box") |> render_click()
+
+      voice = "voice-#{System.unique_integer([:positive])}"
+      put_team(voice, @pair)
+
+      {:ok, _line, _progress} =
+        Maya.Events.log(Maya.GameData.progress(voice), "deposited", %{"species" => "wingull"})
+
+      screen = Maya.GameData.progress(guest)
+      by_voice = Maya.GameData.progress(voice)
+      assert {screen.team, screen.box} == {by_voice.team, by_voice.box}
+    end
+
+    test "a stale chip changes nothing", %{conn: conn, guest: guest} do
+      view = open_editor(conn, guest, @pair, "Wingull")
+      put_team(guest, [{"mudkip", 16}, {"ralts", 5}])
+      view |> element("#team-editor button", "Remove") |> render_click()
+
+      assert has_element?(view, "#team-editor-line", "That Pokémon moved, so nothing changed.")
+      assert events(guest, "released") == 0
+    end
+  end
+
   defp count(html, selector),
     do: html |> LazyHTML.from_fragment() |> LazyHTML.query(selector) |> Enum.count()
 
