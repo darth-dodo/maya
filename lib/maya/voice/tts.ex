@@ -8,6 +8,8 @@ defmodule Maya.Voice.TTS do
 
   alias Maya.Voice.{Mistral, SSE}
 
+  @error_bytes 500
+
   @doc "Streams `text` as PCM, calling `on_chunk` with each decoded chunk in the calling process."
   @spec stream(String.t(), (binary() -> any())) :: :ok | {:error, term()}
   def stream(text, on_chunk) do
@@ -26,7 +28,7 @@ defmodule Maya.Voice.TTS do
       )
       |> case do
         {:ok, %{status: 200}} -> :ok
-        {:ok, %{status: status}} -> {:error, {:http, status}}
+        {:ok, %{status: s} = resp} -> {:error, {:http, s, error_body(resp, text)}}
         {:error, reason} -> {:error, reason}
       end
     end
@@ -41,6 +43,16 @@ defmodule Maya.Voice.TTS do
     {:cont, {req, Req.Response.put_private(resp, :sse, rest)}}
   end
 
-  # An error body is not audio: drop it, the status says what went wrong.
-  defp relay({:data, _}, acc, _on_chunk), do: {:cont, acc}
+  # An error body is not audio: its first @error_bytes are kept for the log, since the status
+  # alone does not say why (#96, cantastorie 7869d98). It holds the provider's message, never
+  # audio, the Answer or the key.
+  defp relay({:data, data}, {req, resp}, _on_chunk) do
+    kept = Req.Response.get_private(resp, :error, "") <> data
+    kept = binary_part(kept, 0, min(byte_size(kept), @error_bytes))
+    {:cont, {req, Req.Response.put_private(resp, :error, kept)}}
+  end
+
+  # A validation error can echo the input: the Answer never reaches the log.
+  defp error_body(resp, text),
+    do: resp |> Req.Response.get_private(:error, "") |> String.replace(text, "[input]")
 end

@@ -41,6 +41,15 @@ When STT or TTS errors or times out, Maya SHALL show the Answer as text with a "
 - **WHEN** STT succeeds and TTS returns an error
 - **THEN** the turn shows its Answer text with the note "voice is down"
 - **AND** the turn is stored
+- **AND** the log names the status and the first 500 bytes of the provider's error body, with the Answer text replaced by "[input]"
+
+#### Scenario: TTS fails mid-stream
+- **WHEN** TTS fails after some Answer chunks were relayed
+- **THEN** the screen gets "voice is down", never silence with no end, and the turn is stored with the voice down flag
+
+#### Scenario: TTS sample rate pinned
+- **WHEN** the configured TTS output is checked
+- **THEN** it is `pcm` streamed at 24 kHz, as the Voxtral docs give for generated speech
 
 #### Scenario: STT is down
 - **WHEN** STT returns an error
