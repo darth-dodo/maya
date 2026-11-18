@@ -4,7 +4,7 @@ One change at a time, kept only when its metric improves. Opened and closed by `
 
 The public `/factory` page shows this table and the backfill below; `test/maya_web/controllers/factory_page_test.exs` fails until the page matches a new or changed row.
 
-Last improve run: 2026-11-16T22:50:33Z
+Last improve run: 2026-11-18T19:53:04Z
 
 Status: `running` (next 5 retros pending), `kept` (target met or metric improved), `reverted` (not improved, revert PR merged), `inconclusive` (the metric could not see what the change guards; the change stays only with a stated reason).
 
@@ -32,3 +32,5 @@ Process ideas waiting for an experiment, added by `factory:ask` (Experiment rout
 |---|---|---|---|---|
 | 2026-11-15 | Require branches to be up to date before merging on `main` (`gh api -X PATCH repos/darth-dodo/maya/branches/main/protection/required_status_checks -F strict=true`), so CI runs on the merge result | first_pass_green | #63 and #65 each passed CI alone and broke main together (#72), which turned #73 and #74 red on their first run | none, added by factory:improve run 4 (#125) |
 | 2026-11-17 | `factory:review` lists a finding that names a failure path (throws, blocked, crashes) under Blocking, not Non-blocking | review_precision | 0.00 over #138 to #166: #150 merged with its blocked-storage finding (F2) open and it became #155 and #161 | none, added by factory:improve run 6 (#171) |
+| 2026-11-18 | CI runs `openspec validate --all --strict` | gate_reds | #165 and #177 each added requirements over 500 characters that only a local strict run caught; #175 and a second push on #177 fixed them | none, added by factory:improve run 7 (#188) |
+| 2026-11-18 | `factory:review` blocks a PR whose risky integration task (a real model or provider call, like #179's task 1.1) is unverified, and the builder asks Abhishek to run it with his key before merge | escaped_defects | #179 merged without task 1.1, and its honesty check and 8 s agent budget failed on the phone (#184, #187) | none, added by factory:improve run 7 (#188) |
