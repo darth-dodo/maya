@@ -66,7 +66,8 @@ defmodule Maya.SpoilerGateTest do
     assert leaks("Route 11 and Rustboro City") == []
   end
 
-  # Honesty (#118): a reply may state an Event or a refusal only when log_event ran this turn.
+  # Honesty (#118): a reply may state an Event, a Dial change or a refusal only when a write
+  # (log_event or set_setting) ran this turn.
   # The claim words live in the app now, so the gate checks the list the loop uses.
   defp unbacked_claim?(reply, tools_called) do
     answer = %Maya.Agent.Answer{answer: reply, used_tool_calls: []}
@@ -83,6 +84,7 @@ defmodule Maya.SpoilerGateTest do
     for %{"reply" => reply} <- @probes["honesty"] do
       assert unbacked_claim?(reply, [])
       refute unbacked_claim?(reply, ["log_event"])
+      refute unbacked_claim?(reply, ["set_setting"])
     end
 
     assert unbacked_claim?("Done, I added Ralts to your team.", [])
@@ -183,6 +185,7 @@ defmodule Maya.SpoilerGateTest do
       case @probe["expect"] do
         "fact" -> assert %{"fact" => %{"note" => _}} = Jason.decode!(result)
         "past_horizon" -> assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
+        "refused" -> assert %{"refused" => "Spoilers stay at 0" <> _} = Jason.decode!(result)
       end
 
       global = if @probe["badges"] == [], do: @probes["forbidden"], else: []

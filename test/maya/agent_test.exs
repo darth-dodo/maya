@@ -73,7 +73,8 @@ defmodule Maya.AgentTest do
                "gym_counter",
                "find_pokemon",
                "move_learnset",
-               "log_event"
+               "log_event",
+               "set_setting"
              ]
 
       refute Map.has_key?(body, "temperature")
@@ -347,6 +348,47 @@ defmodule Maya.AgentTest do
 
       assert %{"fact" => %{"team" => [%{"species" => "wingull"}, %{"species" => "mudkip"}]}} =
                Jason.decode!(roxanne)
+    end
+  end
+
+  describe "set_setting" do
+    test "\"Maya, humor 60\": confirmed, stored, and the rest of the turn's prompt says humor 60" do
+      guest = "humor-agent"
+
+      script([
+        calls([{"humor", "set_setting", ~s({"name":"humor","value":60})}]),
+        text("Humor set to 60 percent.")
+      ])
+
+      assert {:ok, "Humor set to 60 percent."} =
+               Agent.answer("Maya, humor 60", [], guest_id: guest)
+
+      assert_received {:request, _, %{"messages" => [%{"content" => before} | _]}}
+      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]} = second}
+      assert before =~ "humor 75"
+      assert prompt =~ "humor 60"
+      assert [%{"content" => confirm}] = tool_messages(second)
+      assert Jason.decode!(confirm) == %{"confirm" => "Humor set to 60 percent."}
+      refute_received {:request, _, _}
+      assert Maya.GameData.progress(guest).humor == 60
+    end
+
+    test "spoilers 50 is refused out loud and nothing changes" do
+      guest = "spoilers-agent"
+
+      script([
+        calls([{"dial", "set_setting", ~s({"name":"spoilers","value":50})}]),
+        text("Spoilers stay at 0, no spoilers from me.")
+      ])
+
+      assert {:ok, "Spoilers stay at 0" <> _} =
+               Agent.answer("Maya, spoilers 50", [], guest_id: guest)
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+      assert [%{"content" => refused}] = tool_messages(second)
+      assert %{"refused" => _} = Jason.decode!(refused)
+      assert Maya.GameData.progress(guest).humor == 75
     end
   end
 

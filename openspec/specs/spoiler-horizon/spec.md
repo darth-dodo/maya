@@ -36,8 +36,8 @@ A location SHALL be allowed only when it is in the `locations` table and its bad
 - **THEN** it is not allowed, and with 1 badge it is allowed
 
 #### Scenario: Unlisted location
-- **WHEN** the location is Route 110, which is not in the table
-- **THEN** it is not allowed for 0 or 1 badges
+- **WHEN** the location is Route 111, which is not in the table
+- **THEN** it is not allowed for 0, 1, 2 or 3 badges
 
 ### Requirement: Level horizon
 The level horizon SHALL be the level of the Next gym leader's ace, or the highest level on the Team when that is higher. With all 8 badges there SHALL be no level horizon. It SHALL be computed without IO from Progress and the ace level passed in.

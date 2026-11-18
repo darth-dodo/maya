@@ -16,15 +16,15 @@ Two build PRs. Part A (sections 1 and 2, 2h) says "Part of #41". Part B (section
 
 ## 3. set_setting (part B)
 
-- [ ] 3.1 `GameData.put_humor!/2` for one Guest. Verify: two-guest test.
-- [ ] 3.2 Tool definition and `Tools.call("set_setting", ...)` returning `{:logged, ...}` or `{:refused, ...}`; the agent loop uses the new Progress for the rest of the turn. Verify: tests for 60, spoilers 100, humor 140, and an agent test whose second request's system prompt shows humor 60.
+- [x] 3.1 `GameData.put_humor!/2` for one Guest. Verify: two-guest test.
+- [x] 3.2 Tool definition and `Tools.call("set_setting", ...)` returning `{:logged, ...}` or `{:refused, ...}`; the agent loop uses the new Progress for the rest of the turn. Verify: tests for 60, spoilers 100, humor 140, and an agent test whose second request's system prompt shows humor 60.
 
 ## 4. Prompt, probes, latency, docs (each part, for its tool)
 
-- [ ] 4.1 Prompt line for the part's tool; part B adds the Dial honesty rule. Verify: prompt test. Part A done (#41 part A PR).
-- [ ] 4.2 Part A adds the guide cases at 0, 1 and 2 badges to `test/fixtures/spoiler_probes.json`, each with forbidden names for its badge count; part B adds the Dial and honesty cases. Verify: `mix test --only spoiler_gate`; the honesty case uses the #118 check (skipped with #118 named if it has not merged). Part A done (#41 part A PR).
+- [x] 4.1 Prompt line for the part's tool; part B adds the Dial honesty rule. Verify: prompt test. Part A done (#41 part A PR); part B done (#41 part B PR).
+- [x] 4.2 Part A adds the guide cases at 0, 1 and 2 badges to `test/fixtures/spoiler_probes.json`, each with forbidden names for its badge count; part B adds the Dial and honesty cases. Verify: `mix test --only spoiler_gate`; the honesty case uses the #118 check (skipped with #118 named if it has not merged). Part A done (#41 part A PR); part B done (#41 part B PR).
 - [ ] 4.3 Agent-stage p50 and p95 before and after in each PR; part B also has "Maya, humor 60 percent" said on the phone and confirmed out loud. Verify: numbers and a screenshot in the PR.
-- [ ] 4.4 ARCHITECTURE.md 3 and 4 and PRODUCT.md say Walkthrough notes reach Mauville City, CLAUDE.md status line, changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green. Part A done (#41 part A PR).
+- [x] 4.4 ARCHITECTURE.md 3 and 4 and PRODUCT.md say Walkthrough notes reach Mauville City, CLAUDE.md status line, changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green. Part A done (#41 part A PR).
 
 ## Workflow follow-up
 

@@ -86,6 +86,12 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "say only what its note says"
   end
 
+  test "humor changes only through set_setting, and no Dial change without its confirm" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "call set_setting"
+    assert prompt =~ "Never say a Dial changed unless set_setting confirmed it in this turn."
+  end
+
   test "moves a Pokémon learns come only from move_learnset" do
     prompt = Prompt.system(@progress)
     assert prompt =~ "Always call move_learnset before you name a move a Pokémon learns."

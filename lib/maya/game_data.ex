@@ -209,6 +209,16 @@ defmodule Maya.GameData do
     :ok
   end
 
+  @doc "Writes one guest's Humor dial (0 to 100), the only Dial set by voice (`set_setting`)."
+  def put_humor!(guest_id, humor) when is_binary(guest_id) and humor in 0..100 do
+    {1, _} =
+      Repo.update_all(from(p in "progress", where: p.guest_id == ^guest_id),
+        set: [humor: humor, updated_at: DateTime.utc_now(:second)]
+      )
+
+    :ok
+  end
+
   defp progress_query(guest_id) do
     from p in "progress",
       where: p.guest_id == ^guest_id,

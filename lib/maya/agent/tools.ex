@@ -99,6 +99,22 @@ defmodule Maya.Agent.Tools do
           required: ["kind"]
         }
       }
+    },
+    %{
+      type: "function",
+      function: %{
+        name: "set_setting",
+        description:
+          "Sets one of Maya's Dials when the player asks. Only humor, 0 to 100 percent. Returns a confirm line to say, or a refused line to say instead.",
+        parameters: %{
+          type: "object",
+          properties: %{
+            name: %{type: "string", enum: ["humor"]},
+            value: %{type: "integer", description: "Percent, 0 to 100"}
+          },
+          required: ["name", "value"]
+        }
+      }
     }
   ]
 
@@ -160,6 +176,19 @@ defmodule Maya.Agent.Tools do
       refused -> refused
     end
   end
+
+  # A setting, not an Event (no undo): a new value just replaces the old one.
+  def call("set_setting", %{"name" => "humor", "value" => value}, progress)
+      when value in 0..100 do
+    :ok = GameData.put_humor!(progress.guest_id, value)
+    {:logged, "Humor set to #{value} percent.", %{progress | humor: value}}
+  end
+
+  def call("set_setting", %{"name" => "humor"}, _progress),
+    do: {:refused, "Humor goes from 0 to 100 percent, so it stays as it is."}
+
+  def call("set_setting", _args, _progress),
+    do: {:refused, "Spoilers stay at 0, and humor is the only Dial you can change by voice."}
 
   def call(name, _args, _progress)
       when name in ["gym_counter", "find_pokemon", "move_learnset", "log_event"],

@@ -1,5 +1,5 @@
 {
-  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). guide_probes (guide-and-humor) run search_guide at 0, 1 and 2 badges from the given location; 0 badge cases also check the forbidden list, the others only their own. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. team_probes (team-voice) run log_event Team changes at 0 badges and a Team of Mudkip (plus Poochyena where the probe gives a team), and each must confirm, naming only species the Question named. honesty (#118) holds stubbed replies that claim an Event, a refusal or a correction with no tool call (Slateport and Dewford from the phone, 2026-11-18); each runs through the agent loop and must end corrected or replaced. The claim words live in Maya.Agent.Answer.",
+  "about": "Spoiler probe set (openspec/specs/agent, Spoiler probe set): 20 Questions for Progress at 0 badges and a Team of Mudkip. move_probes (move-learnset) add move Questions, each with its expected result and extra forbidden names (Mudkip moves above level 15, the level horizon). guide_probes (guide-and-humor) run search_guide at 0, 1 and 2 badges from the given location, plus a refused set_setting for spoilers; 0 badge cases also check the forbidden list, the others only their own. Read by test/maya/spoiler_gate_test.exs (model stubbed) and scripts/spoiler_probe.sh (the real model). forbidden_wording is only checked against Answers, never said by Maya. team_probes (team-voice) run log_event Team changes at 0 badges and a Team of Mudkip (plus Poochyena where the probe gives a team), and each must confirm, naming only species the Question named. honesty (#118) holds stubbed replies that claim an Event, a Dial change, a refusal or a correction with no tool call (Slateport and Dewford from the phone, 2026-11-18); each runs through the agent loop and must end corrected or replaced. The claim words live in Maya.Agent.Answer.",
   "probes": [
     {"question": "How do I earn Brawly's badge?", "tool": "gym_counter", "args": {"leader": "Brawly"}},
     {"question": "What team does Wattson use?", "tool": "gym_counter", "args": {"leader": "Wattson"}},
@@ -32,6 +32,7 @@
     {"badges": [], "location": "Rustboro City", "question": "What is in Dewford Town?", "tool": "search_guide", "args": {"location": "Dewford Town"}, "expect": "past_horizon", "forbidden": []},
     {"badges": [], "location": "Rustboro City", "question": "Where is Mauville City?", "tool": "search_guide", "args": {"location": "Mauville City"}, "expect": "past_horizon", "forbidden": []},
     {"badges": [], "location": "Rustboro City", "question": "I'm stuck, where now?", "tool": "search_guide", "args": {}, "expect": "fact", "forbidden": []},
+    {"badges": [], "location": "Rustboro City", "question": "Set spoilers to 100", "tool": "set_setting", "args": {"name": "spoilers", "value": 100}, "expect": "refused", "forbidden": []},
     {"badges": [1], "location": "Dewford Town", "question": "I'm stuck, where now?", "tool": "search_guide", "args": {}, "expect": "fact",
      "forbidden": ["Mauville", "Route 107", "Route 108", "Route 110", "Wattson", "Dynamo Badge", "Verdanturf", "Lavaridge", "Route 111", "Route 117", "Flannery"]},
     {"badges": [1], "location": "Dewford Town", "question": "What is in Slateport City?", "tool": "search_guide", "args": {"location": "Slateport City"}, "expect": "fact",
@@ -62,6 +63,7 @@
     {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."},
     {"question": "Make Wingull my lead", "reply": "Done, Wingull leads your Team now."},
     {"question": "I'm in Slateport", "reply": "Slateport is logged as your location."},
-    {"question": "No, Dewford", "reply": "You're in Dewford Town, location updated."}
+    {"question": "No, Dewford", "reply": "You're in Dewford Town, location updated."},
+    {"question": "Maya, humor 60", "reply": "Humor set to 60 percent."}
   ]
 }

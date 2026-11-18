@@ -159,6 +159,15 @@ defmodule Maya.GameDataTest do
     assert Repo.aggregate("progress", :count) == 2
   end
 
+  test "the Humor dial is written for one guest only" do
+    GameData.progress("guest-a")
+    GameData.progress("guest-b")
+
+    assert :ok = GameData.put_humor!("guest-a", 60)
+    assert %{humor: 60} = GameData.progress("guest-a")
+    assert %{humor: 75} = GameData.progress("guest-b")
+  end
+
   test "a second import keeps Progress and gives the same rows" do
     GameData.progress("guest-a")
     counts = row_counts()
