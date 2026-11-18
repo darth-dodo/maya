@@ -3,9 +3,9 @@ defmodule Maya.Agent.Answer do
   The structured Answer (openspec/specs/agent, Structured Answer): the model's final reply is
   `{"answer": string, "used_tool_calls": [tool_call_id]}`, sent as a `response_format` JSON
   schema (https://openrouter.ai/docs/guides/features/structured-outputs) and checked here,
-  since some providers treat the schema only as a hint. `check/2` is the honesty check
-  (ADR-004): no cited call that did not run, no write claim without `log_event` or
-  `set_setting`, no talk about tools. `spoken/1` keeps 2 to 3 spoken sentences.
+  since some providers treat the schema only as a hint. `check/3` is the honesty check
+  (ADR-004): no write claim without a `log_event` or `set_setting` that ran, no talk about
+  tools. Cited ids are not checked: claims are checked against `ran` (#183). `spoken/1` keeps 2 to 3 spoken sentences.
   """
   use Ecto.Schema
   import Ecto.Changeset
@@ -98,14 +98,11 @@ defmodule Maya.Agent.Answer do
   Guest's `question` (talk about tools is fine when the Guest asked about them). Checks the
   spoken text, so a claim trimmed away by `spoken/1` is never said and needs no correction.
   """
-  def check(%__MODULE__{answer: text, used_tool_calls: ids}, ran, question \\ "") do
+  def check(%__MODULE__{answer: text}, ran, question \\ "") do
     spoken = spoken(text)
     asked_tools? = Enum.any?(@tool_words, &said?(question, &1))
 
     cond do
-      id = Enum.find(ids, &(not Map.has_key?(ran, &1))) ->
-        {:error, {:unknown_call, id}}
-
       word = !asked_tools? && Enum.find(@tool_words, &said?(spoken, &1)) ->
         {:error, {:tool_talk, word}}
 
@@ -153,9 +150,6 @@ defmodule Maya.Agent.Answer do
 
   defp why(:not_schema),
     do: "it was not the Answer JSON with a non-empty answer and used_tool_calls. Reply again."
-
-  defp why({:unknown_call, id}),
-    do: "you cited #{id}, which did not run in this turn. Reply again citing only calls that ran."
 
   defp why({:tool_talk, _word}),
     do: "it mentioned tools. Never mention tools or calls; say the result plainly. Reply again."

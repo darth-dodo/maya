@@ -26,9 +26,10 @@ defmodule Maya.Agent.AnswerTest do
 
   defp answer(text, ids \\ []), do: %Answer{answer: text, used_tool_calls: ids}
 
-  test "a cited id must be a tool call of this turn" do
-    assert Answer.check(answer("Ralts is on Route 102.", ["call_9"]), %{"a" => "find_pokemon"}) ==
-             {:error, {:unknown_call, "call_9"}}
+  # #183, Render 20:40: unknown ids cost a corrective round; the check against `ran` guards claims.
+  test "a cited id that never ran is ignored" do
+    assert {:ok, "Ralts is on Route 102."} =
+             Answer.check(answer("Ralts is on Route 102.", ["call_9"]), %{"a" => "find_pokemon"})
 
     assert {:ok, _} =
              Answer.check(answer("Ralts is on Route 102.", ["a"]), %{"a" => "find_pokemon"})
@@ -59,9 +60,9 @@ defmodule Maya.Agent.AnswerTest do
     assert {:ok, _} = Answer.check(answer("Got it, Brawly uses Fighting types."), %{})
   end
 
-  test "a cited id that did not run is rejected even when a write ran" do
-    assert Answer.check(answer("Team set.", ["x"]), %{"l" => "log_event"}) ==
-             {:error, {:unknown_call, "x"}}
+  test "an unknown cited id never backs a write claim" do
+    assert {:error, {:unbacked_claim, "team set"}} =
+             Answer.check(answer("Team set.", ["call_9"]), %{"f" => "find_pokemon"})
   end
 
   test "generic change words count only next to a Progress noun" do

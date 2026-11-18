@@ -382,15 +382,14 @@ defmodule Maya.AgentTest do
       refute_received {:request, _, _}
     end
 
-    test "citing call_9, which never ran, is rejected" do
-      script([text("Ralts is on Route 102.", ["call_9"]), text("Ralts is on Route 102.")])
+    test "citing call_9, which never ran, is ignored with no corrective request" do
+      script([text("Ralts is on Route 102.", ["call_9"])])
 
       assert Agent.answer("Where is Ralts?", [], guest_id: @guest) ==
                {:ok, "Ralts is on Route 102."}
 
       assert_received {:request, _, _}
-      assert_received {:request, _, corrective}
-      assert last_user(corrective) =~ "call_9"
+      refute_received {:request, _, _}
     end
 
     test "a confirm backed by its log_event call passes with no corrective request" do

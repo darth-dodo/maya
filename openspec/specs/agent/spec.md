@@ -225,7 +225,7 @@ The model's final reply SHALL be a JSON object with a non-empty string `answer` 
 - **THEN** the reply is rejected and handled as a rejected Answer
 
 ### Requirement: Honesty check with one corrective request
-Maya SHALL reject an Answer that cites a tool call id not run this turn, talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn, cited or not. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
+Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
 
 #### Scenario: Claimed refusal without a tool call
 - **WHEN** the Question is "Can you add Ralts to my team?" and the stubbed model replies `{"answer": "I refused Ralts because your team is full.", "used_tool_calls": []}` with no tool call in this turn
@@ -234,7 +234,8 @@ Maya SHALL reject an Answer that cites a tool call id not run this turn, talks a
 
 #### Scenario: Cited tool call that did not happen
 - **WHEN** the model replies with `used_tool_calls` `["call_9"]` and no tool call `call_9` happened in this turn
-- **THEN** the Answer is rejected and the corrective request is sent
+- **THEN** `call_9` is ignored and no corrective request is sent
+- **AND** if the Answer claims a write and no write ran, it is still rejected as an unbacked claim
 
 #### Scenario: Confirm backed by log_event
 - **WHEN** the model calls `log_event` for a caught Ralts, the tool result is a confirm, and the model replies with an Answer saying Ralts was added and citing that call's id
