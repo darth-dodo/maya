@@ -44,8 +44,12 @@ defmodule Maya.SpoilerGateTest do
     %{"choices" => [%{"message" => message}]}
   end
 
-  defp text,
-    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => "Further ahead."}}]}
+  defp text, do: answer("Further ahead.")
+
+  defp answer(text) do
+    content = Jason.encode!(%{answer: text, used_tool_calls: []})
+    %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
+  end
 
   # Word boundaries, so "Route 11" would never match "Route 110"; any letter case.
   defp word?(text, word), do: Regex.match?(~r/\b#{Regex.escape(word)}\b/i, text)
@@ -63,9 +67,10 @@ defmodule Maya.SpoilerGateTest do
   end
 
   # Honesty (#118): a reply may state an Event or a refusal only when log_event ran this turn.
+  # The claim words live in the app now, so the gate checks the list the loop uses.
   defp unbacked_claim?(reply, tools_called) do
     "log_event" not in tools_called and
-      Enum.any?(@probes["claim_words"], &word?(reply, &1))
+      Enum.any?(Maya.Agent.Answer.claim_words(), &word?(reply, &1))
   end
 
   test "the honesty check flags a claimed Event or refusal with no tool call" do
@@ -81,20 +86,32 @@ defmodule Maya.SpoilerGateTest do
     refute unbacked_claim?("Ralts lives on Route 102.", [])
   end
 
-  for %{"question" => question, "reply" => reply} <- @probes["honesty"] do
+  # Through the loop: the model repeats the claim, so the Answer is the fallback line, and a
+  # corrected second reply is said instead. Either way the claim never reaches the player.
+  for %{"question" => question, "reply" => reply} <- @probes["honesty"],
+      corrected <- [nil, "Not sure, tell me again what happened."] do
     @question question
     @reply reply
-    # The agent loop passes this reply through today; #118 makes it catch it. Remove the skip there.
-    @tag skip: "enable with #118"
-    test "an Event claimed without a tool call never reaches the player: #{question}" do
+    @corrected corrected
+    test "an Event claimed without a tool call never reaches the player (#{if corrected, do: "corrected", else: "replaced"}): #{question}" do
+      me = self()
+      replies = if @corrected, do: [@reply, @corrected], else: [@reply, @reply]
+      {:ok, left} = Elixir.Agent.start_link(fn -> replies end)
+
       Req.Test.stub(Maya.OpenRouter, fn conn ->
-        Req.Test.json(conn, %{
-          "choices" => [%{"message" => %{"role" => "assistant", "content" => @reply}}]
-        })
+        send(me, :request)
+
+        Req.Test.json(
+          conn,
+          answer(Elixir.Agent.get_and_update(left, fn [r | rest] -> {r, rest} end))
+        )
       end)
 
-      assert {:ok, answer} = Maya.Agent.answer(@question, [], guest_id: @guest)
-      refute unbacked_claim?(answer, [])
+      assert {:ok, said} = Maya.Agent.answer(@question, [], guest_id: @guest)
+      refute unbacked_claim?(said, [])
+      assert said == (@corrected || "Not sure I got that right, ask me again?")
+      for _ <- 1..2, do: assert_received(:request)
+      refute_received :request
     end
   end
 

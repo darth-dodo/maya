@@ -11,10 +11,10 @@ defmodule Mix.Tasks.Maya.CompareModelsTest do
       if model == "model-b" do
         Plug.Conn.send_resp(conn, 503, "down")
       else
+        content = Jason.encode!(%{answer: "Lead with Mudkip.", used_tool_calls: []})
+
         Req.Test.json(conn, %{
-          "choices" => [
-            %{"message" => %{"role" => "assistant", "content" => "Lead with Mudkip."}}
-          ]
+          "choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]
         })
       end
     end)

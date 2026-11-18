@@ -20,7 +20,8 @@ defmodule Maya.ConversationStreamTest do
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       question = List.last(Jason.decode!(body)["messages"])["content"]
       send(me, {:agent_called, question})
-      message = %{"role" => "assistant", "content" => question}
+      answer = Jason.encode!(%{answer: question, used_tool_calls: []})
+      message = %{"role" => "assistant", "content" => answer}
       Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
     end)
 

@@ -19,8 +19,11 @@ defmodule MayaWeb.TalkLiveTest do
     Req.Test.stub(Maya.OpenRouter, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       question = List.last(Jason.decode!(body)["messages"])["content"]
-      message = %{"role" => "assistant", "content" => question}
-      Req.Test.json(conn, %{"choices" => [%{"message" => message}]})
+      answer = Jason.encode!(%{answer: question, used_tool_calls: []})
+
+      Req.Test.json(conn, %{
+        "choices" => [%{"message" => %{"role" => "assistant", "content" => answer}}]
+      })
     end)
 
     guest = "talk-#{System.unique_integer([:positive])}"
@@ -638,7 +641,8 @@ defmodule MayaWeb.TalkLiveTest do
       message =
         case {last["role"], last["content"]} do
           {"tool", content} ->
-            %{"role" => "assistant", "content" => content}
+            answer = %{answer: content, used_tool_calls: [last["tool_call_id"]]}
+            %{"role" => "assistant", "content" => Jason.encode!(answer)}
 
           {"user", question} ->
             %{"role" => "assistant", "content" => nil, "tool_calls" => [log_call(question)]}

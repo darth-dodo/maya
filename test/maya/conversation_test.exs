@@ -37,7 +37,9 @@ defmodule Maya.ConversationTest do
   end
 
   defp reply(content),
-    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => content}}]}
+    do: %{"choices" => [%{"message" => %{"role" => "assistant", "content" => answer(content)}}]}
+
+  defp answer(text), do: Jason.encode!(%{answer: text, used_tool_calls: []})
 
   defp text(text), do: &Req.Test.json(&1, %{"text" => text})
 
