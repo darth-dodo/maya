@@ -32,6 +32,7 @@ defmodule Maya.Agent.ToolsTest do
     refute "level_up" in kinds
     assert Enum.sort(kinds) == Enum.sort(Maya.Events.kinds() -- ["level_up"])
     refute details.description =~ "level_up"
+    assert details.description =~ "only when the player lists every member"
 
     assert %{type: "array", items: %{properties: %{species: _, level: _}}} =
              details.properties.team

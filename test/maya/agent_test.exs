@@ -382,15 +382,14 @@ defmodule Maya.AgentTest do
       refute_received {:request, _, _}
     end
 
-    test "citing call_9, which never ran, is rejected" do
-      script([text("Ralts is on Route 102.", ["call_9"]), text("Ralts is on Route 102.")])
+    test "citing call_9, which never ran, is ignored with no corrective request" do
+      script([text("Ralts is on Route 102.", ["call_9"])])
 
       assert Agent.answer("Where is Ralts?", [], guest_id: @guest) ==
                {:ok, "Ralts is on Route 102."}
 
       assert_received {:request, _, _}
-      assert_received {:request, _, corrective}
-      assert last_user(corrective) =~ "call_9"
+      refute_received {:request, _, _}
     end
 
     test "a confirm backed by its log_event call passes with no corrective request" do
@@ -434,6 +433,67 @@ defmodule Maya.AgentTest do
       assert Agent.answer("Hi", [], guest_id: @guest) == {:ok, "One. Two at Mt. Pyre? Three!"}
       assert_received {:request, _, _}
       refute_received {:request, _, _}
+    end
+
+    # #183: a write that ran is never silent, so its confirm line replaces the fallback.
+    @mudkip ~s({"kind":"set_level","details":{"species":"Mudkip","level":14}})
+
+    test "a write that ran, then an Answer rejected twice, says the confirm line" do
+      script([
+        calls([{"lvl", "log_event", @mudkip}]),
+        text("I need to check the tool."),
+        text("I need to check the tool.")
+      ])
+
+      assert {:ok, line} = Agent.answer("Mudkip level 14.", [], guest_id: "honesty-write")
+      assert line =~ "Mudkip"
+      refute line == @fallback
+    end
+
+    test "a refused write, then an Answer rejected twice, says the refused line" do
+      script([
+        calls([{"team", "log_event", ~s({"kind":"set_team","details":{}})}]),
+        text("I need to check the tool."),
+        text("I need to check the tool.")
+      ])
+
+      assert Agent.answer("My Team is nobody", [], guest_id: "honesty-refused") ==
+               {:ok, "A Team holds 1 to 6 Pokémon."}
+    end
+
+    # #183, phone 20:17 "Lost my train of thought": a Team update hit the round cap after its write.
+    test "a write that ran, then the round cap, says the confirm line, not an error" do
+      loop = calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])
+      script([calls([{"lvl", "log_event", @mudkip}]), loop, loop, loop])
+
+      assert {:ok, line} =
+               Agent.answer("Update my team. Mudkip level 14.", [], guest_id: "honesty-cap")
+
+      assert line =~ "Mudkip"
+    end
+
+    test "a write that ran, then an OpenRouter error, says the confirm line" do
+      me = self()
+      {:ok, n} = Elixir.Agent.start_link(fn -> 0 end)
+
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        send(me, :request)
+
+        case Elixir.Agent.get_and_update(n, &{&1, &1 + 1}) do
+          0 -> Req.Test.json(conn, calls([{"lvl", "log_event", @mudkip}]))
+          _ -> Plug.Conn.send_resp(conn, 502, "bad gateway")
+        end
+      end)
+
+      assert {:ok, line} = Agent.answer("Mudkip level 14.", [], guest_id: "honesty-502")
+      assert line =~ "Mudkip"
+    end
+
+    test "a Question about tools may get an Answer that names tools" do
+      script([text("My tools look up Pokémon, gyms and the guide.")])
+
+      assert Agent.answer("What tools do you have?", [], guest_id: @guest) ==
+               {:ok, "My tools look up Pokémon, gyms and the guide."}
     end
 
     test "a corrective request with no request left is the fallback, not a round cap error" do

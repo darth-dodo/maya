@@ -93,11 +93,15 @@ The system prompt SHALL tell the model to call `log_event` when the Guest report
 - **THEN** it names `log_event`, "undo", `deposited`, `withdrawn`, `set_lead`, `set_team` and `set_level`, and contains neither "beat" nor "defeat"
 
 ### Requirement: Team changes by voice in the prompt
-The system prompt SHALL carry one line each for `deposited` (a Pokémon put in the PC), `withdrawn` (one taken out of the PC), `set_lead` (a new lead), `set_team` (the Guest says their whole Team, in one call, never one call per member) and `set_level` (any level, up or down), and SHALL say never to claim a Team change unless `log_event` confirmed it.
+The system prompt SHALL carry one line each for `deposited` (a Pokémon put in the PC), `withdrawn` (one taken out of the PC), `set_lead` (a new lead), `set_team` (only when the Guest lists every member, in one call; members left out go to the PC) and `set_level` (one member with a level, any level up or down), and SHALL say never to claim a Team change unless `log_event` confirmed it.
 
 #### Scenario: "My Team is Mudkip 16, Taillow 12"
 - **WHEN** the stubbed model answers that Question with one `log_event` call of kind `set_team`
 - **THEN** the tool message holds the confirm, and the next turn's system prompt says "Team: mudkip level 16, taillow level 12"
+
+#### Scenario: "Lotad level 14." is one member
+- **WHEN** the system prompt and the `log_event` description are built
+- **THEN** both say `set_team` is only for the whole Team and one member with a level is `set_level`
 
 #### Scenario: Gym counter after a new lead
 - **WHEN** the stubbed model logs `set_lead` Wingull and then calls `gym_counter` for Roxanne in the same turn
@@ -191,7 +195,7 @@ Adding `move_learnset` SHALL keep Answer time p95 at most 8 s, and its build PR 
 - **AND** Answer time p95 after the change is at most 8 s
 
 ### Requirement: Team change probe cases
-The spoiler probe set SHALL gain Team change cases for Progress at 0 badges and a Team of Mudkip, each with its tool call: "My Team is Mudkip 16 and Poochyena 9" (`set_team`), "I put Poochyena in the PC" (`deposited`) and "Poochyena is level 9" (`set_level`). Their confirms SHALL name only species the Question named, and the honesty set (#118) SHALL hold a stubbed reply that claims a Team change with no tool call.
+The spoiler probe set SHALL gain Team change cases for Progress at 0 badges and a Team of Mudkip, each with its tool call: "My Team is Mudkip 16 and Poochyena 9" (`set_team`), "I put Poochyena in the PC" (`deposited`) and "Poochyena is level 9" and "Lotad level 14." (`set_level`). Their confirms SHALL name only species the Question named, and the honesty set (#118) SHALL hold a stubbed reply that claims a Team change with no tool call.
 
 #### Scenario: Team probes pass the spoiler gate
 - **WHEN** the Team change cases run through the agent with the model stubbed
@@ -221,7 +225,7 @@ The model's final reply SHALL be a JSON object with a non-empty string `answer` 
 - **THEN** the reply is rejected and handled as a rejected Answer
 
 ### Requirement: Honesty check with one corrective request
-Maya SHALL reject an Answer that cites a tool call id not run this turn, or that claims a write (an Event logged or refused, a Team or Dial changed) without citing a `log_event` or `set_setting` call of this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most; after a second rejection, or with no request or agent time left, the Answer SHALL be "Not sure I got that right, ask me again?".
+Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
 
 #### Scenario: Claimed refusal without a tool call
 - **WHEN** the Question is "Can you add Ralts to my team?" and the stubbed model replies `{"answer": "I refused Ralts because your team is full.", "used_tool_calls": []}` with no tool call in this turn
@@ -230,19 +234,36 @@ Maya SHALL reject an Answer that cites a tool call id not run this turn, or that
 
 #### Scenario: Cited tool call that did not happen
 - **WHEN** the model replies with `used_tool_calls` `["call_9"]` and no tool call `call_9` happened in this turn
-- **THEN** the Answer is rejected and the corrective request is sent
+- **THEN** `call_9` is ignored and no corrective request is sent
+- **AND** if the Answer claims a write and no write ran, it is still rejected as an unbacked claim
 
 #### Scenario: Confirm backed by log_event
 - **WHEN** the model calls `log_event` for a caught Ralts, the tool result is a confirm, and the model replies with an Answer saying Ralts was added and citing that call's id
 - **THEN** the Answer passes without a corrective request
 
+#### Scenario: Team set, nothing cited
+- **WHEN** `log_event` `set_team` ran, `used_tool_calls` is `[]` and the Answer is "Team set: Mudkip level 16, Taillow level 12."
+- **THEN** the Answer passes without a corrective request
+
+#### Scenario: Ordinary words with no write
+- **WHEN** no write ran and the Answer is "Got it, Brawly uses Fighting types." or "Noted, Brawly is tough."
+- **THEN** the Answer passes: "updated", "changed", "noted", "saved" and "recorded" are a claim only in a sentence with a Progress noun (team, badge, badges, PC, box, location)
+
+#### Scenario: A write is never silent
+- **WHEN** `log_event` ran and then both replies are rejected, the round cap is hit or OpenRouter fails
+- **THEN** the Answer is that call's confirm line, or its refused line
+
+#### Scenario: The Guest asks about tools
+- **WHEN** the Question is "What tools do you have?" and the Answer names tools
+- **THEN** the Answer passes
+
 #### Scenario: Only one corrective request
-- **WHEN** the model's first and corrected replies are both rejected
+- **WHEN** the model's first and corrected replies are both rejected and no write ran
 - **THEN** Maya makes no third attempt and the Answer is the fallback line
 
 #### Scenario: Slateport claimed, then tool talk
 - **WHEN** the Question is "I'm in Slateport", the model replies that Slateport is logged with no tool call, and the corrected reply says it never called the tool
-- **THEN** neither reply is spoken: talk about tools is rejected like an unbacked claim
+- **THEN** neither reply is spoken: talk about tools the Question did not ask about is rejected like an unbacked claim
 - **AND** the Answer is "Not sure I got that right, ask me again?"
 
 ### Requirement: Honesty rule in the system prompt

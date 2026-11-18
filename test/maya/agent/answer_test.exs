@@ -26,9 +26,10 @@ defmodule Maya.Agent.AnswerTest do
 
   defp answer(text, ids \\ []), do: %Answer{answer: text, used_tool_calls: ids}
 
-  test "a cited id must be a tool call of this turn" do
-    assert Answer.check(answer("Ralts is on Route 102.", ["call_9"]), %{"a" => "find_pokemon"}) ==
-             {:error, {:unknown_call, "call_9"}}
+  # #183, Render 20:40: unknown ids cost a corrective round; the check against `ran` guards claims.
+  test "a cited id that never ran is ignored" do
+    assert {:ok, "Ralts is on Route 102."} =
+             Answer.check(answer("Ralts is on Route 102.", ["call_9"]), %{"a" => "find_pokemon"})
 
     assert {:ok, _} =
              Answer.check(answer("Ralts is on Route 102.", ["a"]), %{"a" => "find_pokemon"})
@@ -36,16 +37,51 @@ defmodule Maya.Agent.AnswerTest do
 
   for word <- Answer.claim_words() do
     @word word
-    test "the claim #{inspect(word)} needs a cited log_event or set_setting" do
-      text = "Sure, #{@word} for you."
+    test "the claim #{inspect(word)} needs a log_event or set_setting that ran this turn" do
+      # The Team noun makes a generic word such as "updated" a claim too.
+      text = "Sure, your Team #{@word} for you."
       assert {:error, {:unbacked_claim, _}} = Answer.check(answer(text), %{})
       # A read tool does not back a write claim.
       assert {:error, {:unbacked_claim, _}} =
                Answer.check(answer(text, ["f"]), %{"f" => "find_pokemon"})
 
       assert {:ok, _} = Answer.check(answer(text, ["l"]), %{"l" => "log_event"})
-      assert {:ok, _} = Answer.check(answer(text, ["s"]), %{"s" => "set_setting"})
+      assert {:ok, _} = Answer.check(answer(text), %{"s" => "set_setting"})
     end
+  end
+
+  # #183, phone 2026-11-18: set_team ran but the model cited nothing; the change really happened.
+  test "a write claim passes when a write ran this turn, even if not cited" do
+    text = "Team set: Mudkip level 16, Taillow level 12."
+    assert {:ok, ^text} = Answer.check(answer(text), %{"c1" => "log_event"})
+  end
+
+  test "an ordinary got it with no write passes" do
+    assert {:ok, _} = Answer.check(answer("Got it, Brawly uses Fighting types."), %{})
+  end
+
+  test "an unknown cited id never backs a write claim" do
+    assert {:error, {:unbacked_claim, "team set"}} =
+             Answer.check(answer("Team set.", ["call_9"]), %{"f" => "find_pokemon"})
+  end
+
+  test "generic change words count only next to a Progress noun" do
+    assert {:ok, _} = Answer.check(answer("Noted, Brawly is tough."), %{})
+    assert {:ok, _} = Answer.check(answer("The guide was updated for Emerald."), %{})
+
+    assert {:error, {:unbacked_claim, "updated"}} =
+             Answer.check(answer("Your Team is updated."), %{})
+
+    assert {:ok, _} = Answer.check(answer("Noted, Mudkip learns it at level 10."), %{})
+
+    assert {:error, {:unbacked_claim, "saved"}} =
+             Answer.check(answer("Saved, Mudkip is on your Team."), %{})
+  end
+
+  test "tool talk passes when the Question asks about tools" do
+    text = "My tools look up Pokémon and gyms."
+    assert {:error, {:tool_talk, "tools"}} = Answer.check(answer(text), %{})
+    assert {:ok, ^text} = Answer.check(answer(text), %{}, "What tools do you have?")
   end
 
   test "talk about tools is rejected even with a write call" do

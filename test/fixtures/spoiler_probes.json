@@ -55,12 +55,13 @@
   "team_probes": [
     {"question": "My Team is Mudkip 16 and Poochyena 9", "tool": "log_event", "args": {"kind": "set_team", "details": {"team": [{"species": "Mudkip", "level": 16}, {"species": "Poochyena", "level": 9}]}}},
     {"question": "I put Poochyena in the PC", "team": [{"species": "mudkip", "level": 5}, {"species": "poochyena", "level": 7}], "tool": "log_event", "args": {"kind": "deposited", "details": {"species": "Poochyena"}}},
-    {"question": "Poochyena is level 9", "team": [{"species": "mudkip", "level": 5}, {"species": "poochyena", "level": 7}], "tool": "log_event", "args": {"kind": "set_level", "details": {"species": "Poochyena", "level": 9}}}
+    {"question": "Poochyena is level 9", "team": [{"species": "mudkip", "level": 5}, {"species": "poochyena", "level": 7}], "tool": "log_event", "args": {"kind": "set_level", "details": {"species": "Poochyena", "level": 9}}},
+    {"question": "Lotad level 14.", "team": [{"species": "mudkip", "level": 16}, {"species": "lotad", "level": 12}], "tool": "log_event", "args": {"kind": "set_level", "details": {"species": "Lotad", "level": 14}}}
   ],
   "honesty": [
     {"question": "Can you add Ralts to my team?", "reply": "I refused Ralts because your team is full."},
     {"question": "Make Wingull my lead", "reply": "Done, Wingull leads your Team now."},
     {"question": "I'm in Slateport", "reply": "Slateport is logged as your location."},
-    {"question": "No, Dewford", "reply": "You're in Dewford Town, got it."}
+    {"question": "No, Dewford", "reply": "You're in Dewford Town, location updated."}
   ]
 }

@@ -69,8 +69,12 @@ defmodule Maya.SpoilerGateTest do
   # Honesty (#118): a reply may state an Event or a refusal only when log_event ran this turn.
   # The claim words live in the app now, so the gate checks the list the loop uses.
   defp unbacked_claim?(reply, tools_called) do
-    "log_event" not in tools_called and
-      Enum.any?(Maya.Agent.Answer.claim_words(), &word?(reply, &1))
+    answer = %Maya.Agent.Answer{answer: reply, used_tool_calls: []}
+
+    match?(
+      {:error, {:unbacked_claim, _}},
+      Maya.Agent.Answer.check(answer, Map.new(tools_called, &{&1, &1}))
+    )
   end
 
   test "the honesty check flags a claimed Event or refusal with no tool call" do
@@ -190,7 +194,7 @@ defmodule Maya.SpoilerGateTest do
 
   test "the Team probes cover set_team, deposited and set_level" do
     kinds = for %{"args" => %{"kind" => kind}} <- @probes["team_probes"], do: kind
-    assert kinds == ["set_team", "deposited", "set_level"]
+    assert kinds == ["set_team", "deposited", "set_level", "set_level"]
   end
 
   # The species a Team probe's Question names, from its log_event details.
