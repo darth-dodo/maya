@@ -1,0 +1,1 @@
+Changed: factory estimates are T-shirt sizes (XS, S, M, L, XL) instead of 30m, 1h, 2h; the cut comes past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), XL is never filed or started, and retro rows gain a `size` column with `estimate_h` as the size midpoint

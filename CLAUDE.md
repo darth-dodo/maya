@@ -71,7 +71,7 @@ Ask me before: choosing Render plan tier, any paid service, or changing the froz
 - F4: Telegram moved to PHASE_2.md. Phone gate: GitHub app to merge, Remote Control for blocked sessions.
 
 ## Rules
-- One block at a time. Stop at "done when". Past 2x estimate, take the cut.
+- One block at a time. Stop at "done when". Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), take the cut.
 - Factory freeze (decided 2026-11-14): after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships. F2 (PRODUCT.md) is done; next is F3. The planned `onboarding` and `coverage-88` changes wait until after Block 1. New factory ideas go to PHASE_2.md.
 - Cut order: embeddings, journal, dials (Telegram digest and watcher already in PHASE_2.md).
 - Voice outage: Answers show as text with a "voice is down" note (decided in PRODUCT.md; no Web Speech fallback).
@@ -92,7 +92,7 @@ Code that works is not done. Done means all of these, with evidence in the PR:
 - Commits and PR titles: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`). The squash merge uses the PR title, so the title must follow it too.
 - Every PR adds a changelog fragment `changelog.d/<branch-with-dashes>.md` (lines like `Added: ...`, no PR number). Never edit `CHANGELOG.md` in a feature PR; `release-manager` folds fragments in.
 - Factory entry points: `factory:ask` (intake router), `factory:plan`, `factory:build`, `factory:test`, `factory:review`, plus `factory:pause`, `factory:resume`, `factory:cleanup`, and the flywheel `factory:retro`, `factory:improve`, `factory:release`, `factory:recap`, and `factory:dashboard` (the visual recap) (FACTORY.md "Skills by station", "Flywheel").
-- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, estimates, cuts, status), `release-manager` (versions, tags, release notes; run through `factory:release`), `herdr` (optional, only inside a Herdr pane), `quiz-me` (5 question spaced-repetition quiz on the codebase; log in `~/coding-tutor-tutorials/maya/`).
+- Project skills: `settled-architecture` (before adding anything outside the stack), `next-task` (what to do next), `project-manager` (Issues, T-shirt sizes XS to XL, cuts, status), `release-manager` (versions, tags, release notes; run through `factory:release`), `herdr` (optional, only inside a Herdr pane), `quiz-me` (5 question spaced-repetition quiz on the codebase; log in `~/coding-tutor-tutorials/maya/`).
 - New ideas: one line in `PHASE_2.md`.
 - Decisions: `docs/adr/` (see its README).
 - What we took from sibling repos and what lands later: `docs/factory-learnings.md`. Read its voice lessons before building the voice loop.

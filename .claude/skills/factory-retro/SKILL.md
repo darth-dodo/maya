@@ -27,14 +27,16 @@ Retros run in batches (decided 2026-11-16: "Let's do a retro every 10 prs"), not
 
 ## 2. Metrics row
 
-Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls,escaped_defects,review_findings,findings_acted,review_precision,review_misses`
+Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_green,ci_red_runs,gate_reds,review_blockers,permission_prompts,denied_calls,escaped_defects,review_findings,findings_acted,review_precision,review_misses,size`
+
+Rows written before sizes have a blank `size` (unknown); never rewrite their `estimate_h`.
 
 | Column | Rule |
 |---|---|
 | `issue` | First closing Issue number |
 | `pr` | PR number |
 | `merged_at` | `mergedAt`, ISO 8601 UTC |
-| `estimate_h` | Issue estimate in hours (30m = 0.5) |
+| `estimate_h` | Midpoint hours of the Issue's size: XS 0.25, S 0.75, M 1.5, L 3 |
 | `lead_time_h` | Earliest branch commit `committedDate` to `mergedAt`, hours, 2 decimals |
 | `first_pass_green` | `true` if the oldest CI run on the PR concluded `success`, else `false` |
 | `ci_red_runs` | CI runs on the PR with conclusion `failure` |
@@ -47,6 +49,7 @@ Header (exact order): `issue,pr,merged_at,estimate_h,lead_time_h,first_pass_gree
 | `findings_acted` | Findings classed `acted_tested` or `acted_untested` (step 3) |
 | `review_precision` | `acted_tested` / `review_findings`, 2 decimals. Higher is better. Blank when `review_findings` is 0 or blank |
 | `review_misses` | Escaped defects of this PR that no finding flagged (step 3). Lower is better. 0 when `escaped_defects` is 0; blank while `escaped_defects` is blank |
+| `size` | The Issue's size from its "Estimate" section (XS, S, M, L); blank if it still states hours |
 
 Blank means unknown, never 0. Never guess a number.
 

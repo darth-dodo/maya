@@ -68,7 +68,7 @@ sequenceDiagram
     participant CI as GitHub Actions
     actor A as Abhishek
     participant R as Render
-    B->>GH: next-task picks Issue 12 (done when, estimate 1h)
+    B->>GH: next-task picks Issue 12 (done when, size S)
     B->>B: branch, test first, code, mix precommit
     B->>GH: PR "feat: add find_pokemon tool" that closes Issue 12
     GH->>CI: run checks
@@ -93,7 +93,7 @@ sequenceDiagram
 | Stack drift | `settled-architecture` red flags, ADR for any change | Repo |
 | "Works on my machine" | Definition of done with evidence | `CLAUDE.md`, PR template |
 | Scope creep | New ideas go to `PHASE_2.md` | Repo |
-| Overrun | 2x estimate means a cut, F1 past 3h means build by hand | `project-manager` skill |
+| Overrun | Past 2x the size's upper bound means a cut, XL is split before build, F1 past 3h means build by hand | `project-manager` skill |
 | Overlapping skills (Matt `tdd`, `diagnosing-bugs` vs Superpowers) | `Skill(skill:...)` deny rules | `.claude/settings.json` |
 | Leaked secrets | `.env` git and Docker ignored and read denied, secrets `sync: false` | Repo, Render |
 
@@ -183,7 +183,7 @@ Sun
 ## Guardrails
 - Kill switch: F1 past 3h means build Maya by hand with Claude Code. Factory moves to PHASE_2.md.
 - Cut order: MVP cuts (embeddings, journal, dials). Digest and watcher already moved to PHASE_2.md.
-- One block at a time. Stop at "done when". Past 2x estimate, take the cut.
+- One block at a time. Stop at "done when". Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), take the cut.
 - Gym rule: at least one gym per build day.
 - New ideas go to PHASE_2.md.
 

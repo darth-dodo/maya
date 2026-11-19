@@ -9,7 +9,7 @@ Build and verify stations (FACTORY.md lines 3 and 4). Argument: an Issue number,
 
 | # | Step | Use | Done when |
 |---|---|---|---|
-| 1 | Pick | `next-task` if no Issue given; `gh issue view <n>` | One Issue with a "done when" and a Spec link |
+| 1 | Pick | `next-task` if no Issue given; `gh issue view <n>` | One Issue with a "done when", a Spec link and a size of L or smaller; sized XL: stop and ask for a split first |
 | 2 | Preconditions | Running in a worktree (`claude -w <issue>`), not on `main`; `openspec/changes/<change-id>/` exists on `origin/main` | Both true, else stop and say which |
 | 3 | Branch | `git checkout -b <type>/<change-id>` from `origin/main` | On the feature branch |
 | 4 | Read | The Issue, the change's `proposal.md`, `specs/`, `tasks.md`, then `docs/factory/LESSONS.md`; `settled-architecture` before adding anything new | Every scenario mapped to a planned test |

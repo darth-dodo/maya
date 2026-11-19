@@ -37,7 +37,7 @@ Medians of the last 5 rows vs the 5 before. With only 5 rows there is nothing to
 | `review_precision` | higher |
 | `review_misses` (sum over the 5 rows, not median) | lower |
 
-`issue`, `pr`, `merged_at` and `estimate_h` are context (an experiment may still cite `estimate_h`); they are not scored. Skip a metric that is blank in more than 2 of the rows used (today `permission_prompts` is always blank, so it competes only once retros can fill it). The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal.
+`issue`, `pr`, `merged_at`, `estimate_h` and `size` are context, not scored. Name an estimate by its `size` (XS, S, M, L), with `estimate_h` only as the midpoint for comparison; rows written before sizes have a blank `size`, read as unknown, and keep their `estimate_h`. Skip a metric that is blank in more than 2 of the rows used (today `permission_prompts` is always blank, so it competes only once retros can fill it). The worst metric is the one that moved most in the bad direction, or if none moved, the furthest from its ideal.
 
 ## 3. One experiment PR
 

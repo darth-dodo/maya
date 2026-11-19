@@ -25,10 +25,22 @@ One sentence.
 - [ ] Change archived with `openspec-archive-change` in the same PR
 
 ## Estimate
-30m | 1h | 2h
+XS | S | M | L | XL
 
 ## Out of scope
 ```
+
+Sizes (decided 2026-11-15, #107). Set the board Estimate field to the same size as the body.
+
+| Size | Means | Rough time | Cut past | Retro `estimate_h` |
+|---|---|---|---|---|
+| XS | a line or doc tweak | under 30m | 1h | 0.25 |
+| S | one focused change | 30m to 1h | 2h | 0.75 |
+| M | a feature slice | 1 to 2h | 4h | 1.5 |
+| L | a block | 2 to 4h | 8h | 3 |
+| XL | too big | over 4h | never built | none |
+
+XL is a planning signal only: never file or start an XL Issue; split it into Issues of L or smaller, each with its own "done when".
 
 - Voice loop Issues add a "done when" with per-stage latency numbers and the `voice-loop` label.
 - One milestone per Maya block (`Block 1: ...`).
@@ -38,7 +50,7 @@ One sentence.
 
 - Open work: `gh issue list --state open --json number,title,milestone,labels` and `gh pr list --state open`.
 - Elapsed per in-progress Issue: time since the first commit on its branch (`git log --reverse --format=%cI origin/main..<branch> | head -1`).
-- Past 2x estimate: propose the cut. F1 past 3h: the kill switch in `FACTORY.md` applies.
+- Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h): propose the cut with the reason. F1 past 3h: the kill switch in `FACTORY.md` applies.
 - More than 2 builders active: stop one.
 
 ## Cuts
