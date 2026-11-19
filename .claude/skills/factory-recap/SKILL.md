@@ -12,10 +12,10 @@ Flywheel step 4 (FACTORY.md "Flywheel"). Read only: never write a file, comment,
 | Line | Source |
 |---|---|
 | Merged | `gh pr list --state merged --search "merged:>=<date>" --json number,title` |
-| Open Issues | `gh issue list --state open --json number,title,labels` |
+| Open Issues | `gh issue list --state open --json number,title,labels,body`, size from the body's "## Estimate" section (`?` if it states none) |
 | Blockers | Open Issues labelled `blocked` or `paused` |
 | Main CI | `gh run list --branch main --workflow CI --limit 1 --json conclusion,createdAt`, and the same for `--workflow "Post-deploy smoke check"` (with `status`) |
-| Trend | `~/maya-factory/metrics.csv`: median `lead_time_h`, `review_blockers` and share of `first_pass_green` over the last 5 rows vs the 5 before; "n/a" with fewer rows |
+| Trend | `~/maya-factory/metrics.csv`: median `lead_time_h`, `review_blockers` and share of `first_pass_green` over the last 5 rows vs the 5 before; "n/a" with fewer rows. An estimate is named by its `size` (hours only as the `estimate_h` midpoint); a blank `size` in old rows is unknown, never an error |
 | New lessons | The "Lesson" line of `~/maya-factory/retros/*.md` changed in the window |
 | Running experiment | `running` row in `docs/factory/experiments.md` |
 
@@ -26,7 +26,7 @@ At most 14 lines, this shape (drop a line only if it has nothing; keep the gym l
 ```
 Recap <date>
 Merged (<n>): #a title, #b title (numbers only when more than 5)
-Open (<n>): #c title, #d title
+Open (<n>): #c S title, #d M title
 Blocked: none | #e (paused)
 Main: CI success 17:19, smoke success
 Trend (last 5 vs previous 5): lead 0.4h vs n/a, blockers 0 vs n/a, first-pass green 100% vs n/a

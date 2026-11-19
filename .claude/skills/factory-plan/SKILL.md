@@ -14,7 +14,7 @@ Plan station (FACTORY.md line 2). Planning only: never edit app code here. Each 
 | 3 | Propose | `openspec-propose <change-id>: <what>` | proposal, specs and tasks exist; `design.md` only if its instruction applies |
 | 4 | Validate | `openspec validate <change-id> --strict` | "is valid" |
 | 5 | Spec PR | CHANGELOG line, commit, push, `gh pr create` titled `docs: propose <change-id> OpenSpec change` | PR open, CI green |
-| 6 | Issue | `project-manager` Issue template: Goal, Spec (`openspec/changes/<change-id>/`), Done when (from the scenarios, plus "change archived in the same PR"), Estimate, Out of scope; labels `ready-for-agent`, `voice-loop` if it touches the voice loop; milestone for the block. Show the draft to Abhishek, create only after his yes | Issue #N exists |
+| 6 | Issue | `project-manager` Issue template: Goal, Spec (`openspec/changes/<change-id>/`), Done when (from the scenarios, plus "change archived in the same PR"), Estimate (a size, XS to L), Out of scope; labels `ready-for-agent`, `voice-loop` if it touches the voice loop; milestone for the block. Sized XL: file nothing and propose a split into two or more Issues of L or smaller, each with its own "done when". Show the draft to Abhishek, create only after his yes | Issue #N exists, sized XS to L |
 | 7 | Link | Prepend `Part of #N` to the spec PR body | Spec PR and Issue link both ways |
 | 8 | Stop | Report the PR and Issue links | Abhishek merges the spec PR; then a builder runs `factory:build #N` |
 
