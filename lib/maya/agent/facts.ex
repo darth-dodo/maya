@@ -15,6 +15,9 @@ defmodule Maya.Agent.Facts do
     "mudkip" => ~w(mudkip marshtomp swampert)
   }
 
+  # A member is ready at or above the ace's level, or 2x or better and at most this many below.
+  @ready_gap 3
+
   @doc "A gym from `Horizon.gyms/0` by leader name (any case, trailing \"'s\" allowed), or nil."
   def gym(leader) do
     name = leader |> String.trim() |> String.downcase() |> String.replace_suffix("'s", "")
@@ -70,9 +73,6 @@ defmodule Maya.Agent.Facts do
       {:error, :past_horizon}
     end
   end
-
-  # A member is ready at or above the ace's level, or 2x or better and at most this many below.
-  @ready_gap 3
 
   @doc """
   The Team against the Next gym's ace only (`gym` is `Horizon.next_gym/1`, never a later one):
@@ -236,6 +236,7 @@ defmodule Maya.Agent.Facts do
         rows
         |> Enum.filter(&String.ends_with?(&1.label, String.capitalize(starter)))
         |> Enum.group_by(& &1.pokemon, & &1.name)
+        # May before Brendan, as pokeemerald lists them.
         |> Enum.sort_by(fn {_party, names} -> names end, :desc)
         |> Enum.map(fn {party, names} ->
           %{name: names |> Enum.uniq() |> Enum.join(" or "), pokemon: party}

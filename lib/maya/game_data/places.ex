@@ -29,14 +29,14 @@ defmodule Maya.GameData.Places do
 
     fetched = MapSet.new(data.item_places ++ data.trainer_places, &access_key/1)
 
-    access =
+    access_problems =
       for a <- data.access["items"] ++ data.access["trainers"],
           not MapSet.member?(fetched, access_key(a)) or not is_integer(a["badges_required"]),
           do: {a["map"], :unknown_access}
 
     hand ++
       unlisted ++
-      access ++
+      access_problems ++
       for(g <- data.gifts, g["item"] not in data.items, do: {g["item"], :unknown_item}) ++
       for t <- data.trainer_places, t["label"] not in labels, do: {t["label"], :unknown_trainer}
   end
