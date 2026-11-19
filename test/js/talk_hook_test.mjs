@@ -66,6 +66,8 @@ test("audioSessionType: the debug pick while Maya talks with the mic closed, nev
   assert.equal(audioSessionType(false, "waiting", "auto", "play-and-record"), "play-and-record")
   assert.equal(audioSessionType(true, "speaking", "auto", "ambient"), "play-and-record")
   assert.equal(audioSessionType(false, "idle", "transient", "ambient"), "transient")
+  // Mic closed right after the post-roll: the pick holds through the STT gap, no flap to "auto".
+  assert.equal(audioSessionType(false, "uploading", "auto", "ambient"), "ambient")
 })
 
 test("wakeAudio resumes any state but running or closed and swallows a refusal (#96)", async () => {

@@ -143,10 +143,11 @@ export function setAudioSession(nav, type) {
 // but "auto" stops capture (W3C Audio Session, the type attribute). With the mic closed while
 // Maya talks, "playback", which the iOS silent switch does not mute (cantastorie ADR-010). After
 // the turn "auto" (#145), or the type the music spike picked (?audio_debug=1). The spike can
-// also pick the type while Maya talks (#197).
+// also pick the type while Maya talks (#197), from the release on: a mic closed after the
+// post-roll must not flap to the after-turn type during the STT gap.
 export function audioSessionType(micOpen, state, afterTurn, duringSpeech = "playback") {
   if (micOpen) return "play-and-record"
-  return state === "speaking" || state === "waiting" ? duringSpeech : afterTurn
+  return ["uploading", "waiting", "speaking"].includes(state) ? duringSpeech : afterTurn
 }
 
 // Resumes a context in any state but "running" or "closed", Safari's "interrupted" (calls, Siri,
@@ -310,7 +311,7 @@ export const TalkHook = {
       if (readout.textContent !== text) readout.textContent = text
     }
     show()
-    this.debugTimer = setInterval(show, 250)
+    this.debugTimer = setInterval(show, 500)
   },
 
   // The audio session follows the mic and the button (audioSessionType); a press opening a mic
