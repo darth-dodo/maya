@@ -4,14 +4,14 @@ Two build PRs, after `guide-and-humor` part A has merged (locations through Mauv
 
 ## 1. Data (part A)
 
-- [ ] 1.1 Parsers for `trainers.h` (constant to party label), map `scripts.inc` (`trainerbattle_*`, `pokemart`), `map.json` item balls and hidden items, `item_ball_scripts.inc` and `items.h`, each with a fixture test. Verify: `mix test test/maya/game_data/parse_test.exs`.
-- [ ] 1.2 Hand-write `priv/data/interiors.json` (marts in Oldale, Petalburg, Rustboro, Slateport and Mauville; gyms in Rustboro, Dewford and Mauville; each with its city and own `badges_required`) and `priv/data/gifts.json` (HMs and key items Littleroot Town to Mauville City, each citing its pokeemerald script; drop any not found), then extend `mix maya.fetch_data`, run it once and commit `trainer_places.json`, `item_places.json` and `items.json`. Verify: `jq` shows Calvin1 on `MAP_ROUTE102`, trainers on `MAP_ROUTE110`, and no unlisted map.
-- [ ] 1.3 Migration and import for `trainer_places`, `item_places`, `items` and gifts; the "never inherited", "not below its city" and "every map exists" checks. Verify: import tests, the Mauville mart at 1 badge fixture, and idempotency.
+- [x] 1.1 Parsers for `trainers.h` (constant to party label), map `scripts.inc` (`trainerbattle_*`, `pokemart`), `map.json` item balls and hidden items, `item_ball_scripts.inc` and `items.h`, each with a fixture test. Verify: `mix test test/maya/game_data/parse_test.exs`.
+- [x] 1.2 Hand-write `priv/data/interiors.json` (marts in Oldale, Petalburg, Rustboro, Slateport and Mauville; gyms in Rustboro, Dewford and Mauville; each with its city and own `badges_required`) and `priv/data/gifts.json` (HMs and key items Littleroot Town to Mauville City, each citing its pokeemerald script; drop any not found), then extend `mix maya.fetch_data`, run it once and commit `trainer_places.json`, `item_places.json` and `items.json`. Verify: `jq` shows Calvin1 on `MAP_ROUTE102`, trainers on `MAP_ROUTE110`, and no unlisted map.
+- [x] 1.3 Migration and import for `trainer_places`, `item_places`, `items` and gifts; the "never inherited", "not below its city" and "every map exists" checks. Verify: import tests, the Mauville mart at 1 badge fixture, and idempotency.
 
 ## 2. Tools (part A)
 
-- [ ] 2.1 `find_trainer`: GameData query, Facts, definition, `Tools.call`. Verify: Route 102 at 0, Route 110 at 0, 1 and 2 badges, Dewford Town at 0 tests.
-- [ ] 2.2 `find_item`: GameData query (places plus gifts by badges), Facts, definition, `Tools.call`. Verify: ball fixture, HM03 at 0 and 2, Mach Bike at 1 and 2, Master Sword tests.
+- [x] 2.1 `find_trainer`: GameData query, Facts, definition, `Tools.call`. Verify: Route 102 at 0, Route 110 at 0, 1 and 2 badges, Dewford Town at 0 tests.
+- [x] 2.2 `find_item`: GameData query (places plus gifts by badges), Facts, definition, `Tools.call`. Verify: ball fixture, HM03 at 0 and 2, Mach Bike at 1 and 2, Master Sword tests.
 
 ## 3. team_check (part B)
 

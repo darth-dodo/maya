@@ -73,6 +73,8 @@ defmodule Maya.AgentTest do
                "gym_counter",
                "find_pokemon",
                "move_learnset",
+               "find_trainer",
+               "find_item",
                "log_event",
                "set_setting"
              ]

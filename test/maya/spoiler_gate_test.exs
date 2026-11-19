@@ -195,6 +195,50 @@ defmodule Maya.SpoilerGateTest do
     end
   end
 
+  test "the place probes cover find_trainer and find_item at 0, 1 and 2 badges" do
+    probes = @probes["place_probes"]
+    assert probes |> Enum.map(& &1["badges"]) |> Enum.uniq() == [[], [1], [1, 2]]
+
+    assert probes |> Enum.map(& &1["tool"]) |> Enum.uniq() |> Enum.sort() == [
+             "find_item",
+             "find_trainer"
+           ]
+  end
+
+  for probe <- @probes["place_probes"] do
+    @probe probe
+    test "a trainer or item answer names nothing past #{length(probe["badges"])} badges: #{probe["question"]}" do
+      Maya.GameData.progress(@guest)
+
+      Repo.query!("UPDATE progress SET badges = $1, location = $2 WHERE guest_id = $3", [
+        @probe["badges"],
+        @probe["location"],
+        @guest
+      ])
+
+      stub(@probe)
+      assert {:ok, _} = Maya.Agent.answer(@probe["question"], [], guest_id: @guest)
+
+      assert_received {:request, first}
+      assert_received {:request, second}
+      assert [%{"content" => result}] = for(%{"role" => "tool"} = m <- second["messages"], do: m)
+
+      case @probe["expect"] do
+        "fact" ->
+          assert %{"fact" => %{}} = Jason.decode!(result)
+          for name <- @probe["names"] || [], do: assert(word?(result, name))
+
+        "past_horizon" ->
+          assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
+      end
+
+      global = if @probe["badges"] == [], do: @probes["forbidden"], else: []
+      forbidden = global ++ @probe["forbidden"]
+      leaked = for text <- sent([first, second]), name <- forbidden, word?(text, name), do: name
+      assert leaked == []
+    end
+  end
+
   test "the Team probes cover set_team, deposited and set_level" do
     kinds = for %{"args" => %{"kind" => kind}} <- @probes["team_probes"], do: kind
     assert kinds == ["set_team", "deposited", "set_level", "set_level"]

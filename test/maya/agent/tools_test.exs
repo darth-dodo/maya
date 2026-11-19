@@ -16,7 +16,9 @@ defmodule Maya.Agent.ToolsTest do
           do: n
 
     assert Enum.sort(names) == [
+             "find_item",
              "find_pokemon",
+             "find_trainer",
              "gym_counter",
              "log_event",
              "move_learnset",
@@ -229,5 +231,93 @@ defmodule Maya.Agent.ToolsTest do
     refused = Tools.call("log_event", %{"kind" => "badge_earned"}, progress)
     assert refused == {:refused, "I can only log Roxanne's badge next."}
     assert Jason.decode!(Tools.encode(refused, progress)) == %{"refused" => elem(refused, 1)}
+  end
+
+  describe "find_trainer" do
+    test "Route 102 at 0 badges: Calvin's first party, never a rematch", %{progress: progress} do
+      assert {:ok, %{place: "Route 102", trainers: trainers}} =
+               Tools.call("find_trainer", %{"place" => "Route 102"}, progress)
+
+      assert %{name: "Calvin", pokemon: [%{species: "poochyena", level: 5}]} in trainers
+      party = for t <- trainers, p <- t.pokemon, do: p
+      refute Enum.any?(party, &(&1.species == "mightyena" or &1.level > 15))
+    end
+
+    test "Route 110 waits for badge 2, Dewford Town for badge 1", %{progress: progress} do
+      for {place, badges} <- [{"Route 110", []}, {"Route 110", [1]}, {"Dewford Town", []}] do
+        assert {:error, :past_horizon} =
+                 Tools.call("find_trainer", %{"place" => place}, %{progress | badges: badges})
+      end
+
+      assert {:ok, %{place: "Route 110", trainers: [_ | _]}} =
+               Tools.call("find_trainer", %{"place" => "Route 110"}, %{progress | badges: [1, 2]})
+    end
+
+    test "gym trainers are under their city with the gym's own badges", %{progress: progress} do
+      assert {:ok, %{trainers: trainers}} =
+               Tools.call("find_trainer", %{"place" => "Rustboro City"}, progress)
+
+      assert "Roxanne" in Enum.map(trainers, & &1.name)
+    end
+
+    test "an unlisted place fails closed, and a missing place is bad arguments",
+         %{progress: progress} do
+      assert {:error, :past_horizon} =
+               Tools.call("find_trainer", %{"place" => "Lavaridge Town"}, progress)
+
+      assert {:error, :bad_arguments} = Tools.call("find_trainer", %{}, progress)
+    end
+  end
+
+  describe "find_item" do
+    test "HM03 Surf names no place at 0 or 2 badges, including Petalburg City",
+         %{progress: progress} do
+      for badges <- [[], [1, 2]], name <- ["HM03", "Surf"] do
+        assert {:error, :past_horizon} =
+                 Tools.call("find_item", %{"name" => name}, %{progress | badges: badges})
+      end
+
+      assert {:ok, %{places: [%{location: "Petalburg City", how: "gift"}]}} =
+               Tools.call("find_item", %{"name" => "HM03"}, %{
+                 progress
+                 | badges: Enum.to_list(1..5)
+               })
+    end
+
+    test "the Mach Bike waits for badge 2, then Mauville City gives it", %{progress: progress} do
+      assert {:error, :past_horizon} =
+               Tools.call("find_item", %{"name" => "Mach Bike"}, %{progress | badges: [1]})
+
+      assert {:ok, %{item: "mach bike", places: [%{location: "Mauville City", how: "gift"}]}} =
+               Tools.call("find_item", %{"name" => "Mach Bike"}, %{progress | badges: [1, 2]})
+    end
+
+    test "Flash is a gift in Granite Cave from badge 1", %{progress: progress} do
+      assert {:ok, %{item: "hm05 flash", places: [%{location: "Granite Cave", how: "gift"}]}} =
+               Tools.call("find_item", %{"name" => "Flash"}, %{progress | badges: [1]})
+    end
+
+    test "a Great Ball at 1 badge is sold in Slateport City, never Mauville City",
+         %{progress: progress} do
+      assert {:ok, %{places: places}} =
+               Tools.call("find_item", %{"name" => "Great Ball"}, %{progress | badges: [1]})
+
+      assert %{location: "Slateport City", how: "mart"} in places
+      refute Enum.any?(places, &(&1.location == "Mauville City"))
+    end
+
+    test "a Potion at 0 badges includes the ball on Route 102", %{progress: progress} do
+      assert {:ok, %{places: places}} =
+               Tools.call("find_item", %{"name" => "potion"}, progress)
+
+      assert %{location: "Route 102", how: "ball"} in places
+    end
+
+    test "Master Sword is not an item", %{progress: progress} do
+      assert {:error, :not_found} =
+               Tools.call("find_item", %{"name" => "Master Sword"}, progress)
+
+      assert {:error, :bad_arguments} = Tools.call("find_item", %{"name" => 3}, progress)
+    end
   end
 end

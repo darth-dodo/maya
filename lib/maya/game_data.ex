@@ -8,11 +8,12 @@ defmodule Maya.GameData do
   import Ecto.Query
 
   alias Maya.GameData.Notes
+  alias Maya.GameData.Places
   alias Maya.Repo
   alias Maya.Voice.Vocabulary
 
   # Children before parents, so deletes never trip the trainer_pokemon foreign key.
-  @game_tables ~w(trainer_pokemon trainers encounters type_matchups species locations learnsets walkthrough_notes)
+  @game_tables ~w(trainer_places item_places items trainer_pokemon trainers encounters type_matchups species locations learnsets walkthrough_notes)
 
   @doc """
   Replaces the game data tables from `priv/data/` in one transaction. Progress is
@@ -31,6 +32,21 @@ defmodule Maya.GameData do
     case Notes.problems(notes, locations) do
       [] -> :ok
       problems -> raise ArgumentError, "walkthrough notes: #{inspect(problems)}"
+    end
+
+    places = %{
+      locations: locations,
+      trainers: trainers,
+      interiors: data.("interiors"),
+      gifts: data.("gifts"),
+      items: data.("items"),
+      trainer_places: data.("trainer_places"),
+      item_places: data.("item_places")
+    }
+
+    case Places.problems(places) do
+      [] -> :ok
+      problems -> raise ArgumentError, "trainer and item places: #{inspect(problems)}"
     end
 
     {:ok, :ok} =
@@ -56,6 +72,19 @@ defmodule Maya.GameData do
         insert!("locations", locations, ~w(name map badges_required))
         insert!("learnsets", data.("learnsets"), ~w(species move method level))
         insert!("walkthrough_notes", notes, ~w(location badges_required text))
+        insert!("items", Enum.map(places.items, &%{"name" => &1}), ~w(name))
+
+        insert!(
+          "trainer_places",
+          Places.trainer_rows(places),
+          ~w(map location badges_required trainer_label name)
+        )
+
+        insert!(
+          "item_places",
+          Places.item_rows(places),
+          ~w(item map location how badges_required)
+        )
       end)
 
     # Bias names are cached from these tables.
@@ -95,6 +124,46 @@ defmodule Maya.GameData do
 
       Map.put(trainer, :pokemon, pokemon)
     end
+  end
+
+  @doc """
+  The trainers told under a listed location, in file order, each with `badges_required` and
+  its first party (`species`, `level`) in slot order.
+  """
+  def trainers_at(location) do
+    trainers =
+      Repo.all(
+        from t in "trainer_places",
+          where: t.location == ^location,
+          order_by: t.id,
+          select: %{label: t.trainer_label, name: t.name, badges_required: t.badges_required}
+      )
+
+    labels = Enum.map(trainers, & &1.label)
+
+    parties =
+      Repo.all(
+        from p in "trainer_pokemon",
+          where: p.trainer_label in ^labels,
+          order_by: [p.trainer_label, p.slot],
+          select: {p.trainer_label, %{species: p.species, level: p.level}}
+      )
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+
+    for t <- trainers, do: t |> Map.delete(:label) |> Map.put(:pokemon, parties[t.label] || [])
+  end
+
+  @doc "Every item name (`mach bike`, `hm05 flash`)."
+  def item_names, do: Repo.all(from i in "items", select: i.name)
+
+  @doc "Where an item is found, hidden, sold or given: `location`, `how`, `badges_required`."
+  def item_places(item) do
+    Repo.all(
+      from p in "item_places",
+        where: p.item == ^item,
+        order_by: [p.badges_required, p.id],
+        select: %{location: p.location, how: p.how, badges_required: p.badges_required}
+    )
   end
 
   @doc "Wild encounters of a species on every map, highest rate first."

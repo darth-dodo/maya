@@ -1,0 +1,10 @@
+[
+{"item":"hm01 cut","map":"MAP_RUSTBORO_CITY_CUTTERS_HOUSE","city":"Rustboro City","badges_required":0,"how":"gift","source":"data/maps/RustboroCity_CuttersHouse/scripts.inc"},
+{"item":"wailmer pail","map":"MAP_ROUTE104_PRETTY_PETAL_FLOWER_SHOP","city":"Route 104","badges_required":0,"how":"gift","source":"data/maps/Route104_PrettyPetalFlowerShop/scripts.inc"},
+{"item":"old rod","map":"MAP_DEWFORD_TOWN","city":"Dewford Town","badges_required":1,"how":"gift","source":"data/maps/DewfordTown/scripts.inc"},
+{"item":"hm05 flash","map":"MAP_GRANITE_CAVE_1F","city":"Granite Cave","badges_required":1,"how":"gift","source":"data/maps/GraniteCave_1F/scripts.inc"},
+{"item":"hm06 rock smash","map":"MAP_MAUVILLE_CITY_HOUSE1","city":"Mauville City","badges_required":2,"how":"gift","source":"data/maps/MauvilleCity_House1/scripts.inc"},
+{"item":"mach bike","map":"MAP_MAUVILLE_CITY_BIKE_SHOP","city":"Mauville City","badges_required":2,"how":"gift","source":"data/maps/MauvilleCity_BikeShop/scripts.inc"},
+{"item":"acro bike","map":"MAP_MAUVILLE_CITY_BIKE_SHOP","city":"Mauville City","badges_required":2,"how":"gift","source":"data/maps/MauvilleCity_BikeShop/scripts.inc"},
+{"item":"hm03 surf","map":"MAP_PETALBURG_CITY_WALLYS_HOUSE","city":"Petalburg City","badges_required":5,"how":"gift","source":"data/maps/PetalburgCity_WallysHouse/scripts.inc"}
+]

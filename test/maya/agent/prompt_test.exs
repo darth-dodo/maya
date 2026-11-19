@@ -110,4 +110,11 @@ defmodule Maya.Agent.PromptTest do
   test "with all 8 badges there is no Next gym" do
     assert Prompt.system(%{@progress | badges: Enum.to_list(1..8)}) =~ "Next gym: none"
   end
+
+  test "trainers and items come only from find_trainer and find_item" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "call find_trainer"
+    assert prompt =~ "call find_item"
+    refute prompt =~ ~r/\b(beat|defeat)/i
+  end
 end

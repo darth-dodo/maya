@@ -66,6 +66,32 @@ defmodule Maya.Agent.Tools do
     %{
       type: "function",
       function: %{
+        name: "find_trainer",
+        description:
+          "The trainers who battle the player on a town, city or route (gym trainers are under their city), each with their first party: species and levels.",
+        parameters: %{
+          type: "object",
+          properties: %{place: %{type: "string", description: "Place name, e.g. Route 102"}},
+          required: ["place"]
+        }
+      }
+    },
+    %{
+      type: "function",
+      function: %{
+        name: "find_item",
+        description:
+          "Where to get an item: each place and how (ball, hidden, mart or gift). For a TM or HM, give its number or move.",
+        parameters: %{
+          type: "object",
+          properties: %{name: %{type: "string", description: "Item name, e.g. Potion or HM01"}},
+          required: ["name"]
+        }
+      }
+    },
+    %{
+      type: "function",
+      function: %{
         name: "log_event",
         description:
           "Records what the player just told you about their game and updates their Progress. Returns a confirm line to say, or a refused line to say instead.",
@@ -167,6 +193,17 @@ defmodule Maya.Agent.Tools do
     end
   end
 
+  def call("find_trainer", %{"place" => place}, progress) when is_binary(place) do
+    location = Facts.guide_location(place, GameData.locations())
+    trainers = if location, do: GameData.trainers_at(location.name), else: []
+    Facts.find_trainer(location, trainers, progress)
+  end
+
+  def call("find_item", %{"name" => name}, progress) when is_binary(name) do
+    item = Facts.item_name(name, GameData.item_names())
+    Facts.find_item(item, if(item, do: GameData.item_places(item), else: []), progress)
+  end
+
   # Writes, so its result carries the new Progress for the rest of the turn.
   def call("log_event", %{"kind" => kind} = args, progress) when is_binary(kind) do
     details = if is_map(args["details"]), do: args["details"], else: %{}
@@ -191,7 +228,14 @@ defmodule Maya.Agent.Tools do
     do: {:refused, "Spoilers stay at 0, and humor is the only Dial you can change by voice."}
 
   def call(name, _args, _progress)
-      when name in ["gym_counter", "find_pokemon", "move_learnset", "log_event"],
+      when name in [
+             "gym_counter",
+             "find_pokemon",
+             "move_learnset",
+             "find_trainer",
+             "find_item",
+             "log_event"
+           ],
       do: {:error, :bad_arguments}
 
   def call(_name, _args, _progress), do: {:error, :unknown_tool}

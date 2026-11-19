@@ -245,4 +245,51 @@ defmodule Maya.Agent.FactsTest do
     assert hint =~ "Roxanne"
     refute hint =~ Horizon.next_gym(@progress).city
   end
+
+  describe "find_item and find_trainer" do
+    @potion [%{location: "Route 102", how: "ball", badges_required: 0}]
+
+    test "an item whose only row is a ball on Route 102" do
+      assert Facts.find_item("potion", @potion, @progress) ==
+               {:ok, %{item: "potion", places: [%{location: "Route 102", how: "ball"}]}}
+    end
+
+    test "a known item with every row past the horizon is past_horizon; nil is not_found" do
+      rows = [%{location: "Mauville City", how: "gift", badges_required: 2}]
+      assert Facts.find_item("mach bike", rows, @progress) == {:error, :past_horizon}
+      assert Facts.find_item(nil, [], @progress) == {:error, :not_found}
+    end
+
+    test "spoken item names: case, accents, apostrophes, and TMs or HMs by number or move" do
+      names = ["poke ball", "kings rock", "hm05 flash", "mach bike", "tm39 rock tomb"]
+      assert Facts.item_name("Poké Ball", names) == "poke ball"
+      assert Facts.item_name("King's Rock", names) == "kings rock"
+      assert Facts.item_name("HM05", names) == "hm05 flash"
+
+      for heard <- ["HM 5", "HM5", "hm 05"],
+          do: assert(Facts.item_name(heard, names) == "hm05 flash")
+
+      assert Facts.item_name("TM 39", names) == "tm39 rock tomb"
+      assert Facts.item_name("S.S. Ticket", ["ss ticket"]) == "ss ticket"
+      assert Facts.item_name("flash", names) == "hm05 flash"
+      assert Facts.item_name("Rock Tomb", names) == "tm39 rock tomb"
+      assert Facts.item_name("the Mach Bike", names) == "mach bike"
+      assert Facts.item_name("Mach", names) == nil
+      assert Facts.item_name("Master Sword", names) == nil
+    end
+
+    test "find_trainer leaves out a trainer row past the horizon, and an unlisted place fails closed" do
+      city = %{name: "Rustboro City", badges_required: 0}
+
+      trainers = [
+        %{name: "Josh", badges_required: 0, pokemon: [%{species: "geodude", level: 10}]},
+        %{name: "Later", badges_required: 5, pokemon: []}
+      ]
+
+      assert {:ok, %{place: "Rustboro City", trainers: [%{name: "Josh"}]}} =
+               Facts.find_trainer(city, trainers, @progress)
+
+      assert Facts.find_trainer(nil, [], @progress) == {:error, :past_horizon}
+    end
+  end
 end
