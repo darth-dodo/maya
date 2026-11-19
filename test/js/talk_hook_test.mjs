@@ -2,7 +2,8 @@
 import {test} from "node:test"
 import assert from "node:assert/strict"
 import {micCloseDelay, audioCanSleep, setAudioSession, holdEndedBy, audioSessionType, wakeAudio,
-  playbackStalled, keepChunk, afterTurnType, audioDebugOn} from "../../assets/js/talk_hook.js"
+  playbackStalled, keepChunk, afterTurnType, audioDebugOn, debugChoice, SPEAKING_TYPES, MIC_AFTER_RELEASE,
+  debugStatus} from "../../assets/js/talk_hook.js"
 
 test("micCloseDelay: hidden closes at once, idle waits, a turn in flight never closes", () => {
   assert.equal(micCloseDelay("speaking", false, true, 4000), 0)
@@ -60,6 +61,13 @@ test("audioSessionType: play-and-record with the mic open, playback while Maya t
   assert.equal(audioSessionType(false, "idle", "transient"), "transient")
 })
 
+test("audioSessionType: the debug pick while Maya talks with the mic closed, never over an open mic (#197)", () => {
+  assert.equal(audioSessionType(false, "speaking", "auto", "ambient"), "ambient")
+  assert.equal(audioSessionType(false, "waiting", "auto", "play-and-record"), "play-and-record")
+  assert.equal(audioSessionType(true, "speaking", "auto", "ambient"), "play-and-record")
+  assert.equal(audioSessionType(false, "idle", "transient", "ambient"), "transient")
+})
+
 test("wakeAudio resumes any state but running or closed and swallows a refusal (#96)", async () => {
   const calls = []
   const ctx = state => ({state, resume: () => { calls.push(state); return Promise.reject(new Error("no gesture")) }})
@@ -99,4 +107,16 @@ test("audioDebugOn: only ?audio_debug=1", () => {
   assert.equal(audioDebugOn("?x=2&audio_debug=1"), true)
   assert.equal(audioDebugOn("?audio_debug=0"), false)
   assert.equal(audioDebugOn(""), false)
+})
+
+test("debugChoice: a stored value from the list, else the first (current behaviour) (#197)", () => {
+  assert.equal(debugChoice(SPEAKING_TYPES, "ambient"), "ambient")
+  assert.equal(debugChoice(SPEAKING_TYPES, "auto"), "play-and-record")
+  assert.equal(debugChoice(MIC_AFTER_RELEASE, "close"), "close")
+  assert.equal(debugChoice(MIC_AFTER_RELEASE, null), "warm")
+})
+
+test("debugStatus: session type, context state and mic (#197)", () => {
+  assert.equal(debugStatus("ambient", "running", false), "session: ambient, context: running, mic: closed")
+  assert.equal(debugStatus(undefined, undefined, true), "session: none, context: none, mic: open")
 })
