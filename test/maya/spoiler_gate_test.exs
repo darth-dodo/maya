@@ -195,13 +195,14 @@ defmodule Maya.SpoilerGateTest do
     end
   end
 
-  test "the place probes cover find_trainer and find_item at 0, 1 and 2 badges" do
+  test "the place probes cover find_trainer, find_item and team_check at 0, 1 and 2 badges" do
     probes = @probes["place_probes"]
     assert probes |> Enum.map(& &1["badges"]) |> Enum.uniq() == [[], [1], [1, 2]]
 
     assert probes |> Enum.map(& &1["tool"]) |> Enum.uniq() |> Enum.sort() == [
              "find_item",
-             "find_trainer"
+             "find_trainer",
+             "team_check"
            ]
   end
 

@@ -92,6 +92,15 @@ defmodule Maya.Agent.Tools do
     %{
       type: "function",
       function: %{
+        name: "team_check",
+        description:
+          "Whether the player's Team is ready for the Next gym: the ace, each member's level gap and best type multiplier against it, and ready.",
+        parameters: %{type: "object", properties: %{}}
+      }
+    },
+    %{
+      type: "function",
+      function: %{
         name: "log_event",
         description:
           "Records what the player just told you about their game and updates their Progress. Returns a confirm line to say, or a refused line to say instead.",
@@ -169,10 +178,15 @@ defmodule Maya.Agent.Tools do
 
   def call("gym_counter", %{"leader" => leader}, progress) when is_binary(leader) do
     gym = Facts.gym(leader)
-    trainer = gym && GameData.trainer(gym.party)
-    species = if trainer, do: Enum.map(trainer.pokemon, & &1.species), else: []
-    types = types(species ++ Enum.map(progress.team, & &1["species"]))
+    {trainer, types} = matchup(gym, progress)
     Facts.gym_counter(gym, trainer, progress, types, GameData.type_chart())
+  end
+
+  # Always the Next gym, whatever the model asks: never a later one.
+  def call("team_check", _args, progress) do
+    gym = Horizon.next_gym(progress)
+    {trainer, types} = matchup(gym, progress)
+    Facts.team_check(gym, trainer, progress, types, GameData.type_chart())
   end
 
   def call("find_pokemon", %{"name" => name}, progress) when is_binary(name) do
@@ -251,6 +265,13 @@ defmodule Maya.Agent.Tools do
 
   defp party_levels(%{pokemon: team}), do: Enum.map(team, & &1.level)
   defp party_levels(nil), do: []
+
+  # A gym's party and the types of its species and the Team's, for the matchup Facts.
+  defp matchup(gym, progress) do
+    trainer = gym && GameData.trainer(gym.party)
+    species = if trainer, do: Enum.map(trainer.pokemon, & &1.species), else: []
+    {trainer, types(species ++ Enum.map(progress.team, & &1["species"]))}
+  end
 
   defp types(names) do
     for name <- Enum.uniq(names), s = GameData.species(name), into: %{}, do: {name, s.types}

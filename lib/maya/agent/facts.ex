@@ -7,6 +7,17 @@ defmodule Maya.Agent.Facts do
 
   alias Maya.Horizon
 
+  # pokeemerald lists the rival once per rival and per starter (`MayRoute103Mudkip`).
+  @rival ~r/^(May|Brendan)\w+(Treecko|Torchic|Mudkip)$/
+  @starters %{
+    "treecko" => ~w(treecko grovyle sceptile),
+    "torchic" => ~w(torchic combusken blaziken),
+    "mudkip" => ~w(mudkip marshtomp swampert)
+  }
+
+  # A member is ready at or above the ace's level, or 2x or better and at most this many below.
+  @ready_gap 3
+
   @doc "A gym from `Horizon.gyms/0` by leader name (any case, trailing \"'s\" allowed), or nil."
   def gym(leader) do
     name = leader |> String.trim() |> String.downcase() |> String.replace_suffix("'s", "")
@@ -62,6 +73,36 @@ defmodule Maya.Agent.Facts do
       {:error, :past_horizon}
     end
   end
+
+  @doc """
+  The Team against the Next gym's ace only (`gym` is `Horizon.next_gym/1`, never a later one):
+  each member's level gap to the ace and best type multiplier, and `ready`. With every badge
+  `gym` is nil: a Fact with no Next gym and the hint.
+  """
+  def team_check(nil, _trainer, progress, _types, _chart),
+    do: {:ok, %{next_gym: nil, hint: hint(progress)}}
+
+  def team_check(gym, trainer, progress, types, chart) do
+    with {:ok, fact} <- gym_counter(gym, trainer, progress, types, chart) do
+      team =
+        for m <- fact.team do
+          gap = if is_integer(m.level), do: m.level - fact.ace.level
+          %{species: m.species, level: m.level, level_gap: gap, vs_ace: m.vs_ace}
+        end
+
+      {:ok,
+       %{
+         leader: fact.leader,
+         badge: fact.badge,
+         ace: fact.ace,
+         team: team,
+         ready: Enum.any?(team, &ready?/1)
+       }}
+    end
+  end
+
+  defp ready?(%{level_gap: gap}) when not is_integer(gap), do: false
+  defp ready?(%{level_gap: gap, vs_ace: vs}), do: gap >= 0 or (vs >= 2.0 and gap >= -@ready_gap)
 
   defp inside?(gym, progress) do
     case Horizon.next_gym(progress) do
@@ -168,14 +209,51 @@ defmodule Maya.Agent.Facts do
   """
   def find_trainer(location, trainers, progress) do
     if Horizon.allowed?(location, progress) do
+      {rivals, others} =
+        trainers
+        |> Enum.filter(&Horizon.allowed?(&1, progress))
+        |> Enum.split_with(&Regex.match?(@rival, &1[:label] || ""))
+
       {:ok,
        %{
          place: location.name,
-         trainers:
-           for(t <- trainers, Horizon.allowed?(t, progress), do: Map.take(t, [:name, :pokemon]))
+         trainers: Enum.map(others, &Map.take(&1, [:name, :pokemon])) ++ rival(rivals, progress)
        }}
     else
       {:error, :past_horizon}
+    end
+  end
+
+  defp rival([], _progress), do: []
+
+  # Progress has no gender, so May and Brendan are one entry when their parties match.
+  defp rival(rows, progress) do
+    case starter(progress) do
+      nil ->
+        [%{name: "May or Brendan", note: "The rival's team depends on your starter."}]
+
+      starter ->
+        rows
+        |> Enum.filter(&String.ends_with?(&1.label, String.capitalize(starter)))
+        |> Enum.group_by(& &1.pokemon, & &1.name)
+        # May before Brendan, as pokeemerald lists them.
+        |> Enum.sort_by(fn {_party, names} -> names end, :desc)
+        |> Enum.map(fn {party, names} ->
+          %{name: names |> Enum.uniq() |> Enum.join(" or "), pokemon: party}
+        end)
+    end
+  end
+
+  @doc """
+  The player's starter (`mudkip`): the one starter line in the Team or PC box. Nil when none or
+  more than one is there, since no other starter can be caught inside the horizon.
+  """
+  def starter(progress) do
+    owned = for %{"species" => s} <- progress.team ++ (progress[:box] || []), do: s
+
+    case for {starter, line} <- @starters, Enum.any?(line, &(&1 in owned)), do: starter do
+      [starter] -> starter
+      _ -> nil
     end
   end
 

@@ -90,6 +90,105 @@ defmodule Maya.Agent.FactsTest do
     end
   end
 
+  describe "team_check/5" do
+    defp team_check(team, badges \\ []) do
+      progress = %{@progress | badges: badges, team: team}
+      Facts.team_check(Horizon.next_gym(progress), @roxanne, progress, @types, @chart)
+    end
+
+    test "Mudkip at level 5 before Roxanne: gap minus 10, multiplier 2, not ready" do
+      assert {:ok, fact} = team_check([%{"species" => "mudkip", "level" => 5}])
+      assert fact.leader == "Roxanne"
+      assert %{species: "nosepass", level: 15, types: ["rock"]} = fact.ace
+      assert fact.team == [%{species: "mudkip", level: 5, level_gap: -10, vs_ace: 2.0}]
+      assert fact.ready == false
+      refute Map.has_key?(fact, :leader_team)
+    end
+
+    test "Mudkip at level 13 is ready: 2x and at most 3 levels below" do
+      assert {:ok, %{ready: true}} = team_check([%{"species" => "mudkip", "level" => 13}])
+      assert {:ok, %{ready: false}} = team_check([%{"species" => "mudkip", "level" => 11}])
+    end
+
+    test "any member at or above the ace's level is ready, whatever the matchup" do
+      assert {:ok, %{ready: true}} = team_check([%{"species" => "torchic", "level" => 15}])
+      assert {:ok, %{ready: false}} = team_check([%{"species" => "torchic", "level" => 14}])
+    end
+
+    test "an empty Team has no members and is not ready" do
+      assert {:ok, %{team: [], ready: false}} = team_check([])
+    end
+
+    test "with all 8 badges there is no Next gym, only the hint" do
+      assert {:ok, %{next_gym: nil, hint: hint}} =
+               Facts.team_check(
+                 nil,
+                 nil,
+                 %{@progress | badges: Enum.to_list(1..8)},
+                 @types,
+                 @chart
+               )
+
+      assert hint =~ "Every badge"
+    end
+
+    test "a missing party is not found" do
+      assert Facts.team_check(Facts.gym("Roxanne"), nil, @progress, @types, @chart) ==
+               {:error, :not_found}
+    end
+  end
+
+  describe "starter/1 and the rival on find_trainer" do
+    @rival (for who <- ["May", "Brendan"],
+                {starter, mon} <- [
+                  {"Treecko", "torchic"},
+                  {"Torchic", "mudkip"},
+                  {"Mudkip", "treecko"}
+                ] do
+              %{
+                label: "#{who}Route103#{starter}",
+                name: who,
+                badges_required: 0,
+                pokemon: [%{species: mon, level: 5}]
+              }
+            end)
+
+    @route103 %{name: "Route 103", badges_required: 0}
+
+    test "the starter is the one starter line in the Team or PC, else nil" do
+      assert Facts.starter(%{team: [%{"species" => "marshtomp"}], box: []}) == "mudkip"
+      assert Facts.starter(%{team: [], box: [%{"species" => "grovyle"}]}) == "treecko"
+      assert Facts.starter(%{team: [%{"species" => "poochyena"}], box: []}) == nil
+
+      two = [%{"species" => "mudkip"}, %{"species" => "torchic"}]
+      assert Facts.starter(%{team: two, box: []}) == nil
+      assert Facts.starter(%{team: [%{"species" => "mudkip"}]}) == "mudkip"
+    end
+
+    test "a known starter gets one rival party, May and Brendan merged when the same" do
+      assert {:ok, %{trainers: [rival]}} = Facts.find_trainer(@route103, @rival, @progress)
+      assert rival == %{name: "May or Brendan", pokemon: [%{species: "treecko", level: 5}]}
+    end
+
+    test "May and Brendan stay apart when their parties differ" do
+      rows =
+        Enum.map(@rival, fn
+          %{label: "MayRoute103Mudkip"} = r -> %{r | pokemon: [%{species: "wingull", level: 5}]}
+          r -> r
+        end)
+
+      assert {:ok, %{trainers: trainers}} = Facts.find_trainer(@route103, rows, @progress)
+      assert Enum.map(trainers, & &1.name) == ["May", "Brendan"]
+    end
+
+    test "an unknown starter gets one line, never six parties" do
+      progress = %{@progress | team: [%{"species" => "poochyena", "level" => 5}]}
+
+      assert {:ok, %{trainers: [rival]}} = Facts.find_trainer(@route103, @rival, progress)
+      assert rival == %{name: "May or Brendan", note: "The rival's team depends on your starter."}
+    end
+  end
+
   describe "find_pokemon/4" do
     @locations [
       %{name: "Route 102", map: "MAP_ROUTE102", badges_required: 0},

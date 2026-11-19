@@ -10,7 +10,7 @@
 
 ## What
 
-Every Fact in an Answer comes from a tool (`find_pokemon`, `gym_counter`, `search_guide`) over Maya's own data, filtered by the Spoiler horizon. The model phrases the Answer and adds personality, but adds no facts of its own. When no tool returns a Fact, Maya says she is not sure (PRODUCT.md, "When Maya can't answer well").
+Every Fact in an Answer comes from a tool (`find_pokemon`, `gym_counter`, `search_guide`, `move_learnset`, `find_trainer`, `find_item`, `team_check`) over Maya's own data, filtered by the Spoiler horizon. The model phrases the Answer and adds personality, but adds no facts of its own. When no tool returns a Fact, Maya says she is not sure (PRODUCT.md, "When Maya can't answer well").
 
 ## How
 

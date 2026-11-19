@@ -23,8 +23,37 @@ defmodule Maya.Agent.ToolsTest do
              "log_event",
              "move_learnset",
              "search_guide",
-             "set_setting"
+             "set_setting",
+             "team_check"
            ]
+  end
+
+  describe "team_check" do
+    test "Mudkip at level 5 before Roxanne is not ready", %{progress: progress} do
+      assert {:ok, fact} = Tools.call("team_check", %{}, progress)
+      assert fact.leader == "Roxanne"
+      assert %{species: "nosepass", level: 15} = fact.ace
+      assert [%{species: "mudkip", level_gap: -10, vs_ace: 2.0}] = fact.team
+      assert fact.ready == false
+    end
+
+    test "Brawly at 1 badge, Wattson at 2 and never Flannery", %{progress: progress} do
+      assert {:ok, %{leader: "Brawly"}} = Tools.call("team_check", %{}, %{progress | badges: [1]})
+
+      team = [%{"species" => "marshtomp", "level" => 22}]
+
+      assert {:ok, fact} =
+               Tools.call("team_check", %{}, %{progress | badges: [1, 2], team: team})
+
+      assert %{leader: "Wattson", ace: %{species: "manectric", level: 24}} = fact
+      assert [%{level_gap: -2}] = fact.team
+      refute Jason.encode!(fact) =~ ~r/Flannery|Lavaridge|Norman/
+    end
+
+    test "with all 8 badges there is no Next gym", %{progress: progress} do
+      assert {:ok, %{next_gym: nil}} =
+               Tools.call("team_check", %{}, %{progress | badges: Enum.to_list(1..8)})
+    end
   end
 
   describe "set_setting" do
@@ -253,6 +282,28 @@ defmodule Maya.Agent.ToolsTest do
                Tools.call("find_trainer", %{"place" => "Route 110"}, %{progress | badges: [1, 2]})
     end
 
+    test "the rival on Route 103 has only the party for the seeded Mudkip (F5)",
+         %{progress: progress} do
+      assert {:ok, %{trainers: trainers}} =
+               Tools.call("find_trainer", %{"place" => "Route 103"}, progress)
+
+      assert [%{name: "May or Brendan", pokemon: [%{species: "treecko", level: 5}]}] = trainers
+    end
+
+    test "east Route 103 waits for Route 110, and swimmers for Surf", %{progress: progress} do
+      assert {:ok, %{trainers: trainers}} =
+               Tools.call("find_trainer", %{"place" => "Route 103"}, %{progress | badges: [1, 2]})
+
+      names = Enum.map(trainers, & &1.name)
+      assert "Daisy" in names and "Rhett" in names
+      refute "Pete" in names or "Isabelle" in names
+
+      assert {:ok, %{trainers: swimmers}} =
+               Tools.call("find_trainer", %{"place" => "Route 105"}, %{progress | badges: [1]})
+
+      refute "Luis" in Enum.map(swimmers, & &1.name)
+    end
+
     test "gym trainers are under their city with the gym's own badges", %{progress: progress} do
       assert {:ok, %{trainers: trainers}} =
                Tools.call("find_trainer", %{"place" => "Rustboro City"}, progress)
@@ -311,6 +362,25 @@ defmodule Maya.Agent.ToolsTest do
                Tools.call("find_item", %{"name" => "potion"}, progress)
 
       assert %{location: "Route 102", how: "ball"} in places
+    end
+
+    test "an item only behind Surf or Cut waits for that HM's badge (F6)", %{progress: progress} do
+      for {name, badges} <- [
+            {"Max Revive", [1, 2]},
+            {"Star Piece", [1, 2]},
+            {"X Accuracy", []}
+          ] do
+        assert {:error, :past_horizon} =
+                 Tools.call("find_item", %{"name" => name}, %{progress | badges: badges})
+      end
+
+      assert {:ok, %{places: [%{location: "Route 104", how: "ball"}]}} =
+               Tools.call("find_item", %{"name" => "X Accuracy"}, %{progress | badges: [1]})
+
+      assert {:ok, %{places: places}} =
+               Tools.call("find_item", %{"name" => "Iron"}, %{progress | badges: [1]})
+
+      assert places == [%{location: "Slateport City", how: "mart"}]
     end
 
     test "Master Sword is not an item", %{progress: progress} do

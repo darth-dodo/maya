@@ -75,6 +75,7 @@ defmodule Maya.AgentTest do
                "move_learnset",
                "find_trainer",
                "find_item",
+               "team_check",
                "log_event",
                "set_setting"
              ]
