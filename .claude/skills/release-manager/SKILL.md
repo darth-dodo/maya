@@ -7,6 +7,8 @@ description: Use when cutting a Maya release, bumping the version, tagging, writ
 
 A release is a version label on code already merged to main. Render deploys on every merge to main, not on tags, so a release never ships new code by itself.
 
+The factory runs this skill through `factory:release`, which adds the release-due check, the theme (release title `vX.Y.Z <Theme>`) and split releases.
+
 ## 1. Preconditions (stop if any fail)
 
 - `git fetch origin` and work from `origin/main`.

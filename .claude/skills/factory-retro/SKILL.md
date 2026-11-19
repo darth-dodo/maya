@@ -86,4 +86,4 @@ Ground every line in the gathered evidence (PR body, review comment, CI, transcr
 
 ## 5. Report
 
-Print each row and its lesson. A batch always leaves at least 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, so say that `factory:improve` is due now and run it right after.
+Print each row and its lesson. A batch always leaves at least 5 rows merged after the `Last improve run` line in `docs/factory/experiments.md`, so say that `factory:improve` is due now and run it right after; it ends by running `factory:release`.

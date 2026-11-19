@@ -13,7 +13,7 @@ Run `TZ=Europe/Berlin date`. Monday to Friday, 08:00 to 17:59: do not push, open
 
 ## 1. Is a release due?
 
-Last tag: `git tag --sort=-creatordate` (first line). Due when either holds:
+Last tag: `git tag --sort=-v:refname` (first line; version order, because split tags are created out of order). Due when either holds:
 
 - a `feat:` PR merged since that tag: `git log <tag>..origin/main --format=%s`, a subject starting `feat` (`feat:`, `feat(scope):`, `feat!:`)
 - a block milestone closed since that tag's date: `gh api "repos/darth-dodo/maya/milestones?state=closed" --jq '.[] | [.title,.closed_at] | @tsv'`
@@ -41,7 +41,7 @@ Hand off to `release-manager` step 3 with the confirmed version(s). Its precondi
 
 Split: one PR, not one per release. On one branch `chore/release-vLAST`:
 
-- Fold each fragment into the section of the range its PR is in. `CHANGELOG.md` gets one `## [X.Y.Z] - <date>` section per version, newest on top, and one compare link per version (`[0.3.0]: .../compare/v0.2.0...v0.3.0`, `[0.4.0]: .../compare/v0.3.0...v0.4.0`).
+- Fold each fragment into the section of the range its PR is in. `CHANGELOG.md` gets one `## [X.Y.Z] - <date>` section per version, newest on top under the empty `## [Unreleased]`, the `[Unreleased]: .../compare/vNEWEST...HEAD` link, and one compare link per version (`[0.3.0]: .../compare/v0.2.0...v0.3.0`, `[0.4.0]: .../compare/v0.3.0...v0.4.0`).
 - `mix.exs` gets only the newest version.
 - Title `chore(release): vA.B.C and vX.Y.Z`; body has each section.
 
