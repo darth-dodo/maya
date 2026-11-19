@@ -47,8 +47,7 @@ defmodule MayaWeb.TalkLive do
 
   def poke_facts, do: @poke_facts
 
-  # Postgres down or paused (Issue 192): only database errors, a code bug still crashes.
-  @db_errors [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
+  @db_errors Maya.Repo.outage_errors()
 
   @impl true
   def mount(_params, %{"guest_id" => guest_id}, socket) do

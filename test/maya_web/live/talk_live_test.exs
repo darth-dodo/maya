@@ -983,7 +983,6 @@ defmodule MayaWeb.TalkLiveTest do
 
         assert has_element?(view, "#notes-down a[href='/talk']", "Try again")
         refute has_element?(view, "#talk-button")
-        assert render(view) =~ "notes-down"
       end)
 
     assert log =~ "[warning] talk mount failed: DBConnection.OwnershipError"

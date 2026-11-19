@@ -21,8 +21,7 @@ defmodule Maya.Agent do
   @fallback "Not sure I got that right, ask me again?"
   @notes_down "I can't reach my notes right now, ask again soon?"
   @notes_down_error Jason.encode!(%{error: "notes_down"})
-  # Only database errors (OwnershipError is how tests take the pool away); a code bug crashes.
-  @db_errors [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
+  @db_errors Maya.Repo.outage_errors()
 
   @doc """
   Answers one Question for the guest in `opts[:guest_id]`, against that guest's Progress
