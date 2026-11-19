@@ -183,7 +183,7 @@ Sun
 ## Guardrails
 - Kill switch: F1 past 3h means build Maya by hand with Claude Code. Factory moves to PHASE_2.md.
 - Cut order: MVP cuts (embeddings, journal, dials). Digest and watcher already moved to PHASE_2.md.
-- One block at a time. Stop at "done when". Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), take the cut.
+- One block at a time. Stop at "done when". Past 2x the size's upper bound, take the cut (XS past 1h, S past 2h, M past 4h, L past 8h).
 - Gym rule: at least one gym per build day.
 - New ideas go to PHASE_2.md.
 

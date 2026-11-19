@@ -36,7 +36,7 @@ Rows written before sizes have a blank `size` (unknown); never rewrite their `es
 | `issue` | First closing Issue number |
 | `pr` | PR number |
 | `merged_at` | `mergedAt`, ISO 8601 UTC |
-| `estimate_h` | Midpoint hours of the Issue's size: XS 0.25, S 0.75, M 1.5, L 3 |
+| `estimate_h` | Midpoint hours of the Issue's size: XS 0.25, S 0.75, M 1.5, L 3. An Issue that still states hours keeps them (30m = 0.5) |
 | `lead_time_h` | Earliest branch commit `committedDate` to `mergedAt`, hours, 2 decimals |
 | `first_pass_green` | `true` if the oldest CI run on the PR concluded `success`, else `false` |
 | `ci_red_runs` | CI runs on the PR with conclusion `failure` |

@@ -50,7 +50,7 @@ XL is a planning signal only: never file or start an XL Issue; split it into Iss
 
 - Open work: `gh issue list --state open --json number,title,milestone,labels` and `gh pr list --state open`.
 - Elapsed per in-progress Issue: time since the first commit on its branch (`git log --reverse --format=%cI origin/main..<branch> | head -1`).
-- Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h): propose the cut with the reason. F1 past 3h: the kill switch in `FACTORY.md` applies.
+- Past 2x the size's upper bound (the table's "Cut past" column): propose the cut with the reason. F1 past 3h: the kill switch in `FACTORY.md` applies.
 - More than 2 builders active: stop one.
 
 ## Cuts

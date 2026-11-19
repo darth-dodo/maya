@@ -71,7 +71,7 @@ Ask me before: choosing Render plan tier, any paid service, or changing the froz
 - F4: Telegram moved to PHASE_2.md. Phone gate: GitHub app to merge, Remote Control for blocked sessions.
 
 ## Rules
-- One block at a time. Stop at "done when". Past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), take the cut.
+- One block at a time. Stop at "done when". Past 2x the size's upper bound, take the cut (XS past 1h, S past 2h, M past 4h, L past 8h).
 - Factory freeze (decided 2026-11-14): after #19, #20 and changelog fragments, factory changes are fixes only until Maya Block 1 ships. F2 (PRODUCT.md) is done; next is F3. The planned `onboarding` and `coverage-88` changes wait until after Block 1. New factory ideas go to PHASE_2.md.
 - Cut order: embeddings, journal, dials (Telegram digest and watcher already in PHASE_2.md).
 - Voice outage: Answers show as text with a "voice is down" note (decided in PRODUCT.md; no Web Speech fallback).
