@@ -36,7 +36,7 @@ Pick exactly one route from the table. A request that fits two routes, or none, 
 Route notes:
 
 - Bug without evidence ("I think voice is slow sometimes"): create nothing. Ask for a log, run or screenshot, or offer the Question route with `mix maya.latency`.
-- Bug estimate: ask `project-manager` for the estimate field the board uses and fill that; it also sets Kind, Estimate and Status on Project 1, and a milestone when the defect belongs to a block. (When #107 lands, estimates become T-shirt sizes; the #107 builder updates this line.)
+- Bug estimate: a size from the `project-manager` table (XS to L); `project-manager` also sets Kind, Estimate (the same size) and Status on Project 1, and a milestone when the defect belongs to a block. A bug sized XL is not filed: propose a split into Issues of L or smaller, as `factory:plan` does.
 - Bug "done when" is checkable, e.g. "the smoke check is green twice in a row".
 - Experiment without a metric: take the Ambiguous route and ask which metric it should move.
 - Gated example: "use ElevenLabs for a nicer voice" conflicts with the settled TTS (Voxtral TTS 3) and is another, paid vendor. Ask: plan it with an ADR, park it in PHASE_2.md, or drop it.

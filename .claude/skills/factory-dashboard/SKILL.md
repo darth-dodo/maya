@@ -28,7 +28,7 @@ A failed command does not stop the page: its panel says what failed and the comm
 ## 2. Page order
 
 1. **Needs Abhishek**: green PRs to merge (not draft, at least one check, every check's `conclusion` or `state` is `SUCCESS`, `SKIPPED` or `NEUTRAL`), decisions waiting (Issues labelled `needs-info`, `ready-for-human`, or `paused` with open questions in the handoff), missing secrets (the secret's name and the run link, never a value), the latest smoke problem if any (run link and HTTP code only).
-2. **Flow**: open PRs with CI state, open Issues by milestone and label, board Status and Estimate counts, merged PRs per day (last 7 days), deploy lag (live SHA, `origin/main`, commits between), running builders.
+2. **Flow**: open PRs with CI state, open Issues by milestone and label, board Status and Estimate counts (sizes XS to XL; any item still on an old hour value is counted under that value), merged PRs per day (last 7 days), deploy lag (live SHA, `origin/main`, commits between), running builders.
 3. **Quality**: the flywheel trend, last 5 vs previous 5, with the direction of each metric.
 4. **Experiment**: the running row and its target.
 

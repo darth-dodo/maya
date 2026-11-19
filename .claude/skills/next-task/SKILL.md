@@ -10,7 +10,7 @@ description: Use at the start of a session, or after finishing a task, to decide
 - `git status --short`, `git branch --show-current`, `git worktree list`
 - `gh pr list --state open --json number,title,headRefName,statusCheckRollup,reviewDecision`
 - `gh pr list --state merged --limit 5 --json number,title,closingIssuesReferences`
-- `gh issue list --state open --json number,title,labels`
+- `gh issue list --state open --json number,title,labels,body` (size from the body's "## Estimate" section)
 
 ## 2. Rank (first match wins)
 
@@ -19,10 +19,10 @@ description: Use at the start of a session, or after finishing a task, to decide
 3. **Uncommitted work** in any worktree: finish it or ask.
 4. **Red PRs:** fix CI first (use superpowers:systematic-debugging).
 5. **In progress:** an Issue labelled `paused` (run `factory:resume`), or with an open branch and no PR.
-6. **New work:** the lowest numbered open Issue that has a "done when". No "done when" means ask, do not guess.
+6. **New work:** the lowest numbered open Issue that has a "done when" and a size of L or smaller. No "done when" means ask, do not guess. Sized XL: never start it; ask for a split into Issues of L or smaller first.
 
 Limits: max 2 builders in parallel, one block at a time, stop at "done when".
 
 ## 3. Report
 
-One recommendation with the reason, then the ranked list in one line per item. For the visual version (what needs Abhishek, flow, quality), run `factory:dashboard`.
+One recommendation with the reason, then the ranked list in one line per item, each with its size (for example "#82 S"). For the visual version (what needs Abhishek, flow, quality), run `factory:dashboard`.
