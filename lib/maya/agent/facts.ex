@@ -161,6 +161,67 @@ defmodule Maya.Agent.Facts do
     end
   end
 
+  @doc """
+  The trainers on a listed location inside the horizon, each with its first party (species and
+  levels). Unlisted and past the horizon are both `past_horizon`, as for `search_guide/3`; a
+  trainer row past the horizon (a gym in a city inside it) is left out.
+  """
+  def find_trainer(location, trainers, progress) do
+    if Horizon.allowed?(location, progress) do
+      {:ok,
+       %{
+         place: location.name,
+         trainers:
+           for(t <- trainers, Horizon.allowed?(t, progress), do: Map.take(t, [:name, :pokemon]))
+       }}
+    else
+      {:error, :past_horizon}
+    end
+  end
+
+  @doc """
+  Where to get an item inside the horizon, from its `item_places` rows: each place and how
+  (`ball`, `hidden`, `mart` or `gift`). A known item with no place inside is `past_horizon`;
+  `nil` (not an item name) is `not_found`.
+  """
+  def find_item(nil, _rows, _progress), do: {:error, :not_found}
+
+  def find_item(item, rows, progress) do
+    case for(
+           r <- rows,
+           Horizon.allowed?(r, progress),
+           uniq: true,
+           do: Map.take(r, [:location, :how])
+         ) do
+      [] -> {:error, :past_horizon}
+      places -> {:ok, %{item: item, places: places}}
+    end
+  end
+
+  @doc """
+  A spoken item name as one of `names`, or nil: any case, accents and punctuation dropped
+  (`Poké Ball` is `poke ball`). A TM or HM matches by number or move (`HM05`, `Flash`).
+  """
+  def item_name(spoken, names) do
+    wanted =
+      spoken
+      |> String.downcase()
+      |> :unicode.characters_to_nfd_binary()
+      |> String.replace(~r/[\p{Mn}'’]/u, "")
+      |> String.replace(~r/[^a-z0-9]+/, " ")
+      |> String.trim()
+      |> String.replace(~r/^the /, "")
+
+    Enum.find(names, &(&1 == wanted)) || Enum.find(names, &machine?(&1, wanted))
+  end
+
+  defp machine?(name, wanted) do
+    case Regex.run(~r/^([th]m\d\d) (.+)$/, name) do
+      [_, number, move] -> wanted in [number, move]
+      nil -> false
+    end
+  end
+
   @doc "A spoken Pokémon name as a PokeAPI species name (`Mr Mime` is `mr-mime`)."
   def species_name(name),
     do: name |> String.trim() |> String.downcase() |> String.replace(~r/\s+/, "-")

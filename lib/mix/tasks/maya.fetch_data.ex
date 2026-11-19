@@ -5,7 +5,14 @@ defmodule Mix.Tasks.Maya.FetchData do
   at a pinned commit, plus the species, types and Emerald level-up learnsets Maya needs from
   PokeAPI as of Generation III, and writes compact JSON into `priv/data/`. Commit the output.
 
-  `priv/data/locations.json` is hand-written and never touched here.
+  It also reads, for each listed location and each hand-written interior
+  (`priv/data/interiors.json`), the map's `scripts.inc` and `map.json`, and writes the
+  trainers battled there (`trainer_places.json`), the item balls, hidden items and first
+  mart list (`item_places.json`) and every item name (`items.json`). Each gift in
+  `priv/data/gifts.json` must be a `giveitem` in its map's script, or the fetch fails.
+
+  `priv/data/locations.json`, `interiors.json` and `gifts.json` are hand-written and never
+  touched here.
   """
   use Mix.Task
 
@@ -13,7 +20,8 @@ defmodule Mix.Tasks.Maya.FetchData do
 
   # master on 2026-11-14; change only on purpose and review the data diff.
   @pokeemerald_sha "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881"
-  @pokeemerald "https://raw.githubusercontent.com/pret/pokeemerald/#{@pokeemerald_sha}/src/data/"
+  @pokeemerald_root "https://raw.githubusercontent.com/pret/pokeemerald/#{@pokeemerald_sha}/"
+  @pokeemerald @pokeemerald_root <> "src/data/"
   @pokeapi "https://pokeapi.co/api/v2/"
   @types ~w(normal fighting flying poison ground rock bug ghost steel fire water grass electric psychic ice dragon dark)
 
@@ -69,7 +77,75 @@ defmodule Mix.Tasks.Maya.FetchData do
     write!(dir, "species.json", species)
     write!(dir, "type_matchups.json", matchups)
     write!(dir, "learnsets.json", learnsets)
+    places!(dir)
     Mix.shell().info("pokeemerald #{@pokeemerald_sha}: wrote #{dir}")
+  end
+
+  defp places!(dir) do
+    hand = &(dir |> Path.join(&1) |> File.read!() |> Jason.decode!())
+    locations = hand.("locations.json")
+    city_map = Map.new(locations, &{&1["name"], &1["map"]})
+
+    constants =
+      Parse.item_constants(
+        get!(@pokeemerald_root <> "include/constants/items.h"),
+        get!(@pokeemerald_root <> "include/constants/tms_hms.h")
+      )
+
+    item = fn c -> constants[c] || Mix.raise("unknown item #{c}") end
+    trainers = get!(@pokeemerald <> "trainers.h") |> Parse.trainer_constants()
+
+    balls =
+      get!(@pokeemerald_root <> "data/scripts/item_ball_scripts.inc") |> Parse.ball_scripts()
+
+    maps =
+      Enum.map(locations, &{&1["map"], Parse.map_dir(&1["map"])}) ++
+        Enum.map(
+          hand.("interiors.json"),
+          &{&1["map"], Parse.map_dir(&1["map"], city_map[&1["city"]])}
+        )
+
+    fetched = pmap(maps, fn {map, map_dir} -> {map, map!(map, map_dir)} end)
+
+    trainer_places =
+      for {map, {scripts, _}} <- fetched, c <- Parse.trainer_battles(scripts) do
+        {label, name} = trainers[c] || Mix.raise("unknown trainer #{c} on #{map}")
+        %{"map" => map, "label" => label, "name" => name}
+      end
+
+    item_places =
+      for {map, {scripts, json}} <- fetched,
+          {c, how} <-
+            Parse.map_items(json, balls) ++ Enum.map(Parse.pokemart(scripts), &{&1, "mart"}),
+          uniq: true,
+          do: %{"item" => item.(c), "map" => map, "how" => how}
+
+    for gift <- hand.("gifts.json") do
+      {scripts, _} = map!(gift["map"], Parse.map_dir(gift["map"], city_map[gift["city"]]))
+      names = for {c, name} <- constants, name == gift["item"], do: c
+
+      unless Parse.gives?(scripts, names),
+        do: Mix.raise("no giveitem for #{gift["item"]} in #{gift["map"]}")
+    end
+
+    write!(dir, "trainer_places.json", trainer_places)
+    write!(dir, "item_places.json", item_places)
+    write!(dir, "items.json", constants |> Map.values() |> Enum.uniq() |> Enum.sort())
+  end
+
+  # A map's scripts and decoded map.json; fails loudly on a missing map or a wrong directory.
+  defp map!(map, map_dir) do
+    base = @pokeemerald_root <> "data/maps/" <> map_dir <> "/"
+    json = (base <> "map.json") |> get_ok!() |> Jason.decode!()
+    if json["id"] != map, do: Mix.raise("#{map_dir} is #{json["id"]}, not #{map}")
+    {get_ok!(base <> "scripts.inc"), json}
+  end
+
+  defp get_ok!(url) do
+    case Req.get!(url, retry: :transient, receive_timeout: 30_000) do
+      %{status: 200, body: body} -> body
+      %{status: status} -> Mix.raise("#{status} for #{url}")
+    end
   end
 
   defp default_pokemon(name) do

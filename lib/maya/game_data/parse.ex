@@ -170,6 +170,121 @@ defmodule Maya.GameData.Parse do
   defp generation(%{"generation" => %{"name" => "generation-" <> roman}}),
     do: Enum.find_index(@generations, &(&1 == roman)) + 1
 
+  @doc """
+  A map constant as its `data/maps/` directory: `MAP_ROUTE102` is `Route102`,
+  `MAP_GRANITE_CAVE_1F` is `GraniteCave_1F`, and an interior of `city` (a map constant)
+  is the city's directory, `_`, then the rest (`RustboroCity_Mart`).
+  """
+  def map_dir(map, city \\ nil)
+
+  def map_dir(map, city) when city in [nil, map],
+    do: map |> String.replace_prefix("MAP_", "") |> camel()
+
+  def map_dir(map, city),
+    do: map_dir(city) <> "_" <> (map |> String.replace_prefix(city <> "_", "") |> camel())
+
+  defp camel(name) do
+    name
+    |> String.split("_")
+    |> Enum.map_join(fn
+      <<digit, _::binary>> = word when digit in ?0..?9 -> "_" <> word
+      word -> String.capitalize(word)
+    end)
+  end
+
+  @doc "Trainer constants from `src/data/trainers.h` to `{party label, spoken name}`."
+  def trainer_constants(text) do
+    for chunk <- text |> String.split("[TRAINER_") |> tl(),
+        [_, id] <- [Regex.run(~r/^(\w+)\] =/, chunk)],
+        [_, name] <- [Regex.run(~r/\.trainerName = _\("([^"]*)"\)/, chunk)],
+        [_, label] <- [Regex.run(~r/\.party = \w+\(sParty_(\w+)\)/, chunk)],
+        into: %{},
+        do:
+          {"TRAINER_" <> id,
+           {label, name |> String.split(" ") |> Enum.map_join(" ", &String.capitalize/1)}}
+  end
+
+  @doc """
+  The trainer constants a map's `scripts.inc` battles, in file order. Map scripts name only a
+  trainer's first party (`TRAINER_CALVIN_1`); rematches come from the Match Call table.
+  """
+  def trainer_battles(scripts) do
+    ~r/^\s*trainerbattle_\w+ (TRAINER_\w+)/m
+    |> Regex.scan(scripts, capture: :all_but_first)
+    |> List.flatten()
+    |> Enum.uniq()
+  end
+
+  @doc """
+  The item constants of a map's first `pokemart` list. Later lists open behind story or badge
+  flags (`OldaleTown_Mart_Pokemart_Expanded`), so they are left out (fail closed).
+  """
+  def pokemart(scripts) do
+    case Regex.run(~r/^\s*pokemart (\w+)/m, scripts) do
+      [_, label] ->
+        [_, body] = Regex.run(~r/^#{label}:\s*\n(.*?)pokemartlistend/ms, scripts)
+        ~r/\.2byte (ITEM_\w+)/ |> Regex.scan(body, capture: :all_but_first) |> List.flatten()
+
+      nil ->
+        []
+    end
+  end
+
+  @doc "Item ball scripts from `data/scripts/item_ball_scripts.inc`, as `%{script => item}`."
+  def ball_scripts(text) do
+    for [script, item] <-
+          Regex.scan(~r/^(\w+)::\s*\n\s*finditem (ITEM_\w+)/m, text, capture: :all_but_first),
+        into: %{},
+        do: {script, item}
+  end
+
+  @doc "A decoded `map.json`'s items as `{item constant, how}`: `ball` object events, `hidden` bg events."
+  def map_items(map, balls) do
+    for(%{"script" => s} <- map["object_events"] || [], item = balls[s], do: {item, "ball"}) ++
+      for %{"type" => "hidden_item", "item" => item} <- map["bg_events"] || [],
+          do: {item, "hidden"}
+  end
+
+  @doc """
+  Item constants to Maya's item names from `include/constants/items.h` and
+  `include/constants/tms_hms.h`: `ITEM_MACH_BIKE` is `mach bike`, and both `ITEM_HM05` and
+  the script alias `ITEM_HM_FLASH` are `hm05 flash`. Unnamed slots (`ITEM_034`) are left out.
+  """
+  def item_constants(items_h, tms_hms_h) do
+    [_, enum] = Regex.run(~r/enum \{(.*?)\};/s, items_h)
+
+    plain =
+      for [c] <- Regex.scan(~r/^\s*(ITEM_[A-Z]\w*),/m, enum, capture: :all_but_first),
+          c != "ITEM_NONE",
+          into: %{},
+          do:
+            {c,
+             c
+             |> String.replace_prefix("ITEM_", "")
+             |> String.downcase()
+             |> String.replace("_", " ")}
+
+    machines =
+      for kind <- ["TM", "HM"],
+          {move, i} <- tms_hms_h |> machine_moves(kind) |> Enum.with_index(1),
+          number = kind <> String.pad_leading("#{i}", 2, "0"),
+          name = String.downcase("#{number} #{String.replace(move, "_", " ")}"),
+          constant <- ["ITEM_" <> number, "ITEM_#{kind}_#{move}"],
+          into: %{},
+          do: {constant, name}
+
+    Map.merge(plain, machines)
+  end
+
+  defp machine_moves(text, kind) do
+    [_, body] = Regex.run(~r/#define FOREACH_#{kind}\(F\)(.*?)\n\s*\n/s, text)
+    ~r/F\((\w+)\)/ |> Regex.scan(body, capture: :all_but_first) |> List.flatten()
+  end
+
+  @doc "Whether a map's `scripts.inc` gives one of the item constants with `giveitem`."
+  def gives?(scripts, constants),
+    do: Enum.any?(constants, &Regex.match?(~r/giveitem #{&1}\b/, scripts))
+
   @doc "A PokeAPI `evolution-chain` reply as `%{species => evolutions}`, Generation III species only."
   def evolutions(%{"chain" => chain}), do: chain |> walk() |> Map.new()
 

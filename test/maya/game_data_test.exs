@@ -4,7 +4,7 @@ defmodule Maya.GameDataTest do
   alias Maya.GameData
   alias Maya.Horizon
 
-  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets walkthrough_notes progress)
+  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets walkthrough_notes items trainer_places item_places progress)
 
   setup do
     :ok = GameData.import!()
@@ -178,6 +178,76 @@ defmodule Maya.GameDataTest do
     assert row_counts() == counts
     assert %{badges: [1]} = GameData.progress("guest-a")
     assert %{badge: 2, leader: "Brawly"} = Horizon.next_gym(GameData.progress("guest-a"))
+  end
+
+  # A copy of priv/ with one data file replaced, for the fail-closed import checks.
+  defp priv_with(file, json) do
+    priv = Path.join(System.tmp_dir!(), "maya-places-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(Path.join(priv, "data"))
+    on_exit(fn -> File.rm_rf!(priv) end)
+    for f <- File.ls!("priv/data"), do: File.cp!("priv/data/#{f}", "#{priv}/data/#{f}")
+    File.write!("#{priv}/data/#{file}", json)
+    priv
+  end
+
+  test "an interior that needs fewer badges than its city fails the import and changes nothing" do
+    interiors =
+      "priv/data/interiors.json"
+      |> File.read!()
+      |> String.replace(
+        ~s({"map":"MAP_MAUVILLE_CITY_MART","city":"Mauville City","badges_required":2}),
+        ~s({"map":"MAP_MAUVILLE_CITY_MART","city":"Mauville City","badges_required":1})
+      )
+
+    assert interiors =~ ~s("MAP_MAUVILLE_CITY_MART","city":"Mauville City","badges_required":1)
+    counts = row_counts()
+
+    assert_raise ArgumentError, ~r/MAP_MAUVILLE_CITY_MART/, fn ->
+      GameData.import!(priv_with("interiors.json", interiors))
+    end
+
+    assert row_counts() == counts
+  end
+
+  test "a gift that needs fewer badges than its city fails the import" do
+    gifts =
+      ~s([{"item":"mach bike","map":"MAP_MAUVILLE_CITY_BIKE_SHOP","city":"Mauville City","badges_required":1,"how":"gift"}])
+
+    assert_raise ArgumentError, ~r/MAP_MAUVILLE_CITY_BIKE_SHOP/, fn ->
+      GameData.import!(priv_with("gifts.json", gifts))
+    end
+  end
+
+  test "interiors are hand-listed, never inherited, and each one was fetched" do
+    data = fn f -> "priv/data/#{f}.json" |> File.read!() |> Jason.decode!() end
+    interiors = data.("interiors")
+    listed = MapSet.new(data.("locations"), & &1["map"])
+    known = MapSet.union(listed, MapSet.new(interiors, & &1["map"]))
+
+    refute Enum.any?(interiors, &String.starts_with?(&1["map"], "MAP_PETALBURG_CITY_GYM"))
+
+    rows =
+      Repo.all(from t in "trainer_places", select: t.map) ++
+        Repo.all(from i in "item_places", where: i.how != "gift", select: i.map)
+
+    assert Enum.all?(rows, &MapSet.member?(known, &1))
+    # A mart sells something and a gym has trainers, so every interior map was fetched.
+    assert Enum.all?(interiors, &(&1["map"] in rows))
+  end
+
+  test "trainer and item rows keep their own map's badges" do
+    assert Repo.all(
+             from t in "trainer_places",
+               where: t.trainer_label == "Wattson1",
+               select: {t.location, t.badges_required}
+           ) == [{"Mauville City", 2}]
+
+    assert Repo.all(
+             from i in "item_places",
+               where: i.map == "MAP_SLATEPORT_CITY_MART",
+               select: i.badges_required,
+               distinct: true
+           ) == [1]
   end
 
   defp row_counts, do: Map.new(@tables, &{&1, Repo.aggregate(&1, :count)})
