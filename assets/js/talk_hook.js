@@ -11,6 +11,8 @@ const STT_RATE = 16000
 const STALL_MS = 2500
 const STALL_POLL_MS = 500
 const AFTER_TURN_KEY = "maya:after_turn_session"
+const SPEAKING_KEY = "maya:speaking_session"
+const MIC_AFTER_RELEASE_KEY = "maya:mic_after_release"
 // 200 ms per chunk: the spec allows 100 to 250 ms (1600 to 4000 samples); only the last is shorter.
 const CHUNK_SAMPLES = 3200
 // Warm mic (#94): audio kept from just before a press, and how long the mic stays open once
@@ -140,10 +142,12 @@ export function setAudioSession(nav, type) {
 // The session type for the moment (#96). An open mic keeps "play-and-record": any other type
 // but "auto" stops capture (W3C Audio Session, the type attribute). With the mic closed while
 // Maya talks, "playback", which the iOS silent switch does not mute (cantastorie ADR-010). After
-// the turn "auto" (#145), or the type the music spike picked (?audio_debug=1).
-export function audioSessionType(micOpen, state, afterTurn) {
+// the turn "auto" (#145), or the type the music spike picked (?audio_debug=1). The spike can
+// also pick the type while Maya talks (#197), from the release on: a mic closed after the
+// post-roll must not flap to the after-turn type during the STT gap.
+export function audioSessionType(micOpen, state, afterTurn, duringSpeech = "playback") {
   if (micOpen) return "play-and-record"
-  return state === "speaking" || state === "waiting" ? "playback" : afterTurn
+  return ["uploading", "waiting", "speaking"].includes(state) ? duringSpeech : afterTurn
 }
 
 // Resumes a context in any state but "running" or "closed", Safari's "interrupted" (calls, Siri,
@@ -169,8 +173,22 @@ export function keepChunk(state, currentTurn, chunkTurn) {
 
 // Music spike (2026-11-18): the session type set after a turn, picked on the debug readout.
 export const AFTER_TURN_TYPES = ["auto", "transient", "ambient"]
+// Spike #197: the type while Maya talks with the mic closed, and whether the mic stays warm
+// after a release or closes right after the post-roll. The first of each is current behaviour.
+export const SPEAKING_TYPES = ["play-and-record", "ambient", "playback"]
+export const MIC_AFTER_RELEASE = ["warm", "close"]
+
+// A stored debug pick if it is one of the options, else the first.
+export function debugChoice(options, stored) {
+  return options.includes(stored) ? stored : options[0]
+}
+
 export function afterTurnType(stored) {
-  return AFTER_TURN_TYPES.includes(stored) ? stored : "auto"
+  return debugChoice(AFTER_TURN_TYPES, stored)
+}
+
+export function debugStatus(sessionType, contextState, micOpen) {
+  return `session: ${sessionType || "none"}, context: ${contextState || "none"}, mic: ${micOpen ? "open" : "closed"}`
 }
 
 export function audioDebugOn(search) {
@@ -223,6 +241,8 @@ export const TalkHook = {
     document.addEventListener("visibilitychange", this.onVisibility)
 
     this.afterTurn = "auto"
+    this.duringSpeech = "playback"
+    this.micAfterRelease = "warm"
     if (audioDebugOn(window.location.search)) this.mountAudioDebug()
 
     this.handleEvent("heard", () => {
@@ -250,32 +270,45 @@ export const TalkHook = {
     this.ctx?.close()
   },
 
-  // Music spike (?audio_debug=1): whether navigator.audioSession exists, its type and the
-  // context's state, and a picker for the after-turn type, kept for the tab in sessionStorage.
-  // Fixed on the body, outside the LiveView container: no patch touches it, no layout moves.
+  // Music spikes (?audio_debug=1, #181, #197): a status line (session type, context state, mic)
+  // and pickers for the session while Maya speaks, the mic after release and the session after
+  // the turn, kept for the tab in sessionStorage. Fixed on the body, outside the LiveView
+  // container: no patch touches it, no layout moves under a finger (#74).
   mountAudioDebug() {
     const store = safeStorage(window, "sessionStorage")
     this.afterTurn = afterTurnType(store.getItem(AFTER_TURN_KEY))
+    // The debug default is play-and-record, current behaviour: a warm mic is open while Maya speaks.
+    this.duringSpeech = debugChoice(SPEAKING_TYPES, store.getItem(SPEAKING_KEY))
+    this.micAfterRelease = debugChoice(MIC_AFTER_RELEASE, store.getItem(MIC_AFTER_RELEASE_KEY))
     const box = (this.debugBox = document.createElement("div"))
     box.id = "audio-debug"
     box.style.cssText = "position:fixed;top:4px;left:4px;z-index:100;padding:4px 6px;font:12px monospace;" +
       "background:var(--color-base-100,#fff);color:var(--color-base-content,#000);border:1px solid currentColor"
     const readout = document.createElement("div")
-    const select = document.createElement("select")
-    select.id = "audio-debug-after-turn"
-    AFTER_TURN_TYPES.forEach(t => select.add(new Option(t, t, false, t === this.afterTurn)))
-    select.onchange = () => {
-      this.afterTurn = afterTurnType(select.value)
-      store.setItem(AFTER_TURN_KEY, this.afterTurn)
-      this.syncSession()
+    readout.id = "audio-debug-status"
+    const picker = (id, text, options, key, field) => {
+      const select = document.createElement("select")
+      select.id = id
+      options.forEach(t => select.add(new Option(t, t, false, t === this[field])))
+      select.onchange = () => {
+        this[field] = debugChoice(options, select.value)
+        store.setItem(key, this[field])
+        this.syncSession()
+      }
+      const label = document.createElement("label")
+      label.style.display = "block"
+      label.append(text, select)
+      return label
     }
-    const label = document.createElement("label")
-    label.append("after turn: ", select)
-    box.append(readout, label)
+    box.append(readout,
+      picker("audio-debug-speaking", "while Maya speaks: ", SPEAKING_TYPES, SPEAKING_KEY, "duringSpeech"),
+      picker("audio-debug-mic", "mic after release: ", MIC_AFTER_RELEASE, MIC_AFTER_RELEASE_KEY, "micAfterRelease"),
+      picker("audio-debug-after-turn", "after turn: ", AFTER_TURN_TYPES, AFTER_TURN_KEY, "afterTurn"))
     document.body.append(box)
+    // Polled (audioSession has no change event to rely on), written only when the text changes.
     const show = () => {
-      const s = navigator.audioSession
-      readout.textContent = `audioSession: ${s ? s.type : "none"}, context: ${this.ctx?.state || "none"}`
+      const text = debugStatus(navigator.audioSession?.type, this.ctx?.state, !!this.mic)
+      if (readout.textContent !== text) readout.textContent = text
     }
     show()
     this.debugTimer = setInterval(show, 500)
@@ -284,7 +317,8 @@ export const TalkHook = {
   // The audio session follows the mic and the button (audioSessionType); a press opening a mic
   // counts as open, so nothing stops the capture it is about to get.
   syncSession() {
-    setAudioSession(navigator, audioSessionType(!!this.mic || !!this.pressed, this.state, this.afterTurn))
+    setAudioSession(navigator,
+      audioSessionType(!!this.mic || !!this.pressed, this.state, this.afterTurn, this.duringSpeech))
   },
 
   unlistenPointerEnd() {
@@ -464,6 +498,8 @@ export const TalkHook = {
     this.recording = false
     const rest = this.pending
     this.pending = new Float32Array(0)
+    // Spike #197 "close": the mic goes before Maya answers. dropMic only suspends an idle context.
+    if (this.micAfterRelease === "close") this.dropMic()
     // Voice went down during the tail: the turn is over, so cancel the hold instead of asking.
     if (this.state !== "uploading") return this.pushEvent("barge_in", {})
     if (rest.length > 0) this.pushEvent("audio_chunk", {audio: int16Base64(rest)})
