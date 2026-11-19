@@ -5,7 +5,7 @@ description: Use when Abhishek asks for a recap, status or digest of a Maya sess
 
 # factory:recap
 
-Flywheel step 3 (FACTORY.md "Flywheel"). Read only: never write a file, comment, label or commit. Argument: a window (default today, local time). For the visual version on one page, run `factory:dashboard`.
+Flywheel step 4 (FACTORY.md "Flywheel"). Read only: never write a file, comment, label or commit. Argument: a window (default today, local time). For the visual version on one page, run `factory:dashboard`.
 
 ## Gather
 
