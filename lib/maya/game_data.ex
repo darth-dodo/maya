@@ -41,7 +41,8 @@ defmodule Maya.GameData do
       gifts: data.("gifts"),
       items: data.("items"),
       trainer_places: data.("trainer_places"),
-      item_places: data.("item_places")
+      item_places: data.("item_places"),
+      access: data.("access")
     }
 
     case Places.problems(places) do
@@ -127,8 +128,8 @@ defmodule Maya.GameData do
   end
 
   @doc """
-  The trainers told under a listed location, in file order, each with `badges_required` and
-  its first party (`species`, `level`) in slot order.
+  The trainers told under a listed location, in file order, each with its party `label`,
+  `badges_required` and its first party (`species`, `level`) in slot order.
   """
   def trainers_at(location) do
     trainers =
@@ -150,7 +151,7 @@ defmodule Maya.GameData do
       )
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
 
-    for t <- trainers, do: t |> Map.delete(:label) |> Map.put(:pokemon, parties[t.label] || [])
+    for t <- trainers, do: Map.put(t, :pokemon, parties[t.label] || [])
   end
 
   @doc "Every item name (`mach bike`, `hm05 flash`)."

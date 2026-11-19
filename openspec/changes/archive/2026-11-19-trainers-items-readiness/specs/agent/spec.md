@@ -57,6 +57,18 @@ The agent SHALL offer a `team_check` tool with no arguments. It SHALL return `{:
 - **WHEN** Progress has 0 badges and an empty Team
 - **THEN** the Fact has no Team members and `ready` false
 
+### Requirement: The rival's party by starter
+`find_trainer` SHALL return the rival once, with only the party for the player's starter: the one starter line (Treecko, Torchic or Mudkip, or an evolution) in the Team or PC box. May and Brendan SHALL be one entry when their parties match. With no starter line or more than one, it SHALL return one line saying the rival's team depends on the starter, and no rival party.
+
+#### Scenario: Mudkip on the Team
+- **WHEN** Progress has 0 badges and a Team of Mudkip, and `find_trainer` is called for "Route 103"
+- **THEN** the Fact has one rival entry, "May or Brendan", with Treecko at level 5
+- **AND** it names no Torchic and no other trainer
+
+#### Scenario: Starter unknown
+- **WHEN** neither the Team nor the PC box holds a starter line
+- **THEN** the rival entry is one line saying the team depends on the starter, with no party
+
 ### Requirement: Trainer, item and readiness rules in the system prompt
 The system prompt SHALL tell the model to call `find_trainer` for trainers on a place, `find_item` for where to get an item, and `team_check` when the player asks whether the Team is ready, and to state only what those tools return.
 

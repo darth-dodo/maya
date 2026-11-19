@@ -23,8 +23,25 @@ defmodule Maya.GameData.PlacesTest do
     items: ["hm03 surf", "great ball"],
     trainers: [%{"label" => "Wattson1"}],
     trainer_places: [%{"map" => "MAP_MAUVILLE_CITY", "label" => "Wattson1", "name" => "Wattson"}],
-    item_places: [%{"item" => "great ball", "map" => "MAP_MAUVILLE_CITY_MART", "how" => "mart"}]
+    item_places: [%{"item" => "great ball", "map" => "MAP_MAUVILLE_CITY_MART", "how" => "mart"}],
+    access: %{"items" => [], "trainers" => []}
   }
+
+  test "an item or trainer behind an HM takes that HM's badge; an unmatched row is a problem" do
+    ball = %{"item" => "max revive", "map" => "MAP_PETALBURG_CITY", "how" => "ball"}
+    item = Map.put(ball, "badges_required", 5)
+    trainer = %{"label" => "Wattson1", "map" => "MAP_MAUVILLE_CITY", "badges_required" => 5}
+    data = %{@clean | item_places: [ball], access: %{"items" => [item], "trainers" => [trainer]}}
+
+    assert Places.problems(data) == []
+    assert [%{"item" => "max revive", "badges_required" => 5} | _] = Places.item_rows(data)
+    assert [%{"trainer_label" => "Wattson1", "badges_required" => 5}] = Places.trainer_rows(data)
+
+    bad = %{"items" => [%{item | "item" => "ether"}], "trainers" => []}
+
+    assert Places.problems(%{data | access: bad}) ==
+             [{"MAP_PETALBURG_CITY", :unknown_access}]
+  end
 
   test "clean data has no problems, and rows carry their own map's or gift's badges" do
     assert Places.problems(@clean) == []

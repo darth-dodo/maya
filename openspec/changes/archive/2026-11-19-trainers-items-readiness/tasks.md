@@ -15,14 +15,16 @@ Two build PRs, after `guide-and-humor` part A has merged (locations through Mauv
 
 ## 3. team_check (part B)
 
-- [ ] 3.1 `team_check`: reuse the `gym_counter` ace and matchup code, add level gap and `ready`. Verify: Mudkip 5, Mudkip 13, empty Team, Wattson at 2 badges and 8 badges tests.
+- [x] 3.1 `team_check`: reuse the `gym_counter` ace and matchup code, add level gap and `ready`. Verify: Mudkip 5, Mudkip 13, empty Team, Wattson at 2 badges and 8 badges tests.
+- [x] 3.2 Part A review F5: one rival entry with the party for the player's starter, or one line when it is unknown. Verify: Route 103 Facts and Tools tests.
+- [x] 3.3 Part A review F6: `access.json` from a walk over each map's layout raises balls, hidden items and trainers behind Cut, Surf or a later route. Verify: Star Piece, Iron, X Accuracy and east Route 103 tests, and the unknown access row check.
 
 ## 4. Prompt, probes, latency, docs (each part, for its tools)
 
-- [ ] 4.1 Prompt lines for the part's tools. Verify: prompt test.
-- [ ] 4.2 Add the part's cases at 0, 1 and 2 badges to `test/fixtures/spoiler_probes.json`, each with forbidden names for its badge count. Verify: `mix test --only spoiler_gate`.
+- [x] 4.1 Prompt lines for the part's tools. Verify: prompt test.
+- [x] 4.2 Add the part's cases at 0, 1 and 2 badges to `test/fixtures/spoiler_probes.json`, each with forbidden names for its badge count. Verify: `mix test --only spoiler_gate`.
 - [ ] 4.3 Agent-stage p50 and p95 before and after in each PR. Verify: numbers in the PR body.
-- [ ] 4.4 ARCHITECTURE.md 3 and 4 match, changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
+- [x] 4.4 ARCHITECTURE.md 3 and 4 match, changelog fragment per PR. Verify: `openspec validate --all --strict`, `mix precommit` and `mix credo` green.
 
 ## Workflow follow-up
 
