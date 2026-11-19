@@ -152,7 +152,7 @@ The fetch task SHALL read, at the pinned pokeemerald commit, only the maps of li
 - **THEN** every map in them was fetched without error
 
 ### Requirement: Places reachable only with an HM
-The hand-written `access.json` SHALL list each ball, hidden item and trainer on a listed map that the player can reach only with an HM or from a later map, with a `badges_required` that is the later of its map's and the badge that lets the HM be used (Cut 1, Surf 5). The import SHALL give that row this value, and SHALL fail on an access row that matches no fetched place.
+`access.json`, written by `mix maya.fetch_access` from a walk over each listed map's layout (ledges one way), SHALL list each ball, hidden item and trainer on a listed map that the player can reach only with an HM or from a later map, with a `badges_required` that is the later of its map's and the badge that lets the HM be used (Cut 1, Surf 5). The import SHALL give that row this value, and SHALL fail on an access row that matches no fetched place.
 
 #### Scenario: Items behind Surf
 - **WHEN** Progress has badges 1 and 2 and `find_item` is called for "Star Piece" (a ball on a Route 108 island)

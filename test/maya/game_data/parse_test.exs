@@ -464,4 +464,50 @@ defmodule Maya.GameData.ParseTest do
       refute Parse.gives?("\tgiveitem ITEM_HM_FLASHY\n", ["ITEM_HM_FLASH"])
     end
   end
+
+  describe "map layouts" do
+    test "metatile behaviors are the enum names by value" do
+      text =
+        "#define X\n\nenum {\n    MB_NORMAL,\n    MB_SECRET_BASE_WALL,\n    MB_TALL_GRASS,\n};\n"
+
+      assert Parse.behaviors(text) == {"MB_NORMAL", "MB_SECRET_BASE_WALL", "MB_TALL_GRASS"}
+
+      assert_raise ArgumentError, fn ->
+        Parse.behaviors("enum {\n    MB_NORMAL,\n    MB_TALL_GRASS = 0x10,\n};\n")
+      end
+    end
+
+    test "metatile attribute files are keyed by tileset" do
+      text = """
+      const u16 gMetatiles_General[] = INCBIN_U16("data/tilesets/primary/general/metatiles.bin");
+      const u16 gMetatileAttributes_General[] = INCBIN_U16("data/tilesets/primary/general/metatile_attributes.bin");
+      """
+
+      assert Parse.metatile_attributes(text) == %{
+               "gTileset_General" => "data/tilesets/primary/general/metatile_attributes.bin"
+             }
+    end
+
+    test "a trainer script label gives its trainer; a script with no battle is left out" do
+      scripts = """
+      Route103_EventScript_Daisy::
+      \ttrainerbattle_single TRAINER_DAISY, Route103_Text_DaisyIntro, Route103_Text_DaisyDefeated
+      \tmsgbox Route103_Text_DaisyPostBattle, MSGBOX_AUTOCLOSE
+      \tend
+
+      Route103_EventScript_Man::
+      \tmsgbox Route103_Text_Man, MSGBOX_NPC
+      \tend
+
+      Route103_EventScript_Amy::
+      \ttrainerbattle_double TRAINER_AMY_AND_LIV_1, Route103_Text_AmyIntro
+      \tend
+      """
+
+      assert Parse.script_trainers(scripts) == %{
+               "Route103_EventScript_Daisy" => "TRAINER_DAISY",
+               "Route103_EventScript_Amy" => "TRAINER_AMY_AND_LIV_1"
+             }
+    end
+  end
 end

@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Maya.FetchData do
   `priv/data/gifts.json` must be a `giveitem` in its map's script, or the fetch fails.
 
   `priv/data/locations.json`, `interiors.json` and `gifts.json` are hand-written and never
-  touched here.
+  touched here. Last it runs `mix maya.fetch_access`, the map walk behind `access.json`.
   """
   use Mix.Task
 
@@ -79,7 +79,11 @@ defmodule Mix.Tasks.Maya.FetchData do
     write!(dir, "learnsets.json", learnsets)
     places!(dir)
     Mix.shell().info("pokeemerald #{@pokeemerald_sha}: wrote #{dir}")
+    Mix.Task.run("maya.fetch_access")
   end
+
+  @doc false
+  def pokeemerald_root, do: @pokeemerald_root
 
   defp places!(dir) do
     hand = &(dir |> Path.join(&1) |> File.read!() |> Jason.decode!())
@@ -134,14 +138,16 @@ defmodule Mix.Tasks.Maya.FetchData do
   end
 
   # A map's scripts and decoded map.json; fails loudly on a missing map or a wrong directory.
-  defp map!(map, map_dir) do
+  @doc false
+  def map!(map, map_dir) do
     base = @pokeemerald_root <> "data/maps/" <> map_dir <> "/"
     json = (base <> "map.json") |> get_ok!() |> Jason.decode!()
     if json["id"] != map, do: Mix.raise("#{map_dir} is #{json["id"]}, not #{map}")
     {get_ok!(base <> "scripts.inc"), json}
   end
 
-  defp get_ok!(url) do
+  @doc false
+  def get_ok!(url) do
     case Req.get!(url, retry: :transient, receive_timeout: 30_000) do
       %{status: 200, body: body} -> body
       %{status: status} -> Mix.raise("#{status} for #{url}")
@@ -156,7 +162,8 @@ defmodule Mix.Tasks.Maya.FetchData do
 
   defp get!(url), do: Req.get!(url, retry: :transient, receive_timeout: 30_000).body
 
-  defp pmap(list, fun) do
+  @doc false
+  def pmap(list, fun) do
     list
     |> Task.async_stream(fun, max_concurrency: 8, timeout: 120_000)
     |> Enum.map(fn {:ok, value} -> value end)
