@@ -225,7 +225,7 @@ The model's final reply SHALL be a JSON object with a non-empty string `answer` 
 - **THEN** the reply is rejected and handled as a rejected Answer
 
 ### Requirement: Honesty check with one corrective request
-Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` ran this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
+Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` confirmed this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
 
 #### Scenario: Claimed refusal without a tool call
 - **WHEN** the Question is "Can you add Ralts to my team?" and the stubbed model replies `{"answer": "I refused Ralts because your team is full.", "used_tool_calls": []}` with no tool call in this turn
@@ -265,6 +265,33 @@ Maya SHALL ignore cited ids that did not run this turn, and reject an Answer tha
 - **WHEN** the Question is "I'm in Slateport", the model replies that Slateport is logged with no tool call, and the corrected reply says it never called the tool
 - **THEN** neither reply is spoken: talk about tools the Question did not ask about is rejected like an unbacked claim
 - **AND** the Answer is "Not sure I got that right, ask me again?"
+
+### Requirement: Only a confirmed write backs a claim
+A write claim SHALL be backed only by a `log_event` or `set_setting` whose tool result this turn was a confirm, read from the tool result and never from the Answer text. A refused or failed write SHALL back no claim, though its refused line may be said. When the turn would end in the fallback line, the refused line SHALL be said (#192).
+
+#### Scenario: Refused set_setting, claimed change
+- **WHEN** `set_setting` humor 150 is refused and the model replies "Humor set to 100." twice
+- **THEN** both replies are rejected and the Answer is "Humor goes from 0 to 100 percent, so it stays as it is."
+
+#### Scenario: Confirmed set_setting
+- **WHEN** `set_setting` humor 100 returns a confirm and the model replies "Humor set to 100."
+- **THEN** the Answer passes with no corrective request
+
+#### Scenario: Refused line said as is
+- **WHEN** `log_event` is refused with "Every badge is already logged." and the Answer says that line
+- **THEN** the Answer passes
+
+### Requirement: Tool calls during a database outage
+When Postgres cannot be reached during a tool call (`find_pokemon`, `gym_counter`, `move_learnset`, `search_guide`, `find_trainer`, `find_item`, `team_check`, `log_event`, `set_setting`), the tool SHALL return the error `notes_down` and never crash. The agent SHALL then end the turn with "I can't reach my notes right now, ask again soon?", after any confirm line, with no further request. The log SHALL name only the tool and the error kind.
+
+#### Scenario: A read during an outage
+- **WHEN** the model calls `find_pokemon` for "Ralts" and the database read fails
+- **THEN** the tool message is `{"error": "notes_down"}`, the Answer is "I can't reach my notes right now, ask again soon?" and no second request is sent
+- **AND** the log says `tool find_pokemon failed` with the error kind
+
+#### Scenario: Every tool during an outage
+- **WHEN** any tool above is called while the database is down
+- **THEN** its tool message is `{"error": "notes_down"}` and Progress is unchanged
 
 ### Requirement: Honesty rule in the system prompt
 The system prompt SHALL tell the model to reply in the Answer schema, to list in `used_tool_calls` the id of every tool call whose result the Answer uses, never to claim a tool call, its result or a refusal unless it happened in this turn, and to say plainly when unsure. It SHALL tell the model never to mention tools, calling or its own steps to the Guest, and to state a correction plainly ("You're in Petalburg City, got it.").

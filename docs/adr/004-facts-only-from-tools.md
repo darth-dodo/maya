@@ -17,7 +17,7 @@ Every Fact in an Answer comes from a tool (`find_pokemon`, `gym_counter`, `searc
 - The agent's system prompt forbids game facts that are not in a tool result for this turn.
 - Tools apply the Spoiler horizon before returning data, so out-of-horizon facts never reach the model.
 - The spoiler probe set and the Sunday test check both rules.
-- The server checks every Answer (#118, structured-answers): the model replies `{answer, used_tool_calls}` through OpenRouter structured output, and `Maya.Agent.Answer` ignores cited ids that did not run and rejects a write claim when no `log_event` or `set_setting` ran this turn (cited or not, #183). One corrective request, then "Not sure I got that right, ask me again?"; a rejected Answer is never spoken. A write that ran is never silent: if the turn would end in that line or an error, its confirm line is said instead.
+- The server checks every Answer (#118, structured-answers): the model replies `{answer, used_tool_calls}` through OpenRouter structured output, and `Maya.Agent.Answer` ignores cited ids that did not run and rejects a write claim when no `log_event` or `set_setting` returned a confirm this turn (cited or not, #183; a refused write backs nothing, #192). One corrective request, then "Not sure I got that right, ask me again?"; a rejected Answer is never spoken. A write that ran is never silent: if the turn would end in that line or an error, its confirm line is said instead.
 
 ## Consequences
 

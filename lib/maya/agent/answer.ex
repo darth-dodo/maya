@@ -4,7 +4,7 @@ defmodule Maya.Agent.Answer do
   `{"answer": string, "used_tool_calls": [tool_call_id]}`, sent as a `response_format` JSON
   schema (https://openrouter.ai/docs/guides/features/structured-outputs) and checked here,
   since some providers treat the schema only as a hint. `check/3` is the honesty check
-  (ADR-004): no write claim without a `log_event` or `set_setting` that ran, no talk about
+  (ADR-004): no write claim without a `log_event` or `set_setting` that confirmed, no talk about
   tools. Cited ids are not checked: claims are checked against `ran` (#183). `spoken/1` keeps 2 to 3 spoken sentences.
   """
   use Ecto.Schema
@@ -114,11 +114,16 @@ defmodule Maya.Agent.Answer do
     end
   end
 
-  # A write claim is backed by any write that ran this turn, cited or not (#183): the model
-  # often leaves `used_tool_calls` empty after log_event, and the write really happened.
+  # A write claim is backed by a write that returned a confirm this turn, cited or not (#183):
+  # the model often leaves `used_tool_calls` empty after log_event. In `ran` a confirmed write
+  # is its tool name; a refused one is `{:refused, line}` and a failed one `{:failed, name}`,
+  # which back nothing (#192). A refused line may still be said ("Every badge is already logged.").
   defp unbacked_claim(text, ran) do
-    if not Enum.any?(Map.values(ran), &(&1 in @write_tools)),
-      do: Enum.find(@claim_words, &said?(text, &1)) || change_claim(text)
+    if not Enum.any?(Map.values(ran), &(&1 in @write_tools)) do
+      refused = for {:refused, line} <- Map.values(ran), do: line
+      text = Enum.reduce(refused, text, &String.replace(&2, &1, ""))
+      Enum.find(@claim_words, &said?(text, &1)) || change_claim(text)
+    end
   end
 
   defp change_claim(text) do
@@ -156,6 +161,6 @@ defmodule Maya.Agent.Answer do
 
   defp why({:unbacked_claim, word}),
     do:
-      "you said \"#{word}\", but no log_event or set_setting ran in this turn. Call log_event, " <>
+      "you said \"#{word}\", but no log_event or set_setting confirmed a change in this turn. Call log_event, " <>
         "or reply again without claiming anything changed."
 end

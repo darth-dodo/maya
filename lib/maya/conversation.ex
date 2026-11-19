@@ -24,7 +24,8 @@ defmodule Maya.Conversation do
   @nothing_heard "(nothing heard)"
   @not_heard "I did not catch that."
   @lost "Lost my train of thought, ask again?"
-  @notes_down "I can't reach my notes right now, ask again soon?"
+  @notes_down Agent.notes_down()
+  @db_errors Maya.Repo.outage_errors()
   @idle :timer.minutes(30)
   # A 250 ms chunk is 8,000 bytes; the whole Question keeps the old 1 MB upload cap.
   @max_chunk 16_384
@@ -531,7 +532,7 @@ defmodule Maya.Conversation do
         value
     end
   rescue
-    e in [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error] ->
+    e in @db_errors ->
       Logger.warning("#{stage} failed: #{db_reason(e)}")
       fallback
   end

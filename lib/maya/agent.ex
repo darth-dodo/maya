@@ -19,6 +19,9 @@ defmodule Maya.Agent do
   @max_rounds 4
   @history 5
   @fallback "Not sure I got that right, ask me again?"
+  @notes_down "I can't reach my notes right now, ask again soon?"
+  @notes_down_error Jason.encode!(%{error: "notes_down"})
+  @db_errors Maya.Repo.outage_errors()
 
   @doc """
   Answers one Question for the guest in `opts[:guest_id]`, against that guest's Progress
@@ -49,6 +52,9 @@ defmodule Maya.Agent do
   defp guest_progress(guest_id) when is_binary(guest_id), do: GameData.progress(guest_id)
   defp guest_progress(_none), do: {:error, :no_progress}
 
+  @doc "The spoken line when Postgres cannot be reached (#82, #192)."
+  def notes_down, do: @notes_down
+
   @doc "The system prompt, the last 5 turns as user and assistant messages, then the Question."
   def messages(system, turns, question) do
     history =
@@ -59,9 +65,10 @@ defmodule Maya.Agent do
     [%{role: "system", content: system}] ++ history ++ [%{role: "user", content: question}]
   end
 
-  # `turn` holds this turn's tool calls (`ran`, id => name), whether the one corrective request
-  # was sent, the Question and the confirm lines of writes that ran. After the correction,
-  # running out of requests or time gives the fallback line.
+  # `turn` holds this turn's tool calls (`ran`, see `ran_entry/1`), whether the one corrective
+  # request was sent, the Question and the confirm lines of writes that ran. After the
+  # correction, running out of requests or time gives the fallback line. A tool that cannot
+  # reach Postgres ends the turn with the honest notes line, after any confirm (#192).
   defp loop(_client, _model, _messages, _progress, round, turn) when round > @max_rounds,
     do: give_up(turn, if(turn.corrected, do: {:ok, @fallback}, else: {:error, :round_cap}))
 
@@ -70,10 +77,14 @@ defmodule Maya.Agent do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
         # A write changes Progress, so later calls, rounds and the system prompt see the new one.
         {results, new_progress} = Enum.map_reduce(calls, progress, &tool_message/2)
-        ran = Map.merge(turn.ran, Map.new(calls, &{&1["id"], get_in(&1, ["function", "name"])}))
+        ran = Map.merge(turn.ran, Map.new(Enum.zip(calls, results), &ran_entry/1))
         turn = %{turn | ran: ran, confirms: turn.confirms ++ confirms(results)}
         messages = if new_progress == progress, do: messages, else: system(messages, new_progress)
-        loop(client, model, messages ++ [message | results], new_progress, round + 1, turn)
+
+        if Enum.any?(results, &(&1.content == @notes_down_error)),
+          do: {:ok, Enum.join(turn.confirms ++ [@notes_down], " ")},
+          else:
+            loop(client, model, messages ++ [message | results], new_progress, round + 1, turn)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         with {:ok, answer} <- Answer.parse(text),
@@ -97,6 +108,22 @@ defmodule Maya.Agent do
 
   defp system([%{role: "system"} | rest], progress),
     do: [%{role: "system", content: Prompt.system(progress)} | rest]
+
+  # One `ran` entry from the tool result, never the Answer text (#192): a write backs a claim
+  # only when it returned a confirm. Reads keep their name.
+  defp ran_entry({call, %{content: content}}) do
+    name = get_in(call, ["function", "name"])
+
+    entry =
+      case Jason.decode(content) do
+        {:ok, %{"confirm" => _}} -> name
+        {:ok, %{"refused" => line}} -> {:refused, line}
+        {:ok, %{"error" => _}} -> {:failed, name}
+        _fact -> name
+      end
+
+    {call["id"], entry}
+  end
 
   defp confirms(results) do
     for %{content: content} <- results,
@@ -140,20 +167,28 @@ defmodule Maya.Agent do
 
   @doc """
   One tool call as its `role: \"tool\"` reply and the Progress after it (changed only by a
-  logged Event or a set Dial). Malformed arguments are a tool error.
+  logged Event or a set Dial). Malformed arguments are a tool error, and so is a database
+  outage (`notes_down`, #192): only the tool name and error kind are logged.
   """
   def tool_message(call, progress) do
+    name = get_in(call, ["function", "name"])
+
     {content, progress} =
       case decode(get_in(call, ["function", "arguments"])) do
-        {:ok, args} ->
-          result = Tools.call(get_in(call, ["function", "name"]), args, progress)
-          {Tools.encode(result, progress), after_call(result, progress)}
-
-        :error ->
-          {Jason.encode!(%{error: "malformed_arguments"}), progress}
+        {:ok, args} -> run(name, args, progress)
+        :error -> {Jason.encode!(%{error: "malformed_arguments"}), progress}
       end
 
     {%{role: "tool", tool_call_id: call["id"], content: content}, progress}
+  end
+
+  defp run(name, args, progress) do
+    result = Tools.call(name, args, progress)
+    {Tools.encode(result, progress), after_call(result, progress)}
+  rescue
+    e in @db_errors ->
+      Logger.warning("tool #{name} failed: #{inspect(e.__struct__)}")
+      {@notes_down_error, progress}
   end
 
   defp after_call({:logged, _line, new_progress}, _progress), do: new_progress

@@ -966,4 +966,25 @@ defmodule MayaWeb.TalkLiveTest do
     assert view |> element("#voice-down") |> render() =~ "voice is down"
     refute has_element?(view, "#conversation .turn")
   end
+
+  # #192: Postgres down or paused when the screen opens; the shared sandbox is switched off as in #191.
+  test "/talk with the database down shows the notes line, never a 500 or a crash", %{conn: conn} do
+    Ecto.Adapters.SQL.Sandbox.mode(Maya.Repo, :manual)
+
+    log =
+      capture_log(fn ->
+        dead = get(conn, ~p"/talk")
+        assert html_response(dead, 200) =~ "Maya can't reach her notes right now."
+
+        {:ok, view, _html} = live(conn, ~p"/talk")
+
+        assert view |> element("#notes-down") |> render() =~
+                 "Maya can&#39;t reach her notes right now. Try again in a minute."
+
+        assert has_element?(view, "#notes-down a[href='/talk']", "Try again")
+        refute has_element?(view, "#talk-button")
+      end)
+
+    assert log =~ "[warning] talk mount failed: DBConnection.OwnershipError"
+  end
 end
