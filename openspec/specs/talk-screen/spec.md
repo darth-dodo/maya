@@ -139,6 +139,14 @@ When the voice is down the Talk screen SHALL show the note "voice is down" next 
 - **WHEN** the Conversation reports that TTS failed for a turn
 - **THEN** that `.turn` contains an element `.voice-down` with the text "voice is down"
 
+### Requirement: Talk screen during a database outage
+When Postgres cannot be reached as `/talk` opens, the screen SHALL show "Maya can't reach her notes right now. Try again in a minute." with a "Try again" link to `/talk`, in an element with id `notes-down`, and SHALL NOT answer 500 or crash the LiveView. The log SHALL name only the error kind (#192).
+
+#### Scenario: /talk with the database down
+- **WHEN** a visitor opens `/talk` and the Progress read fails
+- **THEN** the page answers 200 and the connected screen shows `#notes-down` with the line and a "Try again" link, and no `#talk-button`
+- **AND** the log says `talk mount failed` with the error kind
+
 ### Requirement: Trainer card from the Guest's Progress
 The trainer card SHALL show Maya's ball, the Guest's location, the Next gym leader with a type chip, the Guest's Team (each member's name, a dot per type and its level) and 8 badge slots with the text "N of 8 badges", all from the Guest's Progress and game data. The gym type is the most common type in the leader's party. It SHALL NOT name any gym past the Next gym.
 

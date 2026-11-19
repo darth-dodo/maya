@@ -47,8 +47,25 @@ defmodule MayaWeb.TalkLive do
 
   def poke_facts, do: @poke_facts
 
+  # Postgres down or paused (Issue 192): only database errors, a code bug still crashes.
+  @db_errors [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
+
   @impl true
   def mount(_params, %{"guest_id" => guest_id}, socket) do
+    talk(socket, guest_id)
+  rescue
+    # A plain page with the notes line, so the dead render is no 500 and the socket no crash
+    # loop. Only the error kind is logged.
+    e in @db_errors ->
+      Logger.warning("talk mount failed: #{inspect(e.__struct__)}")
+      {:ok, assign(socket, notes_down: true)}
+  end
+
+  # A tab opened before guests reconnects with a session that has none: reload the page,
+  # so the browser pipeline gives it a guest.
+  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/talk")}
+
+  defp talk(socket, guest_id) do
     progress = GameData.progress(guest_id)
 
     turns =
@@ -80,10 +97,6 @@ defmodule MayaWeb.TalkLive do
        can_undo: false
      )}
   end
-
-  # A tab opened before guests reconnects with a session that has none: reload the page,
-  # so the browser pipeline gives it a guest.
-  def mount(_params, _session, socket), do: {:ok, redirect(socket, to: ~p"/talk")}
 
   # Read on mount, then redrawn from each Progress the Conversation reports after an Event (#89).
   defp trainer_card(progress) do
@@ -496,6 +509,20 @@ defmodule MayaWeb.TalkLive do
   defp heading(_box, nil), do: "Team"
 
   @impl true
+  def render(%{notes_down: true} = assigns) do
+    ~H"""
+    <Layouts.app flash={@flash} link={:home}>
+      <div id="talk-screen" class="talk-screen" data-state="idle">
+        <h1 id="talk-heading" class="sr-only">Talk to Maya</h1>
+        <p id="notes-down" class="talk-status" role="status">
+          Maya can't reach her notes right now. Try again in a minute.
+          <.link href={~p"/talk"} class="btn btn-ghost">Try again</.link>
+        </p>
+      </div>
+    </Layouts.app>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} link={:home}>

@@ -56,6 +56,29 @@ defmodule Maya.Agent.AnswerTest do
     assert {:ok, ^text} = Answer.check(answer(text), %{"c1" => "log_event"})
   end
 
+  # #192: only a write that returned a confirm backs a claim; a refusal or error backs none.
+  test "a refused or failed write backs no claim, but its own refused line may be said" do
+    humor = "Humor goes from 0 to 100 percent, so it stays as it is."
+
+    assert {:error, {:unbacked_claim, "set to"}} =
+             Answer.check(answer("Humor set to 100."), %{"h" => {:refused, humor}})
+
+    assert {:error, {:unbacked_claim, "team set"}} =
+             Answer.check(answer("Team set."), %{
+               "t" => {:refused, "A Team holds 1 to 6 Pokémon."}
+             })
+
+    assert {:error, {:unbacked_claim, "set to"}} =
+             Answer.check(answer("Humor set to 100."), %{"h" => {:failed, "set_setting"}})
+
+    assert {:ok, _} = Answer.check(answer("Humor set to 100."), %{"h" => "set_setting"})
+
+    said = "Every badge is already logged. Nice work."
+
+    assert {:ok, ^said} =
+             Answer.check(answer(said), %{"b" => {:refused, "Every badge is already logged."}})
+  end
+
   test "a Dial change needs set_setting: its confirm passes, set to and changed claims without it fail" do
     text = "Humor set to 60 percent."
     assert {:ok, ^text} = Answer.check(answer(text), %{"h" => "set_setting"})

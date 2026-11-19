@@ -506,6 +506,34 @@ defmodule Maya.AgentTest do
                {:ok, "A Team holds 1 to 6 Pokémon."}
     end
 
+    # #192: a refused set_setting backs no "Humor set to 100.", so the refused line is said.
+    test "a refused set_setting, then a claimed change rejected twice, says the refused line" do
+      script([
+        calls([{"humor", "set_setting", ~s({"name":"humor","value":150})}]),
+        text("Humor set to 100."),
+        text("Humor set to 100.")
+      ])
+
+      assert Agent.answer("Maya, humor 150", [], guest_id: "honesty-humor") ==
+               {:ok, "Humor goes from 0 to 100 percent, so it stays as it is."}
+
+      assert Maya.GameData.progress("honesty-humor").humor == 75
+    end
+
+    test "a confirmed set_setting backs \"Humor set to 100.\" with no corrective request" do
+      script([
+        calls([{"humor", "set_setting", ~s({"name":"humor","value":100})}]),
+        text("Humor set to 100.")
+      ])
+
+      assert Agent.answer("Maya, humor 100", [], guest_id: "honesty-humor-ok") ==
+               {:ok, "Humor set to 100."}
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, _}
+      refute_received {:request, _, _}
+    end
+
     # #183, phone 20:17 "Lost my train of thought": a Team update hit the round cap after its write.
     test "a write that ran, then the round cap, says the confirm line, not an error" do
       loop = calls([{"loop", "gym_counter", ~s({"leader":"Roxanne"})}])
