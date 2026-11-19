@@ -285,6 +285,35 @@ defmodule Maya.GameData.Parse do
   def gives?(scripts, constants),
     do: Enum.any?(constants, &Regex.match?(~r/giveitem #{&1}\b/, scripts))
 
+  @doc "Metatile behavior names from `include/constants/metatile_behaviors.h`, as a tuple by value."
+  def behaviors(text) do
+    [_, enum] = Regex.run(~r/enum \{(.*?)\};/s, text)
+
+    ~r/^\s*(MB_\w+)/m
+    |> Regex.scan(enum, capture: :all_but_first)
+    |> List.flatten()
+    |> List.to_tuple()
+  end
+
+  @doc "Metatile attribute files from `src/data/tilesets/metatiles.h`, as `%{tileset => path}`."
+  def metatile_attributes(text) do
+    for [name, path] <-
+          Regex.scan(~r/gMetatileAttributes_(\w+)\[\] = INCBIN_U16\("([^"]+)"\)/, text,
+            capture: :all_but_first
+          ),
+        into: %{},
+        do: {"gTileset_" <> name, path}
+  end
+
+  @doc "Each script label in a map's `scripts.inc` to the first trainer constant it battles."
+  def script_trainers(scripts) do
+    for [label, body] <-
+          Regex.scan(~r/^(\w+)::[^\n]*\n(.*?)(?=^\w+::|\z)/ms, scripts, capture: :all_but_first),
+        [_, constant] <- [Regex.run(~r/^\s*trainerbattle_\w+ (TRAINER_\w+)/m, body)],
+        into: %{},
+        do: {label, constant}
+  end
+
   @doc "A PokeAPI `evolution-chain` reply as `%{species => evolutions}`, Generation III species only."
   def evolutions(%{"chain" => chain}), do: chain |> walk() |> Map.new()
 
