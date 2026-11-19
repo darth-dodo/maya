@@ -1,3 +1,0 @@
-Fixed: Maya's spoken Answer on iPhone: the audio session is "playback" while she talks with the mic closed (silent switch), every press, release and chunk wakes a suspended or interrupted AudioContext, a playback clock frozen for 2.5 s shows "voice is down" instead of silence, a hidden page cuts the turn, and a cut turn's late audio is dropped by turn id
-Fixed: a failed TTS request logs the first 500 bytes of the provider's error body, with the Answer text redacted
-Added: `?audio_debug=1` on the Talk screen shows the audio session type and AudioContext state, with a picker for the after-turn session type (music resume spike)

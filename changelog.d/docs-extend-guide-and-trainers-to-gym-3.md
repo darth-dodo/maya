@@ -1,1 +1,0 @@
-Changed: guide-and-humor and trainers-items-readiness OpenSpec changes now reach gym 3 (Mauville City): seven more locations, 21 Walkthrough notes, marts, gyms and gifts to Mauville, probes at 1 and 2 badges, each change split into two build PRs

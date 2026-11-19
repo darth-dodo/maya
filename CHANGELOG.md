@@ -7,6 +7,106 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-19
+
+### Added
+- "Maya, humor 60": `set_setting` changes the Humor dial by voice (0 to 100) and says "Humor set to 60 percent."; spoilers and other Dials, or a value out of range, are refused (#190)
+- The PC box on the Talk screen: a "PC box (N)" button under the open Team lists the PC box with a Withdraw button each, the same `withdrawn` Event as voice, with Undo and the full Team line (team-edit part D) (#182)
+- `?audio_debug=1` on the Talk screen shows the audio session type and AudioContext state, with a picker for the after-turn session type (music resume spike) (#181)
+- Tap a Team chip on the Talk screen to open a small editor: save a level, set as lead, move to the PC box or remove, with Undo; it writes the same Events as voice and only opens while idle (#178)
+- Maya changes the Team by voice: put a Pokémon in the PC, take one out, pick a lead, say the whole Team, or correct a level up or down (#177)
+- The Talk screen Team folds into one line ("Mudkip, Poochyena, Wingull +3", or "No Team yet"); a tap opens the full chips and the open list stays open through live updates (#176)
+- Team changes as Events: `deposited`, `withdrawn`, `set_lead`, `set_team` and `set_level`, each one undoable Event, with a `slot` detail to pick one of two same-species members (team-voice part A) (#174)
+- A Team change that changes nothing writes no Event, and a repeated deposit or withdraw inside 2 minutes is logged once (#174)
+
+### Changed
+- After a write, the rest of the turn uses a system prompt built from the new Progress (#190)
+- The honesty check catches a "set to" or Dial change claim when no `log_event` or `set_setting` ran (#190)
+- Factory improve run 7 over #172 to #185: E4 stays running (4 guarded follow-ups with known escaped defects: #130, #145, #176, #178), no new experiment; strict OpenSpec validation in CI and real-model checks of risky integration tasks listed as candidates (#189)
+- Factory lessons from #172 to #185 folded into `docs/factory/LESSONS.md` (39 rules) (#189)
+- Documented that iOS does not resume other apps' audio after Maya's turn (web limit, tested on the phone); a native wrapper is in PHASE_2.md (#185)
+- `set_team` is only for the whole Team; "Lotad level 14." is set_level, so unnamed members stay on the Team (#184)
+- Spoken Answers are trimmed to 3 sentences, and the prompt tells Maya never to mention tools and to state corrections plainly (#179)
+- Team chips are 44px buttons (#178)
+- The log_event tool offers set_level instead of level_up, and Maya never says a Team change happened unless log_event confirmed it (#177)
+- Factory improve run 6 over #138 to #166: E4 stays running (1 of 5 guarded follow-ups known; phone checks on #135, #136, #145 and #150 close it), no new experiment, review precision candidate listed (#172)
+- Factory lessons from #138 to #166 folded into `docs/factory/LESSONS.md` (39 rules) (#172)
+
+### Fixed
+- A database outage during a turn no longer shows "voice is down": when Progress cannot be read Maya says "I can't reach my notes right now, ask again soon?" (#191)
+- When storing a turn or its timings fails, Maya's Answer stays on screen and the Conversation keeps running instead of crashing (#191)
+- The agent stage budget is 20 s (was 8 s), so a Team change with a corrective round no longer ends in "Lost my train of thought" (#186) (#187)
+- A Team change that really ran is no longer rejected as an unbacked claim when Maya forgets to cite it ("Not sure I got that right") (#184)
+- Ordinary Answers such as "Got it, Brawly uses Fighting types." pass the honesty check; everyday change words count only next to a Progress noun (#184)
+- A write that ran is never silent: after two rejected replies, the round cap or an OpenRouter error, Maya says its confirm line instead of the fallback or "Lost my train of thought" (#184)
+- Asking "What tools do you have?" no longer gets the fallback line (#184)
+- A cited tool call id that never ran is ignored instead of costing a corrective round; write claims are still checked against the calls that ran (#184)
+- Maya's spoken Answer on iPhone: the audio session is "playback" while she talks with the mic closed (silent switch), every press, release and chunk wakes a suspended or interrupted AudioContext, a playback clock frozen for 2.5 s shows "voice is down" instead of silence, a hidden page cuts the turn, and a cut turn's late audio is dropped by turn id (#181)
+- A failed TTS request logs the first 500 bytes of the provider's error body, with the Answer text redacted (#181)
+- Undo right after "Set as lead" no longer loses the member, and unknown Team editor params no longer crash the Talk screen (#178 review) (#180)
+- Maya only claims tool results she received: every Answer is structured `{answer, used_tool_calls}` (OpenRouter structured output with `require_parameters`, checked by `Maya.Agent.Answer`), and a cited call that did not run, a write claim without `log_event`, or talk about tools gets one corrective request, then "Not sure I got that right, ask me again?" (#179)
+- The talk-screen spec passes strict validation again (Hold end split into Hold end and Hold end report) (#175)
+
+## [0.3.0] - 2026-11-16
+
+### Added
+- OpenSpec changes `team-voice` (log_event kinds deposited, withdrawn, set_lead, set_team and set_level) and `team-edit` (a Team editor on the Talk screen trainer band with a PC box view, writing the same Events) (#166)
+- `search_guide` tool: Maya answers "where now?" and "what is in this place?" from short original Walkthrough notes, filtered by the Spoiler horizon; past the horizon or unlisted places are `past_horizon` (#164)
+- 21 Walkthrough notes and locations, Littleroot Town to Mauville City (Granite Cave first floor, Route 109 and Slateport City at 1 badge; Routes 107, 108, 110 and Mauville City at 2) (#164)
+- The import fails closed on a note for an unlisted location, a lower badge tag or a name past the note's horizon (#164)
+- Guide spoiler probes at 0, 1 and 2 badges in the spoiler gate (#164)
+- `log_event` kind `released` removes one Pokémon from the Team (or the PC box), so an existing duplicate can be fixed (#162)
+- OpenSpec change `team-collapse`: the Team in the Talk screen trainer band folds into one line of names ("Mudkip, Poochyena, Wingull +3"), collapsed by default, tap to open (#158)
+- Self-hosted Fraunces italic font (`fraunces-latin-wght-italic.woff2`, SIL OFL 1.1) (#154)
+- OpenSpec change `structured-answers` (#118): the final Answer is OpenRouter structured output checked in the loop, one corrective request, then an honest fallback line (#153)
+- One shared header on `/`, `/talk` and `/factory`: the "Maya" wordmark in Fraunces, one link ("Talk", or "Home" on the Talk screen) and the theme toggle (#150)
+- `factory:dashboard` project skill: one private page rebuilt from live sources each run (Needs Abhishek first, then flow, quality and the running experiment), every number with its source and read time; nothing is committed (#148)
+- JS tests for the Talk hook's pure helpers (`node --test test/js/*_test.mjs`), run in CI's format job (#145)
+- OpenSpec changes `tide-header` (one shared header with a Fraunces wordmark and a one-button theme toggle) and `tide-cohesion` (Talk screen without containers in the tide art band, homepage headline "Your Pokédex has a voice now.", #135 and #136 review fixes) (#140)
+- OpenSpec change `tide-homepage`: the Tide homepage with a real turn, Meet Maya and the spoiler promise band (#131)
+- OpenSpec change `tide-talk`: the Tide Talk screen with a slim header, unboxed turns and a 72px Talk pill (#131)
+- Factory experiment E4: `factory:review` blocks a PR that touches the press path or Talk layout until its body has a `Phone check:` line from a real phone (#129)
+- `move_learnset` tool: a Pokémon's Emerald level-up moves up to the level horizon (the Next gym ace's level, or the Team's highest level when higher), so Maya names moves from data only (#128)
+- `priv/data/learnsets.json` from PokeAPI (`emerald` version group) and a `learnsets` table loaded by `mix maya.import` (#128)
+- Three move probe cases in the Sunday goal spoiler gate (#128)
+
+### Changed
+- Slateport City and Route 109 need 1 badge in the gym 3 scope (guide-and-humor, trainers-items-readiness), since Mr. Briney sails there from Dewford before Brawly (#156)
+- The Talk screen has no panel or card box: the trainer info sits in the tide art band like the homepage hero, and every Question is small and muted like the homepage real turn (#154)
+- The homepage headline reads "Your Pokédex has a voice now." in the real Fraunces italic, and more of the tide art shows above it (#154)
+- The `guide-and-humor` and `trainers-items-readiness` OpenSpec changes now reach gym 3 (Mauville City): seven more locations, 21 Walkthrough notes, marts, gyms and gifts to Mauville, probes at 1 and 2 badges, each change split into two build PRs (#152)
+- Parked the shared login (#49) in PHASE_2.md; guests use Maya without a login for now (#151)
+- The theme toggle is one 44px icon button (a moon by day, a sun at night); the first visit follows the phone and a tap is remembered, with no "system" option (#150)
+- Factory retros run in batches once 10 merged PRs have no metrics row, instead of after each merge; `factory:improve` runs right after each batch (#144)
+- Factory improve run 5 over #127 to #136: E4 stays running (4 of 5 follow-up retros, the phone checks on #135 and #136 still open), no new experiment (#142)
+- Factory lessons from #127 to #136 folded into `docs/factory/LESSONS.md` (39 rules) (#142)
+- The homepage is the Tide layout: a full bleed tide backdrop (night backdrop at night) fading into the page, the headline "Ask out loud. No spoilers.", an "Open Talk" header link, a real turn at Route 104 with the median Answer time, "Meet Maya" with her read-only Dials and three things she says, the voice loop as ruled numbered lines and a sea band for the spoiler promise (#136)
+- Talk screen in the Tide look: a slim header of one height over faint tide art (night art at night), an unboxed chat with hairlines and a 25px latest Answer, and a 72px Talk pill; no behaviour change (#135)
+- The Talk screen, homepage and `/factory` follow the theme on the design tokens: Calm Emerald by day, Emerald night at night (deep night sea, gold hairline on the trainer card, the ball glows); Fraunces for headings and the gym line, Inter for Answers and labels (#130)
+- The footer art, `theme-color` metas (`#0f5a3a` light, `#08181a` dark), manifest colours, `maya-icon.svg`, `logo.svg`, README `hero.svg` and `footer.svg` use only palette values; favicon, app icons and `og-image.png` re-rendered from them (#130)
+- The colour gate allow list is empty: no colour literal is left outside the token layer (#130)
+- Factory experiment E3 closed as inconclusive: its text Question could not catch the phone-only bugs it was scored on; `POST /health/ask`, the hourly Question and the nightly spoiler probe stay (#129)
+- Factory lessons from #63 to #124 folded into `docs/factory/LESSONS.md` (36 rules) (#129)
+
+### Fixed
+- The Talk button no longer stays stuck in Listening when pointer capture is lost and the finger lifts off the button; the pressing finger's lift or cancel ends the hold once wherever it lands (#165)
+- With realtime on and batch as the final source, release now sends `input_audio.end` to the realtime session and keeps it open while batch runs, so the last words show in the live preview before the final transcript replaces it (#163)
+- A catch the agent logs again within 2 minutes (same species and level) is written once, so the Team no longer fills with duplicates (#162)
+- A catch with a full Team goes to the PC box with a "sent to the PC" confirm instead of being refused (#162)
+- The Talk page now connects when the browser blocks storage (some private modes and in-app browsers); LiveView keeps its small notes in memory for the page instead (#161)
+- The trainer card on the Talk screen updates as soon as Maya logs or undoes an Event (badge count, Next gym, Team), with no reload (#160)
+- The day and night theme and the toggle now work when the browser blocks storage (some private modes and in-app browsers): the theme follows the phone and a tap holds for the page (#155)
+- With JavaScript off on a dark phone the theme toggle shows the sun, matching the night colours (#155)
+- `factory:dashboard` keeps Question and Answer text from a failed smoke run off the page, counts only feature branches as running builders, and treats skipped or neutral checks as green (#149)
+- Music or video another app was playing can resume after a turn with Maya: once the mic closes and Maya is silent, the Talk hook suspends its AudioContext and sets the audio session back to "auto" (#145)
+- Conversation and Talk screen tests wait up to 1 s for each turn message instead of 100 ms, so a slow CI runner no longer fails main and skips the Codecov upload (#138)
+- The sticky trainer card stays compact and opaque with a full Team (chips wrap across the card) (#117) (#130)
+- The "Yes, start fresh" button text reaches 4.5:1 by day (`btn-error`, was `btn-warning` at 4.29:1); the theme toggle buttons are 44 px targets (#130)
+
+### Removed
+- Dead demo slot and catchphrase CSS; the promise band rules are scoped to the homepage (#154)
+- The homepage demo slot, its screenshots in `priv/static/images/demo/` and the planned demo clip slot (#136)
+
 ## [0.2.0] - 2026-11-15
 
 ### Added
@@ -163,6 +263,8 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 - Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)
 - Project name written as "Maya", never all caps, across docs and skills (#2)
 
-[Unreleased]: https://github.com/darth-dodo/maya/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/darth-dodo/maya/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/darth-dodo/maya/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/darth-dodo/maya/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/darth-dodo/maya/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/darth-dodo/maya/releases/tag/v0.1.0
