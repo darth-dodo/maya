@@ -1,1 +1,0 @@
-Added: OpenSpec changes `team-voice` (log_event kinds deposited, withdrawn, set_lead, set_team and set_level) and `team-edit` (a Team editor on the Talk screen trainer band with a PC box view, writing the same Events)
