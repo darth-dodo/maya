@@ -265,6 +265,12 @@ defmodule Maya.Agent.FactsTest do
       assert Facts.item_name("Poké Ball", names) == "poke ball"
       assert Facts.item_name("King's Rock", names) == "kings rock"
       assert Facts.item_name("HM05", names) == "hm05 flash"
+
+      for heard <- ["HM 5", "HM5", "hm 05"],
+          do: assert(Facts.item_name(heard, names) == "hm05 flash")
+
+      assert Facts.item_name("TM 39", names) == "tm39 rock tomb"
+      assert Facts.item_name("S.S. Ticket", ["ss ticket"]) == "ss ticket"
       assert Facts.item_name("flash", names) == "hm05 flash"
       assert Facts.item_name("Rock Tomb", names) == "tm39 rock tomb"
       assert Facts.item_name("the Mach Bike", names) == "mach bike"

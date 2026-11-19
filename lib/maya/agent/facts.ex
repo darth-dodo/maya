@@ -200,17 +200,20 @@ defmodule Maya.Agent.Facts do
 
   @doc """
   A spoken item name as one of `names`, or nil: any case, accents and punctuation dropped
-  (`Poké Ball` is `poke ball`). A TM or HM matches by number or move (`HM05`, `Flash`).
+  (`Poké Ball` is `poke ball`, `S.S. Ticket` is `ss ticket`). A TM or HM matches by number,
+  however it is heard (`HM05`, `HM 5`), or by move (`Flash`).
   """
   def item_name(spoken, names) do
     wanted =
       spoken
       |> String.downcase()
       |> :unicode.characters_to_nfd_binary()
-      |> String.replace(~r/[\p{Mn}'’]/u, "")
+      |> String.replace(~r/[\p{Mn}'’.]/u, "")
       |> String.replace(~r/[^a-z0-9]+/, " ")
       |> String.trim()
       |> String.replace(~r/^the /, "")
+      |> String.replace(~r/^([th]m) ?(\d)\b/, "\\g{1}0\\2")
+      |> String.replace(~r/^([th]m) (\d\d)\b/, "\\1\\2")
 
     Enum.find(names, &(&1 == wanted)) || Enum.find(names, &machine?(&1, wanted))
   end

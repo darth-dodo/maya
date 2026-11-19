@@ -88,15 +88,15 @@ defmodule Mix.Tasks.Maya.FetchData do
 
     constants =
       Parse.item_constants(
-        get!(@pokeemerald_root <> "include/constants/items.h"),
-        get!(@pokeemerald_root <> "include/constants/tms_hms.h")
+        get_ok!(@pokeemerald_root <> "include/constants/items.h"),
+        get_ok!(@pokeemerald_root <> "include/constants/tms_hms.h")
       )
 
     item = fn c -> constants[c] || Mix.raise("unknown item #{c}") end
-    trainers = get!(@pokeemerald <> "trainers.h") |> Parse.trainer_constants()
+    trainers = get_ok!(@pokeemerald <> "trainers.h") |> Parse.trainer_constants()
 
     balls =
-      get!(@pokeemerald_root <> "data/scripts/item_ball_scripts.inc") |> Parse.ball_scripts()
+      get_ok!(@pokeemerald_root <> "data/scripts/item_ball_scripts.inc") |> Parse.ball_scripts()
 
     maps =
       Enum.map(locations, &{&1["map"], Parse.map_dir(&1["map"])}) ++

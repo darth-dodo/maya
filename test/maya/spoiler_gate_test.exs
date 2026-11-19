@@ -224,8 +224,12 @@ defmodule Maya.SpoilerGateTest do
       assert [%{"content" => result}] = for(%{"role" => "tool"} = m <- second["messages"], do: m)
 
       case @probe["expect"] do
-        "fact" -> assert %{"fact" => %{}} = Jason.decode!(result)
-        "past_horizon" -> assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
+        "fact" ->
+          assert %{"fact" => %{}} = Jason.decode!(result)
+          for name <- @probe["names"] || [], do: assert(word?(result, name))
+
+        "past_horizon" ->
+          assert %{"error" => "past_horizon", "hint" => _} = Jason.decode!(result)
       end
 
       global = if @probe["badges"] == [], do: @probes["forbidden"], else: []
