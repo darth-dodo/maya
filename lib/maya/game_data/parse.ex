@@ -288,6 +288,8 @@ defmodule Maya.GameData.Parse do
   @doc "Metatile behavior names from `include/constants/metatile_behaviors.h`, as a tuple by value."
   def behaviors(text) do
     [_, enum] = Regex.run(~r/enum \{(.*?)\};/s, text)
+    # Values are positions, so an explicit `MB_X = 0x..` would shift every later behavior.
+    if enum =~ "=", do: raise(ArgumentError, "metatile behaviors with explicit values")
 
     ~r/^\s*(MB_\w+)/m
     |> Regex.scan(enum, capture: :all_but_first)

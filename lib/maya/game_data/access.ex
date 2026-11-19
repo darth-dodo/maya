@@ -235,7 +235,8 @@ defmodule Maya.GameData.Access do
     end
   end
 
-  # A ledge jump lands two tiles on, whatever is there; the map is drawn so that it is floor.
+  # shortcut: a ledge jump lands two tiles on without checking that tile (the game does not
+  # either; maps draw floor there), add a check if a listed map ever lands on a wall.
   defp land(grid, {x, y} = p, elevation) do
     case tile(grid, p) do
       nil -> nil

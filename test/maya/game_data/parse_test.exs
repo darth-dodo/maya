@@ -471,6 +471,10 @@ defmodule Maya.GameData.ParseTest do
         "#define X\n\nenum {\n    MB_NORMAL,\n    MB_SECRET_BASE_WALL,\n    MB_TALL_GRASS,\n};\n"
 
       assert Parse.behaviors(text) == {"MB_NORMAL", "MB_SECRET_BASE_WALL", "MB_TALL_GRASS"}
+
+      assert_raise ArgumentError, fn ->
+        Parse.behaviors("enum {\n    MB_NORMAL,\n    MB_TALL_GRASS = 0x10,\n};\n")
+      end
     end
 
     test "metatile attribute files are keyed by tileset" do
