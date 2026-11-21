@@ -82,7 +82,11 @@ defmodule Maya.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      # Numbers-only LLM traces to Langfuse over OTLP/HTTP (ADR-010)
+      {:opentelemetry, "~> 1.7"},
+      {:opentelemetry_api, "~> 1.5"},
+      {:opentelemetry_exporter, "~> 1.11"}
     ]
   end
 

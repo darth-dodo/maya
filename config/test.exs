@@ -50,6 +50,9 @@ config :maya, :openrouter,
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.OpenRouter}, retry: false]
 
+# The batch processor as in prod, with no exporter unless a test sets one (Maya.Agent.TraceTest).
+config :opentelemetry, span_processor: :batch, traces_exporter: :none
+
 # No countdown unless a test sets one (#95), so the voice tests see a plain `{:question, text}`.
 config :maya, :voice, confirm_ms: 0
 

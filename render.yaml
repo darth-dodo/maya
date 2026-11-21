@@ -22,5 +22,9 @@ services:
         sync: false
       - key: SMOKE_TOKEN # header token for POST /health/ask (hourly post-deploy Question); missing turns it off
         sync: false
+      - key: LANGFUSE_PUBLIC_KEY # Langfuse Cloud EU, numbers-only LLM traces (ADR-010); either key missing turns tracing off
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
       - key: POOL_SIZE
         value: "5"
