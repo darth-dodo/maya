@@ -408,6 +408,40 @@ defmodule Maya.ConversationTest do
                    when is_integer(id)
   end
 
+  test "after a restart with 30 stored turns, the screen and the next agent request get 25" do
+    id = "test-#{System.unique_integer([:positive])}"
+
+    for n <- 1..30,
+        do: {:ok, _} = Turn.insert(%Turn{guest_id: id, question: "q#{n}", answer: "a#{n}"})
+
+    me = self()
+
+    Req.Test.stub(Maya.OpenRouter, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(me, {:agent_messages, Jason.decode!(body)["messages"]})
+      Req.Test.json(conn, reply("Hi"))
+    end)
+
+    {:ok, _pid} = Conversation.start_or_find(id)
+    on_exit(fn -> Conversation.stop(id) end)
+    turns = Conversation.turns(id)
+    assert length(turns) == 25
+    assert hd(turns).question == "q6"
+
+    Conversation.subscribe(id)
+    stub(text("Next one"), &speak/1)
+    Conversation.question(id, "RIFF", "question.wav")
+
+    assert_receive {:agent_messages, [%{"role" => "system"} | rest]}
+    assert length(rest) == 51
+    assert hd(rest) == %{"role" => "user", "content" => "q6"}
+
+    # The screen keeps 25: the new turn pushes out the oldest.
+    assert_receive {:conversation, {:turns, after_turns}}
+    assert length(after_turns) == 25
+    assert hd(after_turns).question == "q7"
+  end
+
   describe "countdown overlaps the agent, edits and typed Questions (#95)" do
     setup do
       voice = Application.fetch_env!(:maya, :voice)

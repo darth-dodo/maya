@@ -6,6 +6,7 @@ defmodule Maya.Voice.Turn do
   alias Maya.Repo
 
   @stages Maya.Voice.Latency.stages()
+  @window 25
 
   schema "turns" do
     field :guest_id, :string
@@ -30,8 +31,11 @@ defmodule Maya.Voice.Turn do
     timestamps(type: :utc_datetime_usec)
   end
 
+  @doc "Turns the agent gets as context, the Conversation keeps and the Talk screen shows."
+  def window, do: @window
+
   @doc "A guest's latest `limit` turns, oldest first."
-  def recent(guest_id, limit \\ 20) when is_binary(guest_id) do
+  def recent(guest_id, limit \\ @window) when is_binary(guest_id) do
     from(t in __MODULE__, where: t.guest_id == ^guest_id, order_by: [desc: t.id], limit: ^limit)
     |> Repo.all()
     |> Enum.reverse()

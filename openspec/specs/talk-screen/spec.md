@@ -208,11 +208,11 @@ The trainer card SHALL keep the same height in every moment (`idle`, `recording`
 - **THEN** the PR shows per-stage p50 for `mic_release_ms`, `stt_ms`, `agent_ms`, `tts_first_byte_ms` and `playback_start_ms` before and after, with no stage more than 100 ms slower
 
 ### Requirement: Short chat
-The chat SHALL show only the last 3 turns, unboxed on the page, styled like the homepage real turn: every Question small, right aligned and muted, every Answer on the left, with no bubble background or border and a `--maya-line` hairline between turns. Older Answers SHALL use the muted colour at body size; the latest turn is marked as current and its Answer is the largest text on the screen, about 24px. A Question of "(nothing heard)" SHALL read as a friendly line instead.
+The chat SHALL show the Conversation's last 25 turns, unboxed on the page, styled like the homepage real turn: every Question small, right aligned and muted, every Answer on the left, with no bubble background or border and a `--maya-line` hairline between turns. Older Answers SHALL use the muted colour at body size; the latest turn is marked as current and its Answer is the largest text on the screen, about 24px. A Question of "(nothing heard)" SHALL read as a friendly line instead.
 
-#### Scenario: Last three exchanges
-- **WHEN** a Guest with 5 stored turns opens `/talk`
-- **THEN** `#conversation` has 3 `.turn` elements, the last 3 in order, and only the last has the class `now`
+#### Scenario: Last 25 exchanges
+- **WHEN** a Guest with 30 stored turns opens `/talk`
+- **THEN** `#conversation` has 25 `.turn` elements, the last 25 in order, and only the last has the class `now`
 
 #### Scenario: Nothing heard
 - **WHEN** a stored turn has the Question "(nothing heard)"

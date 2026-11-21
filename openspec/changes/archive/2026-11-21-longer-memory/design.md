@@ -11,7 +11,7 @@ See proposal.md, Why. Today `Maya.Agent.messages/3` takes the last `@history 5` 
 
 ## Decisions
 
-1. **One window constant shared by agent and Conversation.** 25 turns sent; the Conversation keeps and reloads at least 25. The Talk screen then shows up to 25 turns instead of 20, which keeps one number. Alternative: separate screen and agent windows, rejected as extra state.
+1. **One window constant shared by agent and Conversation.** 25 turns sent; the Conversation keeps and reloads 25, and the Talk screen shows 25 turns instead of 20 (decided by Abhishek on 2026-11-21), which keeps one number: `Maya.Voice.Turn.window/0`. Alternative: separate screen and agent windows, rejected as extra state.
 2. **Top-level `cache_control` over explicit breakpoints.** OpenRouter's docs describe a single top-level `"cache_control": {"type": "ephemeral"}` for Anthropic (also Vertex, Bedrock, Azure): OpenRouter puts the breakpoint on the last cacheable block and moves it forward as the conversation grows. Explicit breakpoints (up to 4, on content parts) would mean turning message strings into content arrays for little gain. Source: https://openrouter.ai/docs/guides/best-practices/prompt-caching.
 3. **Only for `anthropic/` models.** The same docs list OpenAI, Gemini 2.5 and newer, DeepSeek and others as caching automatically; sending the field only where it is needed keeps `mix maya.compare_models` safe for other models.
 4. **Tokens from `usage`.** OpenRouter reports `usage.prompt_tokens` and `usage.prompt_tokens_details.cached_tokens` (and `cache_write_tokens`). The loop sums them across rounds for the turn log line; missing fields count as 0.

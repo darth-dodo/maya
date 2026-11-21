@@ -1,7 +1,7 @@
 defmodule Maya.Conversation do
   @moduledoc """
   One guest's Conversation (ARCHITECTURE.md 2, ADR-008), found by `guest_id`. It owns the
-  turn in flight: STT, then the agent (with the last 5 turns), then a streamed TTS Answer.
+  turn in flight: STT, then the agent (with the last 25 turns), then a streamed TTS Answer.
   A held Question streams in as audio chunks (`stream_start/2`, `audio_chunk/2`,
   `stream_end/1`); with realtime on, a relay to Voxtral realtime shows partial text while
   held, and batch STT on the buffered audio gives the final text or takes over when realtime
@@ -637,12 +637,14 @@ defmodule Maya.Conversation do
   defp store(state, turn) do
     saved = db(:store, fn -> Turn.insert(turn) end, turn)
 
-    state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -20)}
+    state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -Turn.window())}
     broadcast(state, {:turns, state.turns})
     state
   end
 
-  defp all_turns(%{current: %{stage: :tts, turn: turn}, turns: turns}), do: turns ++ [turn]
+  defp all_turns(%{current: %{stage: :tts, turn: turn}, turns: turns}),
+    do: Enum.take(turns ++ [turn], -Turn.window())
+
   defp all_turns(%{turns: turns}), do: turns
 
   # Only the reason (atom, HTTP status, exception message): never transcripts, Answers or keys.

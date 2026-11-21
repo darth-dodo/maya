@@ -6,7 +6,7 @@ Maya forgets fast: the agent sees only the last 5 turns, so a Question that poin
 
 ## What Changes
 
-- **History**: the agent gets the last 25 turns (50 messages) instead of 5. The Conversation keeps and reloads at least 25 turns (today it keeps 20 in memory and reloads 20, `Turn.recent/2` and `conversation.ex`).
+- **History**: the agent gets the last 25 turns (50 messages) instead of 5. The Conversation keeps and reloads 25 turns and the Talk screen shows 25 (decided by Abhishek on 2026-11-21; today it keeps 20 in memory and reloads 20, `Turn.recent/2` and `conversation.ex`).
 - **Prompt caching**: for `anthropic/` models, each agent request carries OpenRouter's top-level `cache_control: {"type": "ephemeral"}`, so the tools, system prompt and older history are read from cache on later rounds and turns. Other providers cache automatically and get no extra field. Source: https://openrouter.ai/docs/guides/best-practices/prompt-caching.
 - **Request order stays stable**: tools, then system prompt, then history, then the Question, so each request starts with the previous one while Progress is unchanged.
 - **Turn log line**: one info line per answered Question with rounds used, history turns sent, prompt tokens and cached tokens. No Question, Answer or tool content.

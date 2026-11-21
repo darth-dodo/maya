@@ -1,6 +1,8 @@
 defmodule Maya.AgentTest do
   use Maya.DataCase, async: true
 
+  import ExUnit.CaptureLog
+
   alias Maya.Agent
   alias Maya.Voice.Turn
 
@@ -167,24 +169,115 @@ defmodule Maya.AgentTest do
     assert Agent.answer(@roxanne, [], guest_id: @guest) == {:error, :bad_reply}
   end
 
-  test "the last 5 turns go between the system prompt and the Question" do
-    script([text("Brawly is past the Next gym. Further ahead, no spoilers.")])
-    turns = for n <- 1..7, do: %Turn{question: "q#{n}", answer: "a#{n}"}
+  defp history(range) do
+    Enum.flat_map(
+      range,
+      &[
+        %{"role" => "user", "content" => "q#{&1}"},
+        %{"role" => "assistant", "content" => "a#{&1}"}
+      ]
+    )
+  end
 
-    assert {:ok, _} = Agent.answer("What about Brawly?", turns, guest_id: @guest)
+  defp stored(range), do: for(n <- range, do: %Turn{question: "q#{n}", answer: "a#{n}"})
+
+  test "all 5 stored turns go between the system prompt and the Question" do
+    script([text("Hi.")])
+
+    assert {:ok, _} = Agent.answer("What about Brawly?", stored(1..5), guest_id: @guest)
     assert_received {:request, _, %{"messages" => [%{"role" => "system"} | rest]}}
+    assert rest == history(1..5) ++ [%{"role" => "user", "content" => "What about Brawly?"}]
+  end
 
-    expected =
-      Enum.flat_map(
-        3..7,
-        &[
-          %{"role" => "user", "content" => "q#{&1}"},
-          %{"role" => "assistant", "content" => "a#{&1}"}
-        ]
-      ) ++
-        [%{"role" => "user", "content" => "What about Brawly?"}]
+  test "of 30 stored turns, the last 25 go between the system prompt and the Question" do
+    script([text("Brawly is past the Next gym. Further ahead, no spoilers.")])
 
-    assert rest == expected
+    assert {:ok, _} = Agent.answer("What about Brawly?", stored(1..30), guest_id: @guest)
+    assert_received {:request, _, %{"messages" => [%{"role" => "system"} | rest]}}
+    assert rest == history(6..30) ++ [%{"role" => "user", "content" => "What about Brawly?"}]
+  end
+
+  describe "prompt caching" do
+    test "an anthropic/ model gets cache_control on every round, and round 2 extends round 1" do
+      script([
+        calls([{"rox", "gym_counter", ~s({"leader":"Roxanne"})}]),
+        text("Nosepass.", ["rox"])
+      ])
+
+      assert {:ok, _} =
+               Agent.answer(@roxanne, stored(1..3),
+                 model: "anthropic/claude-haiku-5.5",
+                 guest_id: @guest
+               )
+
+      assert_received {:request, _, first}
+      assert_received {:request, _, second}
+      assert first["cache_control"] == %{"type" => "ephemeral"}
+      assert second["cache_control"] == %{"type" => "ephemeral"}
+      assert List.starts_with?(second["messages"], first["messages"])
+    end
+
+    test "another model gets no cache_control" do
+      script([text("Hi.")])
+
+      assert {:ok, _} =
+               Agent.answer("Hi", [], model: "google/gemini-3.8-flash", guest_id: @guest)
+
+      assert_received {:request, _, body}
+      refute Map.has_key?(body, "cache_control")
+    end
+
+    test "the next turn's first request starts with the last turn's system prompt and history" do
+      script([text("One.")])
+      assert {:ok, "One."} = Agent.answer("q4", stored(1..3), guest_id: @guest)
+      assert {:ok, _} = Agent.answer("q5", stored(1..4), guest_id: @guest)
+
+      assert_received {:request, _, %{"messages" => first}}
+      assert_received {:request, _, %{"messages" => next}}
+      assert List.starts_with?(next, Enum.drop(first, -1))
+    end
+  end
+
+  describe "turn log line" do
+    # The test config logs warnings only; the module level lets the agent's info lines through.
+    setup do
+      Logger.put_module_level(Maya.Agent, :info)
+      on_exit(fn -> Logger.delete_module_level(Maya.Agent) end)
+    end
+
+    test "one info line per Question: rounds, history, prompt and cached tokens, no content" do
+      usage = %{"prompt_tokens" => 1500, "prompt_tokens_details" => %{"cached_tokens" => 1200}}
+      question = "Where is the secret Question text?"
+      answer = "The secret Answer text."
+
+      script([
+        Map.put(calls([{"rox", "gym_counter", ~s({"leader":"Roxanne"})}]), "usage", usage),
+        Map.put(text(answer, ["rox"]), "usage", usage)
+      ])
+
+      log =
+        capture_log([level: :info], fn ->
+          assert {:ok, ^answer} = Agent.answer(question, stored(1..30), guest_id: @guest)
+        end)
+
+      assert [line] = for(l <- String.split(log, "\n"), l =~ "agent turn", do: l)
+      assert line =~ "rounds=2 history=25 prompt_tokens=3000 cached_tokens=2400"
+      refute log =~ "secret"
+    end
+
+    test "missing or odd usage counts as 0 tokens, never a crash" do
+      odd = %{"prompt_tokens" => "many", "prompt_tokens_details" => nil}
+      script([text("Hi."), Map.put(text("Hi."), "usage", odd), Map.put(text("Hi."), "usage", [])])
+
+      log =
+        capture_log([level: :info], fn ->
+          for _ <- 1..3, do: assert({:ok, "Hi."} = Agent.answer("Hi", [], guest_id: @guest))
+        end)
+
+      lines = for l <- String.split(log, "\n"), l =~ "agent turn", do: l
+      assert length(lines) == 3
+      assert Enum.all?(lines, &(&1 =~ "rounds=1 history=0 prompt_tokens=0 cached_tokens=0"))
+    end
   end
 
   # PRODUCT.md "Done when (Sunday)": both Questions in one Conversation, the model stubbed.

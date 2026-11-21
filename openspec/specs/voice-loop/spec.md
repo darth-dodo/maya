@@ -90,7 +90,7 @@ Each stored turn SHALL hold milliseconds for the stages mic release (release to 
 - **AND** stages with no values print as missing, not zero
 
 ### Requirement: Spoken Answer
-Maya SHALL turn one held Question into an Answer: the streamed audio is transcribed, the final transcript is the Question, and the agent answers it given the last 5 turns. The Answer SHALL be spoken by Voxtral TTS streamed as PCM and relayed to the browser as it arrives. Only text is kept, never the Question audio. STT, the agent and TTS SHALL be called only from the server.
+Maya SHALL turn one held Question into an Answer: the streamed audio is transcribed, the final transcript is the Question, and the agent answers it given the last 25 turns. The Answer SHALL be spoken by Voxtral TTS streamed as PCM and relayed to the browser as it arrives. Only text is kept, never the Question audio. STT, the agent and TTS SHALL be called only from the server.
 
 #### Scenario: Question is transcribed and answered by the agent
 - **WHEN** a Question is streamed, STT returns "How do I earn Roxanne's badge?" and the agent answers "Lead with Mudkip against Nosepass. Mudkip would approve."
@@ -237,7 +237,7 @@ After STT returns a non-empty, corrected transcript, the Conversation SHALL call
 - **THEN** the first Question's Answer is never spoken or stored
 
 ### Requirement: Typed Question
-A typed Question SHALL go to the agent with the Guest's Progress and last 5 turns, as a spoken Question does, without calling STT and without a countdown. Its turn SHALL be stored with `typed` true and blank `mic_release_ms`, `stt_ms` and `confirm_ms`. Typed and edited text SHALL reach the agent as written, trimmed, and SHALL be 1 to 300 characters.
+A typed Question SHALL go to the agent with the Guest's Progress and last 25 turns, as a spoken Question does, without calling STT and without a countdown. Its turn SHALL be stored with `typed` true and blank `mic_release_ms`, `stt_ms` and `confirm_ms`. Typed and edited text SHALL reach the agent as written, trimmed, and SHALL be 1 to 300 characters.
 
 #### Scenario: Typed turn stored
 - **WHEN** the Guest types "where do I catch Ralts?" and the Answer finishes
