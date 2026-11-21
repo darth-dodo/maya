@@ -29,6 +29,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 - OpenRouter for the agent: tool calling via Req, model name in config
 - Mistral Voxtral: `voxtral-mini-transcribe-3` (STT), Voxtral TTS 3, and `voxtral-mini-transcribe-realtime-3` (live preview over a server side WebSocket via `mint_web_socket`, off unless `MAYA_STT_REALTIME=true`; batch gives the final text until the eval says otherwise, ADR-009)
 - Mistral embeddings API (Bumblebee is too big for Render 512 MB)
+- Sentry free Developer plan (EU), `{:sentry, "~> 14.0"}`, server side errors only, scrubbed to metadata; off without `SENTRY_DSN` (ADR-010)
 - Render web service `0.5c-512mb`, Frankfurt (permanent), Plug.BasicAuth
 - Hand-written GenServer agent loop. No agent library.
 

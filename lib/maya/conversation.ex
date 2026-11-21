@@ -204,7 +204,7 @@ defmodule Maya.Conversation do
     id = state.id
 
     task =
-      run(fn ->
+      run(:stt, fn ->
         :telemetry.span([:maya, :voice, :stt], %{conversation: me, ref: ref}, fn ->
           {transcribe(id, audio, filename), %{conversation: me, ref: ref}}
         end)
@@ -444,7 +444,7 @@ defmodule Maya.Conversation do
     {terms, progress, me, ref} = {c.terms, c.progress, self(), c.ref}
 
     task =
-      run(fn ->
+      run(:stt, fn ->
         :telemetry.span([:maya, :voice, :stt], %{conversation: me, ref: ref}, fn ->
           {transcribe(wav, "question.wav", terms, progress), %{conversation: me, ref: ref}}
         end)
@@ -558,7 +558,7 @@ defmodule Maya.Conversation do
     opts = [guest_id: state.id, progress: progress]
 
     task =
-      run(fn ->
+      run(:agent, fn ->
         :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
           {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
         end)
@@ -595,7 +595,7 @@ defmodule Maya.Conversation do
             c
             | stage: :tts,
               turn: %{c.turn | question: question, answer: answer},
-              task: run(fn -> TTS.stream(answer, &send(me, {:tts_chunk, ref, &1})) end)
+              task: run(:tts, fn -> TTS.stream(answer, &send(me, {:tts_chunk, ref, &1})) end)
           }
           |> Map.put(:tts_started, System.monotonic_time())
     }
@@ -681,7 +681,13 @@ defmodule Maya.Conversation do
   defp db_reason(%Postgrex.Error{postgres: %{code: code}}), do: inspect(code)
   defp db_reason(e), do: inspect(e.__struct__)
 
-  defp run(fun), do: Task.Supervisor.async_nolink(Maya.TaskSupervisor, fun)
+  # The stage tag rides on a crash report to Sentry (ADR-010).
+  defp run(stage, fun) do
+    Task.Supervisor.async_nolink(Maya.TaskSupervisor, fn ->
+      Sentry.Context.set_tags_context(%{stage: stage})
+      fun.()
+    end)
+  end
 
   defp broadcast(state, event),
     do: Phoenix.PubSub.broadcast(Maya.PubSub, topic(state.id), {:conversation, event})

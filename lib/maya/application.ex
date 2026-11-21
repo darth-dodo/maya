@@ -22,6 +22,7 @@ defmodule Maya.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     Maya.Voice.Timing.attach()
+    Maya.ErrorMonitor.attach()
     opts = [strategy: :one_for_one, name: Maya.Supervisor]
     Supervisor.start_link(children, opts)
   end

@@ -16,6 +16,7 @@ The MVP stack is frozen. Build inside it. Changing it needs Abhishek's explicit 
 | STT / TTS | Mistral `voxtral-mini-transcribe-3`, Voxtral TTS 3; `voxtral-mini-transcribe-realtime-3` for the live preview, server side over `mint_web_socket`, batch as final and fallback (ADR-009) | Other voice vendors, including the browser Web Speech API; a browser to Mistral connection; other WebSocket clients. On a voice outage Answers show as text (PRODUCT.md) |
 | Embeddings | Mistral embeddings API | Bumblebee or any local model (Render has 512 MB) |
 | Hosting | Render web service, Frankfurt | Other hosts or regions |
+| Errors | Sentry free Developer plan, EU, via the `sentry` Hex package, server side only, scrubbed to metadata (ADR-010) | Browser SDK, performance tracing, session replay, paid plans |
 | Auth | `Plug.BasicAuth` | `phx.gen.auth`, OAuth, user accounts |
 
 ## Red flags: stop and ask

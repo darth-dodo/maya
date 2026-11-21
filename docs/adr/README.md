@@ -37,4 +37,4 @@ What gets easier, what gets harder, what we will check.
 | 007 | [Agent model](007-agent-model.md) | Proposed |
 | 008 | [Guest sessions](008-guest-sessions.md) | Accepted |
 | 009 | [Realtime transcription](009-realtime-transcription.md) | Accepted |
-| 010 | [Error monitoring and LLM tracing](010-error-monitoring-and-llm-tracing.md) | Proposed |
+| 010 | [Error monitoring and LLM tracing](010-error-monitoring-and-llm-tracing.md) | Accepted (Sentry); Langfuse Proposed |

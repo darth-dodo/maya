@@ -82,7 +82,9 @@ defmodule Maya.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      # Server side errors, metadata only (ADR-010): https://hexdocs.pm/sentry/
+      {:sentry, "~> 14.0"}
     ]
   end
 
