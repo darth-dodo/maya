@@ -157,7 +157,11 @@ defmodule Maya.Agent.AnswerTest do
           "Not sure yet, since I haven't actually run the team check in this turn. I'll run it now.",
           "Let me check the team check for Wattson.",
           "I'm checking your team check against Wattson now.",
-          "I’ll run the team check now."
+          "I’ll run the team check now.",
+          "Sure, running the team check now.",
+          "On it, checking your team check against Wattson now.",
+          "Running a team check for Wattson now.",
+          "I'm going to run the team check now."
         ] do
       assert Answer.check(answer(text), %{}) == {:error, {:tool_promise, "team_check"}}, text
     end
@@ -177,7 +181,13 @@ defmodule Maya.Agent.AnswerTest do
           "I'll be here when you need me.",
           "Your Mudkip is running strong.",
           "Looking good, Mudkip would approve.",
-          "Running low on Potions is risky before Wattson."
+          "Running low on Potions is risky before Wattson.",
+          "Looking at your Team, Mudkip is strong.",
+          "Running into Wattson under level 20 is rough.",
+          "I'm looking forward to Wattson!",
+          "I'll look forward to hearing about Mauville.",
+          "I'll check back after your next badge.",
+          "Im running out of hype."
         ] do
       assert {:ok, _} = Answer.check(answer(text), %{}), text
     end
@@ -187,6 +197,13 @@ defmodule Maya.Agent.AnswerTest do
              Answer.check(answer("Let me check the team check: you're ready."), %{
                "t" => "team_check"
              })
+
+    # A real result, then an offer: the tool is named only in the offer, so nothing is flagged.
+    assert {:ok, _} =
+             Answer.check(
+               answer("Let me check: Wattson uses Electric types. Want a team check too?"),
+               %{"g" => "gym_counter"}
+             )
 
     # Some tool ran and none is named: the Answer is the result, not a promise.
     assert {:ok, _} =

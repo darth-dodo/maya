@@ -291,14 +291,14 @@ A write claim SHALL be backed only by a `log_event` or `set_setting` whose tool 
 - **THEN** the Answer passes
 
 ### Requirement: A tool is called, never promised
-The system prompt SHALL tell the model to call a tool in the same turn, before it replies, and never to announce a tool action. Maya SHALL reject an Answer whose sentence, not a question, promises a tool action ("Running the team check now.", "I'll run it now", "Let me check") when the named tool did not run this turn, or no tool is named and none ran. It SHALL send one corrective request naming the tool, then the fallback line (#222).
+The system prompt SHALL tell the model to call a tool in the same turn, before it replies, and never to announce a tool action. Maya SHALL reject an Answer whose sentence, not a question, promises a tool action ("Running the team check now.", "I'll run it now", "Let me check") when the named tool did not run this turn, or no tool is named and none ran. It SHALL send one corrective request, naming the tool when the Answer names one, then the fallback line (#222).
 
 #### Scenario: Prompt carries the call rule
 - **WHEN** the system prompt is built for any Progress
 - **THEN** it tells the model to call the tool in this same turn and never to announce a tool action
 
 #### Scenario: Wattson team check promised at 2 badges
-- **WHEN** the last turn offered a team check, the Question is "Yes" and the stubbed model replies "Running the team check for Wattson's gym now." with no tool call
+- **WHEN** the last turn offered a team check, the Question is "Yes" or "And what's the result?" and the stubbed model replies "Running the team check for Wattson's gym now." or "... I'll run it now." with no tool call
 - **THEN** Maya sends one corrective request saying "Call team_check now"
 - **AND** the model calls `team_check` and its Answer with the result is said
 
@@ -311,7 +311,7 @@ The system prompt SHALL tell the model to call a tool in the same turn, before i
 - **THEN** the Answer passes with no corrective request
 
 #### Scenario: The named tool ran
-- **WHEN** `team_check` ran and the Answer is "Let me check the team check: you're ready."
+- **WHEN** `team_check` ran and the Answer is "Let me check the team check: you're ready.", or `gym_counter` ran and the Answer is "Let me check: Wattson uses Electric types. Want a team check too?"
 - **THEN** the Answer passes
 
 #### Scenario: Probe case
