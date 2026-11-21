@@ -4,7 +4,7 @@ defmodule Maya.GameDataTest do
   alias Maya.GameData
   alias Maya.Horizon
 
-  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets walkthrough_notes items trainer_places item_places progress)
+  @tables ~w(species type_matchups encounters trainers trainer_pokemon locations learnsets walkthrough_notes type_reasons items trainer_places item_places progress)
 
   setup do
     :ok = GameData.import!()
@@ -133,6 +133,29 @@ defmodule Maya.GameDataTest do
 
     counts = row_counts()
     assert_raise ArgumentError, ~r/Verdanturf Town/, fn -> GameData.import!(priv) end
+    assert row_counts() == counts
+  end
+
+  test "type reasons: one row per line of type_reasons.json, read with the chart" do
+    lines = "priv/data/type_reasons.json" |> File.read!() |> Jason.decode!()
+    assert Repo.aggregate("type_reasons", :count) == length(lines)
+    assert GameData.type_reasons()[{"water", "fire"}] == "Water puts out Fire."
+  end
+
+  test "a reasons file with a bad row fails the import and changes nothing" do
+    priv = Path.join(System.tmp_dir!(), "maya-reasons-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(Path.join(priv, "data"))
+    on_exit(fn -> File.rm_rf!(priv) end)
+
+    for file <- File.ls!("priv/data"), do: File.cp!("priv/data/#{file}", "#{priv}/data/#{file}")
+
+    File.write!(
+      "#{priv}/data/type_reasons.json",
+      ~s([{"attacker":"fire","defender":"water","multiplier":2.0,"reason":"Fire boils water."}])
+    )
+
+    counts = row_counts()
+    assert_raise ArgumentError, ~r/fire on water/, fn -> GameData.import!(priv) end
     assert row_counts() == counts
   end
 

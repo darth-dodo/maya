@@ -24,7 +24,8 @@ defmodule Maya.Agent.ToolsTest do
              "move_learnset",
              "search_guide",
              "set_setting",
-             "team_check"
+             "team_check",
+             "type_matchup"
            ]
   end
 
@@ -53,6 +54,89 @@ defmodule Maya.Agent.ToolsTest do
     test "with all 8 badges there is no Next gym", %{progress: progress} do
       assert {:ok, %{next_gym: nil}} =
                Tools.call("team_check", %{}, %{progress | badges: Enum.to_list(1..8)})
+    end
+  end
+
+  describe "type_matchup" do
+    test "Water on Fire is 2 with its reason line", %{progress: progress} do
+      assert {:ok, fact} =
+               Tools.call(
+                 "type_matchup",
+                 %{"attacker" => "Water", "defender" => "fire"},
+                 progress
+               )
+
+      assert %{multiplier: 2.0, reasons: ["Water puts out Fire."]} = fact
+      assert fact.defender == %{name: "fire", types: ["fire"]}
+    end
+
+    test "Water on Geodude, Rock and Ground, is 4 at 0 badges", %{progress: progress} do
+      assert {:ok, fact} =
+               Tools.call(
+                 "type_matchup",
+                 %{"attacker" => "water", "defender" => "Geodude"},
+                 progress
+               )
+
+      assert fact.defender == %{name: "geodude", types: ["rock", "ground"]}
+      assert fact.multiplier == 4.0
+      assert fact.reasons == ["Water wears rock away.", "Water turns ground to mud."]
+    end
+
+    test "Electric on Ground is 0 with its reason line", %{progress: progress} do
+      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach Ground."]}} =
+               Tools.call(
+                 "type_matchup",
+                 %{"attacker" => "electric", "defender" => "ground"},
+                 progress
+               )
+    end
+
+    test "Roxanne means Nosepass: the 2x types and the types to avoid", %{progress: progress} do
+      assert {:ok, fact} = Tools.call("type_matchup", %{"defender" => "Roxanne"}, progress)
+      assert fact.defender == %{leader: "Roxanne", name: "nosepass", types: ["rock"]}
+
+      assert Enum.map(fact.good, &{&1.type, &1.multiplier}) ==
+               for(t <- ~w(fighting ground steel water grass), do: {t, 2.0})
+
+      assert Enum.map(fact.avoid, &{&1.type, &1.multiplier}) ==
+               for(t <- ~w(normal flying poison fire), do: {t, 0.5})
+
+      assert %{reasons: ["Water wears rock away."]} = Enum.find(fact.good, &(&1.type == "water"))
+    end
+
+    test "Fairy is not_found, as defender or attacker", %{progress: progress} do
+      assert {:error, :not_found} = Tools.call("type_matchup", %{"defender" => "fairy"}, progress)
+
+      assert {:error, :not_found} =
+               Tools.call(
+                 "type_matchup",
+                 %{"attacker" => "fairy", "defender" => "rock"},
+                 progress
+               )
+    end
+
+    test "Wattson and Magneton at 0 badges are past_horizon, and named at 2", %{
+      progress: progress
+    } do
+      for name <- ["Wattson", "Magneton"] do
+        assert {:error, :past_horizon} =
+                 Tools.call("type_matchup", %{"defender" => name}, progress)
+      end
+
+      assert {:ok, %{defender: %{leader: "Wattson", name: "manectric"}}} =
+               Tools.call("type_matchup", %{"defender" => "Wattson"}, %{progress | badges: [1, 2]})
+
+      assert {:ok, %{defender: %{name: "magneton"}}} =
+               Tools.call("type_matchup", %{"defender" => "Magneton"}, %{
+                 progress
+                 | badges: [1, 2]
+               })
+    end
+
+    test "no defender is a bad argument", %{progress: progress} do
+      assert {:error, :bad_arguments} =
+               Tools.call("type_matchup", %{"attacker" => "water"}, progress)
     end
   end
 

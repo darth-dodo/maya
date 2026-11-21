@@ -15,6 +15,8 @@ defmodule Maya.Agent.Facts do
     "mudkip" => ~w(mudkip marshtomp swampert)
   }
 
+  @types ~w(normal fighting flying poison ground rock bug ghost steel fire water grass electric psychic ice dragon dark)
+
   # A member is ready at or above the ace's level, or 2x or better and at most this many below.
   @ready_gap 3
 
@@ -113,13 +115,87 @@ defmodule Maya.Agent.Facts do
 
   defp best([], _defender, _chart), do: 1.0
 
-  defp best(attacker_types, defender_types, chart) do
-    attacker_types
-    |> Enum.map(fn a ->
-      Enum.reduce(defender_types, 1.0, &(&2 * Map.get(chart, {a, &1}, 1.0)))
-    end)
-    |> Enum.max()
+  defp best(attacker_types, defender_types, chart),
+    do: attacker_types |> Enum.map(&product(&1, defender_types, chart)) |> Enum.max()
+
+  # An attacking type on one or two defending types: the chart multipliers multiplied.
+  defp product(attacker, defender_types, chart),
+    do: Enum.reduce(defender_types, 1.0, &(&2 * Map.get(chart, {attacker, &1}, 1.0)))
+
+  @doc "The 17 Generation III types (no Fairy in Emerald)."
+  def types, do: @types
+
+  @doc """
+  The gyms inside the Spoiler horizon: every gym up to the Next gym, or all with every badge.
+  Their leaders' parties are Pokémon the player meets inside the horizon.
+  """
+  def gyms_inside(progress), do: Enum.filter(Horizon.gyms(), &inside?(&1, progress))
+
+  @doc """
+  Type multipliers on a defender from the chart, with the reason lines that exist (`reasons`
+  maps `{attacker, defender}` to a line). `defender` is `{:type, name}`, `{:gym, gym, trainer,
+  types}` (the leader's ace) or `{:species, species, places, met}` with `places` from
+  `places/3` and `met` the species in the parties of `gyms_inside/1`; nil is `not_found`.
+  With an `attacker` type, its multiplier; without, the types at 2 or more (`good`) and below 1
+  (`avoid`), strongest first.
+  """
+  def type_matchup(attacker, defender, chart, reasons, progress) do
+    attacker = attacker && attacker |> String.trim() |> String.downcase()
+
+    if is_nil(defender) or (attacker && attacker not in @types) do
+      {:error, :not_found}
+    else
+      with {:ok, d} <- defending(defender, progress), do: {:ok, rate(attacker, d, chart, reasons)}
+    end
   end
+
+  defp defending({:type, type}, _progress), do: {:ok, %{name: type, types: [type]}}
+
+  defp defending({:gym, gym, trainer, types}, progress) do
+    cond do
+      not inside?(gym, progress) -> {:error, :past_horizon}
+      is_nil(trainer) -> {:error, :not_found}
+      true -> {:ok, ace(gym, trainer, types)}
+    end
+  end
+
+  defp defending({:species, species, places, met}, progress) do
+    if meetable?(species.name, places, progress) or species.name in met,
+      do: {:ok, %{name: species.name, types: species.types}},
+      else: {:error, :past_horizon}
+  end
+
+  # The ace is the highest level, last on a tie, as for `gym_counter/5`.
+  defp ace(gym, trainer, types) do
+    ace = trainer.pokemon |> Enum.reverse() |> Enum.max_by(& &1.level)
+    %{leader: gym.leader, name: ace.species, types: types[ace.species] || []}
+  end
+
+  defp rate(nil, d, chart, reasons) do
+    rows =
+      for a <- @types,
+          m = product(a, d.types, chart),
+          m != 1.0,
+          do: %{type: a, multiplier: m, reasons: reasons(a, d.types, reasons)}
+
+    %{
+      defender: d,
+      good: rows |> Enum.filter(&(&1.multiplier >= 2)) |> Enum.sort_by(& &1.multiplier, :desc),
+      avoid: rows |> Enum.filter(&(&1.multiplier < 1)) |> Enum.sort_by(& &1.multiplier)
+    }
+  end
+
+  defp rate(attacker, d, chart, reasons) do
+    %{
+      defender: d,
+      attacker: attacker,
+      multiplier: product(attacker, d.types, chart),
+      reasons: reasons(attacker, d.types, reasons)
+    }
+  end
+
+  defp reasons(attacker, defender_types, reasons),
+    do: for(t <- defender_types, line = reasons[{attacker, t}], do: line)
 
   @doc """
   Types, evolutions and wild places inside the horizon. A species with no wild place inside the

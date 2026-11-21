@@ -120,4 +120,11 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "call team_check"
     refute prompt =~ ~r/\b(beat|defeat)/i
   end
+
+  test "type questions come only from type_matchup, multiplier first" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "call type_matchup"
+    assert prompt =~ "Say the multiplier first"
+    refute prompt =~ ~r/\b(beat|defeat)/i
+  end
 end

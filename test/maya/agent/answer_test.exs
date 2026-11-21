@@ -56,6 +56,11 @@ defmodule Maya.Agent.AnswerTest do
     assert {:ok, ^text} = Answer.check(answer(text), %{"c1" => "log_event"})
   end
 
+  test "type_matchup is a read, so it backs no write claim" do
+    assert {:error, {:unbacked_claim, "logged"}} =
+             Answer.check(answer("Water on Fire is logged at 2x."), %{"c1" => "type_matchup"})
+  end
+
   # #192: only a write that returned a confirm backs a claim; a refusal or error backs none.
   test "a refused or failed write backs no claim, but its own refused line may be said" do
     humor = "Humor goes from 0 to 100 percent, so it stays as it is."

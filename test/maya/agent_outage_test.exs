@@ -29,6 +29,7 @@ defmodule Maya.AgentOutageTest do
     {"find_trainer", ~s({"place":"Route 102"})},
     {"find_item", ~s({"name":"Potion"})},
     {"team_check", "{}"},
+    {"type_matchup", ~s({"defender":"Roxanne"})},
     {"log_event", ~s({"kind":"badge_earned","details":{"leader":"Roxanne"}})},
     {"set_setting", ~s({"name":"humor","value":60})}
   ]

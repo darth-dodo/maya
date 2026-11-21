@@ -76,6 +76,7 @@ defmodule Maya.AgentTest do
                "find_trainer",
                "find_item",
                "team_check",
+               "type_matchup",
                "log_event",
                "set_setting"
              ]
@@ -416,6 +417,22 @@ defmodule Maya.AgentTest do
       assert_received {:request, _, corrective}
       assert last_user(corrective) =~ ~s("refused")
       assert last_user(corrective) =~ "no log_event"
+      refute_received {:request, _, _}
+    end
+
+    test "a write claim backed only by type_matchup gets one corrective request" do
+      script([
+        calls([{"tm", "type_matchup", ~s({"attacker":"water","defender":"fire"})}]),
+        text("Water on Fire is logged at 2x.", ["tm"]),
+        text("Water hits Fire for double.", ["tm"])
+      ])
+
+      assert Agent.answer("Is Water good on Fire?", [], guest_id: @guest) ==
+               {:ok, "Water hits Fire for double."}
+
+      for _ <- 1..2, do: assert_received({:request, _, _})
+      assert_received {:request, _, corrective}
+      assert last_user(corrective) =~ ~s("logged")
       refute_received {:request, _, _}
     end
 
