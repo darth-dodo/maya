@@ -159,19 +159,28 @@ defmodule Maya.Agent do
 
   # Sums one reply's `usage` (absent fields count as 0) into the turn and counts the round.
   defp tally({:ok, message, usage}, turn) do
-    usage = usage || %{}
+    {prompt, cached} =
+      case usage do
+        %{"prompt_tokens" => p} = u when is_integer(p) ->
+          {p, cached_tokens(u["prompt_tokens_details"])}
+
+        _absent_or_odd ->
+          {0, 0}
+      end
 
     {{:ok, message},
      %{
        turn
        | rounds: turn.rounds + 1,
-         prompt_tokens: turn.prompt_tokens + (usage["prompt_tokens"] || 0),
-         cached_tokens:
-           turn.cached_tokens + (get_in(usage, ["prompt_tokens_details", "cached_tokens"]) || 0)
+         prompt_tokens: turn.prompt_tokens + prompt,
+         cached_tokens: turn.cached_tokens + cached
      }}
   end
 
   defp tally(error, turn), do: {error, %{turn | rounds: turn.rounds + 1}}
+
+  defp cached_tokens(%{"cached_tokens" => c}) when is_integer(c), do: c
+  defp cached_tokens(_absent_or_odd), do: 0
 
   # The one turn log line: numbers only, never the Question, Answer or tool content.
   defp done(turn, outcome) do

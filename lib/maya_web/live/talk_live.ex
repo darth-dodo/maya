@@ -623,7 +623,7 @@ defmodule MayaWeb.TalkLive do
         <section id="turns" class="turns" aria-label="Last few chats">
           <ol id="conversation" aria-live="polite" aria-label="Conversation">
             <li
-              :for={turn <- Enum.take(@turns, -3)}
+              :for={turn <- @turns}
               class={["turn", turn == List.last(@turns) && "now"]}
             >
               <p

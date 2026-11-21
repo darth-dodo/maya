@@ -628,18 +628,18 @@ defmodule MayaWeb.TalkLiveTest do
     assert has_element?(view, "#talk-button[data-state='idle'][phx-update='ignore']")
   end
 
-  test "the chat shows only the last 3 exchanges, the latest as now", %{conn: conn, guest: guest} do
-    for n <- 1..5,
+  test "the chat shows the last 25 exchanges, the latest as now", %{conn: conn, guest: guest} do
+    for n <- 1..30,
         do: {:ok, _} = Turn.insert(%Turn{guest_id: guest, question: "Q#{n}", answer: "A#{n}"})
 
     {:ok, view, _html} = live(conn, ~p"/talk")
     html = render(view)
 
     assert has_element?(view, "#turns #conversation")
-    assert count(html, "#conversation .turn") == 3
-    assert texts(html, "#conversation .turn .question") == ~w(Q3 Q4 Q5)
+    assert count(html, "#conversation .turn") == 25
+    assert texts(html, "#conversation .turn .question") == Enum.map(6..30, &"Q#{&1}")
     assert count(html, "#conversation .turn.now") == 1
-    assert has_element?(view, "#conversation .turn.now .answer", "A5")
+    assert has_element?(view, "#conversation .turn.now .answer", "A30")
   end
 
   test "a nothing heard Question reads as a friendly line", %{conn: conn, guest: guest} do

@@ -1,7 +1,7 @@
 defmodule Maya.Conversation do
   @moduledoc """
   One guest's Conversation (ARCHITECTURE.md 2, ADR-008), found by `guest_id`. It owns the
-  turn in flight: STT, then the agent (with the last 5 turns), then a streamed TTS Answer.
+  turn in flight: STT, then the agent (with the last 25 turns), then a streamed TTS Answer.
   A held Question streams in as audio chunks (`stream_start/2`, `audio_chunk/2`,
   `stream_end/1`); with realtime on, a relay to Voxtral realtime shows partial text while
   held, and batch STT on the buffered audio gives the final text or takes over when realtime

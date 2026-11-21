@@ -264,15 +264,18 @@ defmodule Maya.AgentTest do
       refute log =~ "secret"
     end
 
-    test "missing usage counts as 0 tokens" do
-      script([text("Hi.")])
+    test "missing or odd usage counts as 0 tokens, never a crash" do
+      odd = %{"prompt_tokens" => "many", "prompt_tokens_details" => nil}
+      script([text("Hi."), Map.put(text("Hi."), "usage", odd), Map.put(text("Hi."), "usage", [])])
 
       log =
         capture_log([level: :info], fn ->
-          assert {:ok, "Hi."} = Agent.answer("Hi", [], guest_id: @guest)
+          for _ <- 1..3, do: assert({:ok, "Hi."} = Agent.answer("Hi", [], guest_id: @guest))
         end)
 
-      assert log =~ "rounds=1 history=0 prompt_tokens=0 cached_tokens=0"
+      lines = for l <- String.split(log, "\n"), l =~ "agent turn", do: l
+      assert length(lines) == 3
+      assert Enum.all?(lines, &(&1 =~ "rounds=1 history=0 prompt_tokens=0 cached_tokens=0"))
     end
   end
 

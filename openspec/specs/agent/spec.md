@@ -533,7 +533,7 @@ For a model id starting with `anthropic/`, every agent request SHALL carry top-l
 - **THEN** the second turn's first request starts with the system prompt and every history message of the first turn's request
 
 ### Requirement: Turn log line
-After each answered Question the agent SHALL log one info line with the rounds used, the history turns sent, and the prompt and cached tokens summed from the replies' `usage` (0 when absent). The line SHALL NOT contain the Question, the Answer or any tool content.
+After each Question its loop ends (an Answer, the fallback line or an error) the agent SHALL log one info line with the rounds used, the history turns sent, and the prompt and cached tokens summed from the replies' `usage` (0 when absent). The line SHALL NOT contain the Question, the Answer or any tool content.
 
 #### Scenario: Two rounds with a cache hit
 - **WHEN** a Question takes 2 rounds with 25 history turns and the replies report 3000 prompt tokens, 2400 of them cached
