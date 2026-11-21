@@ -7,6 +7,8 @@ description: Use before opening or updating a Maya PR, or when asked whether a b
 
 Mirrors the CI jobs behind `ci-success` (format, credo, test with coverage, security, docker) plus the checks CI cannot run. Report a table: gate, command, exit code, one line of evidence. Never pipe a gate through `tail` or `grep` when judging it: that hides the exit code. Run each gate on its own.
 
+Each worktree tests on its own database by default (`config/test.exs`). Never point two parallel runs at one database, for example by setting the same `MIX_TEST_PARTITION` in two worktrees, because the release test's migration DDL deadlocks the other run (#214).
+
 ## Always
 
 | Gate | Command |
