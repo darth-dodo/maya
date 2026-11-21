@@ -14,11 +14,16 @@ defmodule Maya.Voice.Turn do
     field :cut, :boolean, default: false
     field :mic_release_ms, :integer
     field :stt_ms, :integer
+    # STT done to the agent call that gave the Answer: near 0 untouched, the edit time when
+    # edited (#95). Blank for a typed Question.
+    field :confirm_ms, :integer
     field :agent_ms, :integer
     field :tts_first_byte_ms, :integer
     field :playback_start_ms, :integer
     # "realtime" or "batch": which STT gave the final transcript (ADR-009).
     field :stt_source, :string
+    # Typed with the keyboard button: no STT, no countdown (#95).
+    field :typed, :boolean, default: false
     # In memory only: the screen shows "voice is down" for this turn.
     field :voice_down, :boolean, virtual: true, default: false
 

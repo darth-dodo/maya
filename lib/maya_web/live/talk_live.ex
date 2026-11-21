@@ -48,6 +48,7 @@ defmodule MayaWeb.TalkLive do
   def poke_facts, do: @poke_facts
 
   @db_errors Maya.Repo.outage_errors()
+  @text_error "Use 1 to 300 characters"
 
   @impl true
   def mount(_params, %{"guest_id" => guest_id}, socket) do
@@ -91,6 +92,11 @@ defmodule MayaWeb.TalkLive do
        post_roll_ms: @post_roll_ms,
        live_question: nil,
        pending_question: nil,
+       pending_ms: nil,
+       question_editing: false,
+       question_error: nil,
+       type_open: false,
+       type_error: nil,
        editing: nil,
        edit_line: nil,
        can_undo: false
@@ -145,7 +151,7 @@ defmodule MayaWeb.TalkLive do
   def handle_event("stream_start", params, socket) do
     turn_id = if is_integer(params["turn"]), do: params["turn"]
     Conversation.stream_start(socket.assigns.guest_id, turn_id)
-    {:noreply, assign(socket, voice_down: false, live_question: nil, pending_question: nil)}
+    {:noreply, socket |> assign(voice_down: false, live_question: nil) |> clear_pending()}
   end
 
   def handle_event("audio_chunk", %{"audio" => b64}, socket) when is_binary(b64) do
@@ -216,6 +222,66 @@ defmodule MayaWeb.TalkLive do
   end
 
   def handle_event("hold_ended", _params, socket), do: {:noreply, socket}
+
+  # The pending Question's text field took focus (#95): the tap itself opened the keyboard, this
+  # stops the countdown and drops the in-flight Answer. Too late (Answer started): ignored.
+  def handle_event("edit_question", _params, socket) do
+    case Conversation.edit_pending(socket.assigns.guest_id) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign(question_editing: true, pending_ms: nil, question_error: nil)
+         |> push_event("question_editing", %{})}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("send_question", %{"text" => text}, socket) do
+    case Conversation.send_pending(socket.assigns.guest_id, text) do
+      {:ok, turn} ->
+        {:noreply,
+         socket
+         |> assign(question_editing: false, question_error: nil)
+         |> push_event("asked", %{turn: turn, typed: false})}
+
+      {:error, :invalid} ->
+        {:noreply, assign(socket, question_error: @text_error)}
+
+      :error ->
+        {:noreply, clear_pending(socket)}
+    end
+  end
+
+  def handle_event("cancel_question", _params, socket) do
+    Conversation.cancel_pending(socket.assigns.guest_id)
+    {:noreply, socket |> clear_pending() |> push_event("question_cancelled", %{})}
+  end
+
+  # The type button already focused #type-input in the tap (client side); this only shows the form.
+  def handle_event("open_type", _params, socket),
+    do: {:noreply, assign(socket, type_open: true, type_error: nil)}
+
+  def handle_event("close_type", _params, socket),
+    do: {:noreply, assign(socket, type_open: false, type_error: nil)}
+
+  def handle_event("send_typed", %{"text" => text}, socket) do
+    case Conversation.typed(socket.assigns.guest_id, text) do
+      {:ok, turn} ->
+        {:noreply,
+         socket
+         |> assign(type_open: false, type_error: nil, voice_down: false)
+         |> clear_pending()
+         |> push_event("asked", %{turn: turn, typed: true})}
+
+      {:error, :invalid} ->
+        {:noreply, assign(socket, type_open: true, type_error: @text_error)}
+    end
+  end
+
+  def handle_event(event, _params, socket) when event in ~w(send_question send_typed),
+    do: {:noreply, socket}
 
   # Start fresh asks first; the confirm form posts to /fresh, which rotates the guest.
   def handle_event("ask_fresh", _params, socket),
@@ -296,7 +362,7 @@ defmodule MayaWeb.TalkLive do
   @impl true
   # A turn on screen replaces the pending Question.
   def handle_info({:conversation, {:turns, turns}}, socket),
-    do: {:noreply, assign(socket, turns: turns, live_question: nil, pending_question: nil)}
+    do: {:noreply, socket |> assign(turns: turns, live_question: nil) |> clear_pending()}
 
   # Sent after every agent stage; an unchanged Progress leaves the card as it is.
   def handle_info(
@@ -311,8 +377,18 @@ defmodule MayaWeb.TalkLive do
   def handle_info({:conversation, {:partial, text}}, socket),
     do: {:noreply, assign(socket, live_question: text)}
 
+  # The countdown runs beside the agent call (#95); the seconds are drawn once, CSS runs the bar.
+  def handle_info({:conversation, {:pending, text, ms}}, socket),
+    do:
+      {:noreply,
+       socket
+       |> clear_pending()
+       |> assign(live_question: nil, pending_question: text, pending_ms: ms)}
+
+  # Asked: the window closed, the Question was edited and sent, or there was no countdown.
   def handle_info({:conversation, {:question, text}}, socket),
-    do: {:noreply, assign(socket, live_question: nil, pending_question: text)}
+    do:
+      {:noreply, socket |> clear_pending() |> assign(live_question: nil, pending_question: text)}
 
   def handle_info({:conversation, {:audio, turn_id, pcm}}, socket),
     do: {:noreply, push_event(socket, "audio", %{pcm: Base.encode64(pcm), turn: turn_id})}
@@ -326,9 +402,19 @@ defmodule MayaWeb.TalkLive do
 
     {:noreply,
      socket
-     |> assign(voice_down: not on_turn?, live_question: nil, pending_question: nil)
+     |> assign(voice_down: not on_turn?, live_question: nil)
+     |> clear_pending()
      |> push_event("voice_down", %{})}
   end
+
+  defp clear_pending(socket),
+    do:
+      assign(socket,
+        pending_question: nil,
+        pending_ms: nil,
+        question_editing: false,
+        question_error: nil
+      )
 
   defp close_editor(socket), do: assign(socket, editing: nil, edit_line: nil, can_undo: false)
 
@@ -643,9 +729,13 @@ defmodule MayaWeb.TalkLive do
               <p :if={@live_question} id="live-question" class="question you live">
                 {@live_question}
               </p>
-              <p :if={@pending_question} id="pending-question" class="question you">
-                {@pending_question}
-              </p>
+              <.pending_question
+                :if={@pending_question}
+                text={@pending_question}
+                ms={@pending_ms}
+                editing={@question_editing}
+                error={@question_error}
+              />
             </li>
           </ol>
 
@@ -694,6 +784,8 @@ defmodule MayaWeb.TalkLive do
           </.form>
         </section>
 
+        <.type_form open={@type_open} error={@type_error} />
+
         <div class="talk-dock">
           <button
             id="talk-button"
@@ -729,9 +821,130 @@ defmodule MayaWeb.TalkLive do
               <span data-show="speaking">She stops right away</span>
             </span>
           </button>
+          <%!-- Focus in the click itself, so iOS opens the keyboard (a round trip is too late) --%>
+          <button
+            id="type-button"
+            type="button"
+            class="type-button tap-44"
+            aria-label="Type a Question"
+            phx-click={JS.focus(to: "#type-input") |> JS.push("open_type")}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+            </svg>
+          </button>
         </div>
       </div>
     </Layouts.app>
+    """
+  end
+
+  # The pending Question (#95). Its text is a field, so a tap focuses it in the same gesture and
+  # the phone keyboard opens; the focus tells the server to stop the countdown. Once asked it
+  # turns readonly in place, so nothing changes size under a finger (#74).
+  attr :text, :string, required: true
+  attr :ms, :integer, default: nil, doc: "the countdown, nil once asked or while editing"
+  attr :editing, :boolean, default: false
+  attr :error, :string, default: nil
+
+  defp pending_question(assigns) do
+    ~H"""
+    <div id="pending-question" class={["question you pending", @editing && "editing"]}>
+      <form
+        id="edit-form"
+        class="edit-form"
+        phx-submit="send_question"
+      >
+        <label for="edit-input" class="sr-only">
+          {if @ms || @editing, do: "Your Question, tap to edit", else: "Your Question"}
+        </label>
+        <textarea
+          id="edit-input"
+          name="text"
+          rows="2"
+          maxlength="300"
+          class="pending-text"
+          readonly={!@ms and !@editing}
+          phx-focus={(@ms || @editing) && "edit_question"}
+          aria-describedby={@error && "edit-input-error"}
+        >{@text}</textarea>
+        <span
+          :if={@ms}
+          id="pending-countdown"
+          class="pending-countdown"
+          style={"--confirm-ms: #{@ms}ms"}
+        >
+          Tap to edit, {div(@ms + 999, 1000)} s
+        </span>
+        <%!-- Same height as the countdown and its bar, so the bubble keeps its size (#74) --%>
+        <span :if={!@ms and !@editing} class="pending-countdown pending-asked">Asked</span>
+        <p :if={@error} id="edit-input-error" class="voice-down">{@error}</p>
+        <div :if={@editing} class="form-actions">
+          <button id="edit-send" type="submit" class="btn btn-primary tap-44">Send</button>
+          <button
+            id="edit-cancel"
+            type="button"
+            class="btn btn-ghost tap-44"
+            phx-click={JS.push("cancel_question") |> JS.focus(to: "#talk-button")}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+    """
+  end
+
+  # Always rendered, transparent until open, so the type button can focus #type-input in its own
+  # tap; a fixed overlay above the dock, so opening it moves no layout (#74).
+  attr :open, :boolean, required: true
+  attr :error, :string, default: nil
+
+  defp type_form(assigns) do
+    ~H"""
+    <form id="type-form" class={["type-form", @open && "open"]} phx-submit="send_typed">
+      <label for="type-input" class="sr-only">Type a Question</label>
+      <input
+        id="type-input"
+        type="text"
+        name="text"
+        maxlength="300"
+        required
+        autocomplete="off"
+        enterkeyhint="send"
+        placeholder="Type a Question"
+        tabindex={!@open && "-1"}
+        class="input input-bordered w-full tap-44"
+        aria-describedby={@error && "type-input-error"}
+      />
+      <p :if={@error} id="type-input-error" class="voice-down">{@error}</p>
+      <div class="form-actions">
+        <button
+          id="type-send"
+          type="submit"
+          class="btn btn-primary tap-44"
+          tabindex={!@open && "-1"}
+        >
+          Send
+        </button>
+        <button
+          id="type-cancel"
+          type="button"
+          class="btn btn-ghost tap-44"
+          tabindex={!@open && "-1"}
+          phx-click={JS.push("close_type") |> JS.focus(to: "#type-button")}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
     """
   end
 end

@@ -171,6 +171,19 @@ export function keepChunk(state, currentTurn, chunkTurn) {
   return (state === "waiting" || state === "speaking") && chunkTurn === currentTurn
 }
 
+// A Question sent from a form (#95): a typed one counts its Answer time from Send, an edited one
+// keeps the hold's release mark, so playback_start_ms still includes the edit.
+export function askedMarks(typed, marks, now) {
+  return typed || !marks ? {release: now} : marks
+}
+
+// The forms whose Send asks Maya a Question (#95); their submit is the gesture that wakes audio.
+export const QUESTION_FORMS = ["type-form", "edit-form"]
+
+export function asksMaya(form) {
+  return !!form && QUESTION_FORMS.includes(form.id)
+}
+
 // Music spike (2026-11-18): the session type set after a turn, picked on the debug readout.
 export const AFTER_TURN_TYPES = ["auto", "transient", "ambient"]
 // Spike #197: the type while Maya talks with the mic closed, and whether the mic stays warm
@@ -257,10 +270,43 @@ export const TalkHook = {
       this.maybeIdle()
     })
     this.handleEvent("voice_down", () => { this.stopAudio(); this.set("idle") })
+
+    // Typed and edited Questions (#95). The Send tap is the gesture: the AudioContext is made and
+    // woken there, as a press does, or iOS keeps a typed Question's Answer silent.
+    this.onSubmit = e => {
+      if (!asksMaya(e.target)) return
+      this.ctx ||= new (window.AudioContext || window.webkitAudioContext)()
+      wakeAudio(this.ctx)
+    }
+    document.addEventListener("submit", this.onSubmit, true)
+    // The Question is open to edit: its Answer was dropped, so the mic may close while typing.
+    this.handleEvent("question_editing", () => { if (!this.pressed && this.state === "waiting") this.set("idle") })
+    this.handleEvent("question_cancelled", () => { if (!this.pressed && this.state === "waiting") this.set("idle") })
+    // Sent from a form: the server already cut any Answer, the Answer audio carries this turn id.
+    this.handleEvent("asked", ({turn, typed}) => {
+      if (this.pressed) return
+      this.stopAudio()
+      this.startTurn(askedMarks(typed, this.marks, performance.now()))
+      this.turn = turn
+      // The keyboard closes only once the Question is accepted, so an error keeps the field.
+      if (typed) document.getElementById("type-form")?.reset()
+      document.activeElement?.blur()
+      this.set("waiting")
+    })
+  },
+
+  // Fresh per-turn playback state; every playback timing counts from marks.release.
+  startTurn(marks) {
+    this.marks = marks
+    this.done = false
+    this.reported = false
+    this.nextTime = 0
+    this.leftover = null
   },
 
   destroyed() {
     document.removeEventListener("visibilitychange", this.onVisibility)
+    document.removeEventListener("submit", this.onSubmit, true)
     this.unlistenPointerEnd()
     clearTimeout(this.tailTimer)
     clearInterval(this.debugTimer)
@@ -484,11 +530,7 @@ export const TalkHook = {
       holdReport(endedBy, this.pressedAt, releasedAt, this.lostCapture, this.micLiveAt, this.warm, tail))
     if (!wasRecording) return this.set("idle")
 
-    this.marks = {release: releasedAt}
-    this.done = false
-    this.reported = false
-    this.nextTime = 0
-    this.leftover = null
+    this.startTurn({release: releasedAt})
     this.set("uploading")
     this.tailTimer = setTimeout(() => this.endStream(), tail)
   },
