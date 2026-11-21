@@ -158,7 +158,7 @@ A hand-written loop inside the Conversation's Task: call OpenRouter with the mes
 
 ## 5. Config and deploy
 
-- Secrets (names only; values live where FACTORY.md says): `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `DATABASE_URL`, `SECRET_KEY_BASE`, `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`. Each new one is added to `render.yaml`, `config/runtime.exs` and `.env.template` in the same PR.
+- Secrets (names only; values live where FACTORY.md says): `OPENROUTER_API_KEY`, `MISTRAL_API_KEY`, `DATABASE_URL`, `SECRET_KEY_BASE`. Each new one is added to `render.yaml`, `config/runtime.exs` and `.env.template` in the same PR.
 - Config, not secrets: `:agent_model`, `:stt_model`, `:tts_model`, timeouts per stage.
 - Deploy: unchanged. Render web service, `checksPass`, pre-deploy migrations; `/health` stays DB-free. `mix maya.import` runs as a one-off after a data change.
 - Content-Security-Policy: unchanged. Audio goes over the LiveView socket, so `connect-src 'self'` is enough; the mic needs HTTPS, which Render gives.

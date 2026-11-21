@@ -16,6 +16,7 @@ ADR-006 kept one Conversation forever and one Progress row. Since the Render dep
 ## Consequences
 - Easier: test noise and other people never share a history or Progress; each phone browser is its own player.
 - Cost: until `Plug.BasicAuth` lands (#49), any visitor is a guest who can spend OpenRouter and Mistral calls. Rate limits per IP stay out of scope.
+  - Update 2026-11-16: #49 closed. The MVP ships with no login, so every visitor stays a guest; a shared login is a Phase 2 idea (PHASE_2.md).
 - Losing the cookie (cleared site data, another browser or device) loses that guest's history and Progress. The rows stay in Postgres, unreachable from the screen.
 - Isolation is app code (every query filters by `guest_id`), not Postgres row-level security. A missing filter would leak; tests cover two guests.
 - `mix maya.latency` stays global over every guest's turns: it measures the voice loop.
