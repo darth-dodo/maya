@@ -565,6 +565,8 @@
   bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   width: min(42rem, calc(100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
   transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* One size in every moment: only colours change on press, never the border, padding or font
@@ -572,7 +574,7 @@
 .talk-button {
   display: grid;
   place-items: center;
-  width: 100%;
+  flex: 1;
   min-height: 4.5rem;
   padding: 0.5rem 1rem;
   border-radius: var(--maya-radius-pill);
@@ -608,6 +610,83 @@
 .talk-button[data-state="uploading"] [data-show~="uploading"],
 .talk-button[data-state="waiting"] [data-show~="waiting"],
 .talk-button[data-state="speaking"] [data-show~="speaking"] { display: inline; }
+
+/* Typing a Question (#95): the keyboard button beside the Talk button. Hidden, not removed,
+   during a hold, so nothing moves under the finger (#74). */
+.type-button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 4.5rem;
+  border-radius: var(--maya-radius-pill);
+  border: 1px solid var(--maya-line);
+  background: var(--maya-surface);
+  color: var(--maya-ink);
+  box-shadow: var(--maya-shadow-2);
+  cursor: pointer;
+}
+.type-button svg { width: 1.5rem; height: 1.5rem; }
+.type-button:focus-visible { outline: 3px solid var(--maya-ink); outline-offset: 3px; }
+.talk-screen:is([data-state="recording"], [data-state="uploading"]) .type-button { visibility: hidden; }
+
+/* 44 by 44 CSS px touch targets for the Question editor and the type form */
+.tap-44 { min-width: 44px; min-height: 44px; }
+.form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+/* The type form: a fixed overlay above the dock, like the Team editor, so opening it moves no
+   layout. Always rendered and only transparent when closed, so the type button can focus its
+   input inside the tap and iOS opens the keyboard. */
+.type-form {
+  position: fixed;
+  z-index: 11;
+  left: 50%;
+  bottom: calc(max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem)) + 5.25rem);
+  width: min(42rem, calc(100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--maya-radius-md);
+  border: 1px solid var(--maya-line);
+  background: var(--maya-surface);
+  color: var(--maya-ink);
+  box-shadow: var(--maya-shadow-1);
+}
+.type-form .input { font-size: var(--maya-text-base); }
+.type-form:not(.open):not(:focus-within) { opacity: 0; pointer-events: none; }
+.talk-screen:is([data-state="recording"], [data-state="uploading"]) .type-form { visibility: hidden; }
+
+/* The pending Question (#95): its text is a field that reads as the bubble until tapped; a bar
+   empties over the countdown and the seconds are text too. */
+.turn .pending { display: grid; gap: 0.25rem; width: 86%; }
+.edit-form { display: grid; gap: 0.25rem; }
+.pending-text {
+  width: 100%;
+  field-sizing: content;
+  resize: none;
+  padding: 0.25rem 0.5rem;
+  border: 1px dashed var(--maya-line);
+  border-radius: var(--maya-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* 16 px or more, or iOS zooms the page on focus */
+  font-size: var(--maya-text-base);
+  text-align: right;
+}
+.pending-text[readonly] { border-color: transparent; }
+.pending.editing .pending-text { border-style: solid; border-color: var(--maya-ink); text-align: left; background: var(--maya-surface); }
+.pending-countdown { font-size: var(--maya-text-xs); color: var(--maya-muted); }
+#pending-countdown::after {
+  content: "";
+  display: block;
+  height: 3px;
+  margin-top: 0.25rem;
+  background: currentColor;
+  transform-origin: right;
+  animation: countdown var(--confirm-ms, 2000ms) linear forwards;
+}
+@keyframes countdown { to { transform: scaleX(0); } }
 
 /* Reduced motion: the shared duration drops to 0ms and nothing animates. !important: the
    per-state ring rules above are more specific. */

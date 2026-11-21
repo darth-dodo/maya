@@ -3,7 +3,7 @@ import {test} from "node:test"
 import assert from "node:assert/strict"
 import {micCloseDelay, audioCanSleep, setAudioSession, holdEndedBy, audioSessionType, wakeAudio,
   playbackStalled, keepChunk, afterTurnType, audioDebugOn, debugChoice, SPEAKING_TYPES, MIC_AFTER_RELEASE,
-  debugStatus} from "../../assets/js/talk_hook.js"
+  debugStatus, askedMarks, asksMaya} from "../../assets/js/talk_hook.js"
 
 test("micCloseDelay: hidden closes at once, idle waits, a turn in flight never closes", () => {
   assert.equal(micCloseDelay("speaking", false, true, 4000), 0)
@@ -121,4 +121,18 @@ test("debugChoice: a stored value from the list, else the first (current behavio
 test("debugStatus: session type, context state and mic (#197)", () => {
   assert.equal(debugStatus("ambient", "running", false), "session: ambient, context: running, mic: closed")
   assert.equal(debugStatus(undefined, undefined, true), "session: none, context: none, mic: open")
+})
+
+test("askedMarks: a typed Question counts from Send, an edited one keeps the release (#95)", () => {
+  const hold = {release: 100, heard: 400}
+  assert.deepEqual(askedMarks(true, hold, 9000), {release: 9000})
+  assert.equal(askedMarks(false, hold, 9000), hold)
+  assert.deepEqual(askedMarks(false, undefined, 9000), {release: 9000})
+})
+
+test("asksMaya: only the type and edit forms wake audio on submit (#95)", () => {
+  assert.equal(asksMaya({id: "type-form"}), true)
+  assert.equal(asksMaya({id: "edit-form"}), true)
+  assert.equal(asksMaya({id: "level-form"}), false)
+  assert.equal(asksMaya(null), false)
 })
