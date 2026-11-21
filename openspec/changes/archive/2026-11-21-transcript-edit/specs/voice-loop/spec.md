@@ -15,6 +15,10 @@ After STT returns a non-empty, corrected transcript, the Conversation SHALL call
 - **THEN** the first agent call is stopped, its Answer is never spoken or stored
 - **AND** the agent is asked "where do I catch Ralts?" and the one stored turn has that Question
 
+#### Scenario: A write of the discarded run stays
+- **WHEN** the discarded run already logged an Event (a catch, a level) before the tap
+- **THEN** that Event stays, as with a barge-in during the agent stage, and the screen gets the new Progress so the card redraws
+
 #### Scenario: Cancelled Question is not stored
 - **WHEN** a Question opened to edit is cancelled
 - **THEN** no Answer is spoken and the Guest's stored turns are unchanged

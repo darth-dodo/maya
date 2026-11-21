@@ -414,14 +414,14 @@ defmodule Maya.ConversationTest do
       Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 2_000))
       on_exit(fn -> Application.put_env(:maya, :voice, voice) end)
 
-      # Echoes the Question; one with "rawls" is slow, so an edit lands while it is in flight.
+      # Echoes the Question; one about the "bike lane" is slow, so an edit lands while it is in flight.
       me = self()
 
       Req.Test.stub(Maya.OpenRouter, fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         question = List.last(Jason.decode!(body)["messages"])["content"]
         send(me, {:agent_asked, question})
-        if question =~ "rawls", do: Process.sleep(500)
+        if question =~ "bike lane", do: Process.sleep(500)
         Req.Test.json(conn, reply(question))
       end)
 
@@ -446,22 +446,26 @@ defmodule Maya.ConversationTest do
     test "the countdown end closes the edit window", %{id: id} do
       voice = Application.fetch_env!(:maya, :voice)
       Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 100))
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       Conversation.question(id, "RIFF", "question.wav")
 
       assert_receive {:conversation, {:pending, _text, 100}}
-      assert_receive {:conversation, {:question, "where do I catch rawls"}}, 1_000
+      assert_receive {:conversation, {:question, "how long is the bike lane"}}, 1_000
       assert :error = Conversation.edit_pending(id)
-      assert_receive {:conversation, {:turns, [%Turn{question: "where do I catch rawls"}]}}, 1_000
+
+      assert_receive {:conversation, {:turns, [%Turn{question: "how long is the bike lane"}]}},
+                     1_000
     end
 
     test "an edit discards the in-flight Answer and asks the edited text", %{id: id} do
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       Conversation.question(id, "RIFF", "question.wav")
       assert_receive {:conversation, {:pending, _text, 2_000}}
-      assert_receive {:agent_asked, "where do I catch rawls"}
+      assert_receive {:agent_asked, "how long is the bike lane"}
 
       assert :ok = Conversation.edit_pending(id)
+      # The dropped run may have logged an Event: the card gets the Progress again.
+      assert_receive {:conversation, {:progress, %{}}}
       Process.sleep(400)
       assert {:error, :invalid} = Conversation.send_pending(id, "   ")
       assert {:ok, nil} = Conversation.send_pending(id, "  where do I catch   Ralts? ")
@@ -479,7 +483,7 @@ defmodule Maya.ConversationTest do
     end
 
     test "cancel speaks nothing and stores no turn", %{id: id} do
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       Conversation.question(id, "RIFF", "question.wav")
       assert_receive {:conversation, {:pending, _text, 2_000}}
 
@@ -492,10 +496,10 @@ defmodule Maya.ConversationTest do
     end
 
     test "a new hold discards the pending Question's Answer", %{id: id} do
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       Conversation.question(id, "RIFF", "question.wav")
       assert_receive {:conversation, {:pending, _text, 2_000}}
-      assert_receive {:agent_asked, "where do I catch rawls"}
+      assert_receive {:agent_asked, "how long is the bike lane"}
 
       Conversation.stream_start(id, 7)
       assert :error = Conversation.edit_pending(id)

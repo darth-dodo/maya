@@ -994,14 +994,14 @@ defmodule MayaWeb.TalkLiveTest do
       Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 2_000))
       on_exit(fn -> Application.put_env(:maya, :voice, voice) end)
 
-      # Echoes the Question; one with "rawls" is slow, so the tap lands while it is in flight.
+      # Echoes the Question; one about the "bike lane" is slow, so the tap lands while it is in flight.
       me = self()
 
       Req.Test.stub(Maya.OpenRouter, fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         question = List.last(Jason.decode!(body)["messages"])["content"]
         send(me, {:agent_asked, question})
-        if question =~ "rawls", do: Process.sleep(500)
+        if question =~ "bike lane", do: Process.sleep(500)
         answer = Jason.encode!(%{answer: question, used_tool_calls: []})
 
         Req.Test.json(conn, %{
@@ -1055,11 +1055,11 @@ defmodule MayaWeb.TalkLiveTest do
       conn: conn,
       guest: guest
     } do
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       {:ok, view, _html} = live(conn, ~p"/talk")
       ask(view)
       assert_receive {:conversation, {:pending, _text, 2_000}}
-      assert_receive {:agent_asked, "where do I catch rawls"}
+      assert_receive {:agent_asked, "how long is the bike lane"}
 
       view |> element("#edit-input") |> render_focus()
       assert_push_event(view, "question_editing", %{})
@@ -1083,7 +1083,7 @@ defmodule MayaWeb.TalkLiveTest do
     end
 
     test "Cancel speaks nothing and stores no turn", %{conn: conn, guest: guest} do
-      stub(text("where do I catch rawls"), &speak/1)
+      stub(text("how long is the bike lane"), &speak/1)
       {:ok, view, _html} = live(conn, ~p"/talk")
       ask(view)
       assert_receive {:conversation, {:pending, _text, 2_000}}
@@ -1099,7 +1099,9 @@ defmodule MayaWeb.TalkLiveTest do
 
     test "a hold during the countdown drops the pending Question", %{conn: conn, guest: guest} do
       {:ok, texts} =
-        Elixir.Agent.start_link(fn -> ["where do I catch rawls", "is Zigzagoon on route 101"] end)
+        Elixir.Agent.start_link(fn ->
+          ["how long is the bike lane", "is Zigzagoon on route 101"]
+        end)
 
       stub(
         fn conn ->
@@ -1110,12 +1112,12 @@ defmodule MayaWeb.TalkLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/talk")
       ask(view)
-      assert_receive {:conversation, {:pending, "where do I catch rawls", 2_000}}
+      assert_receive {:conversation, {:pending, "how long is the bike lane", 2_000}}
       ask(view)
       assert_receive {:conversation, {:pending, "is Zigzagoon on route 101", 2_000}}
-      assert view |> element("#pending-question") |> render() =~ "Zigzagoon"
-
+      # Its fast Answer may already have replaced the pending bubble, so the turn is checked.
       assert_push_event(view, "audio_done", %{}, 1_500)
+      assert view |> element("#conversation .turn .question") |> render() =~ "Zigzagoon"
       _ = Maya.Conversation.turns(guest)
       assert [%Turn{question: "is Zigzagoon on route 101"}] = Turn.recent(guest)
     end
