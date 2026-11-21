@@ -3,6 +3,7 @@ defmodule Maya.Agent.TraceTest do
   use Maya.DataCase, async: false
 
   import ExUnit.CaptureLog
+  require OpenTelemetry.Tracer, as: Tracer
   require Record
 
   alias Maya.Agent
@@ -73,10 +74,20 @@ defmodule Maya.Agent.TraceTest do
     }
   end
 
-  # Every span this turn ended, by name, with its attributes as a map.
+  # One Question under a test root span, so `spans/0` keeps only this test's trace: in CI,
+  # Tasks left over from async tests can end spans while this module runs.
+  defp answer(question, turns, opts) do
+    Tracer.with_span "test" do
+      Process.put(:trace_id, OpenTelemetry.Span.trace_id(Tracer.current_span_ctx()))
+      Agent.answer(question, turns, opts)
+    end
+  end
+
+  # Every span this test's turn ended, with its attributes as a map.
   defp spans do
     :otel_tracer_provider.force_flush()
-    collect([])
+    trace = Process.get(:trace_id)
+    for s <- collect([]), s.trace == trace, s.name != "test", do: s
   end
 
   defp collect(acc) do
@@ -84,6 +95,7 @@ defmodule Maya.Agent.TraceTest do
       {:span, s} ->
         collect([
           %{
+            trace: span(s, :trace_id),
             name: span(s, :name),
             id: span(s, :span_id),
             parent: span(s, :parent_span_id),
@@ -111,7 +123,7 @@ defmodule Maya.Agent.TraceTest do
 
     log =
       capture_log([level: :info], fn ->
-        assert {:ok, _} = Agent.answer("Where do I catch a Ralts?", [], guest_id: @guest)
+        assert {:ok, _} = answer("Where do I catch a Ralts?", [], guest_id: @guest)
       end)
 
     spans = spans()
@@ -152,7 +164,7 @@ defmodule Maya.Agent.TraceTest do
       text("Not sure.", [])
     ])
 
-    assert {:ok, _} = Agent.answer("Several things", [], guest_id: @guest)
+    assert {:ok, _} = answer("Several things", [], guest_id: @guest)
 
     statuses =
       for t <- named(spans(), "tool"),
@@ -178,7 +190,7 @@ defmodule Maya.Agent.TraceTest do
       Req.Test.json(conn, calls([{"slow", "gym_counter", ~s({"leader":"Roxanne"})}]))
     end)
 
-    assert Agent.answer("Roxanne?", [], guest_id: @guest) == {:error, :timeout}
+    assert answer("Roxanne?", [], guest_id: @guest) == {:error, :timeout}
     assert [turn] = named(spans(), "turn")
     assert turn.attrs["maya.reason"] == :timeout
   end
@@ -189,7 +201,7 @@ defmodule Maya.Agent.TraceTest do
       text(@answer, ["c1"])
     ])
 
-    assert {:ok, @answer} = Agent.answer(@question, [], guest_id: @guest)
+    assert {:ok, @answer} = answer(@question, [], guest_id: @guest)
 
     spans = spans()
     assert length(spans) == 4
