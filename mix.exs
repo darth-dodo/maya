@@ -85,6 +85,8 @@ defmodule Maya.MixProject do
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
+      # Server side errors, metadata only (ADR-010): https://hexdocs.pm/sentry/
+      {:sentry, "~> 14.0"},
       # Numbers-only LLM traces to Langfuse over OTLP/HTTP (ADR-010)
       {:opentelemetry, "~> 1.7"},
       {:opentelemetry_api, "~> 1.5"},

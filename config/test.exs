@@ -56,6 +56,9 @@ config :opentelemetry, span_processor: :batch, traces_exporter: :none
 # No countdown unless a test sets one (#95), so the voice tests see a plain `{:question, text}`.
 config :maya, :voice, confirm_ms: 0
 
+# Sentry.Test collects events per test; no DSN, nothing leaves (ADR-010).
+config :sentry, test_mode: true, dedup_events: false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

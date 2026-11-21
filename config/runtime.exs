@@ -25,6 +25,12 @@ config :maya, MayaWeb.Endpoint, http: [port: String.to_integer(System.get_env("P
 # Commit Render deployed (set by Render per deploy); served by /health/version for the smoke check.
 config :maya, :git_commit, System.get_env("RENDER_GIT_COMMIT", "unknown")
 
+# Sentry (ADR-010): unset SENTRY_DSN sends nothing. Never in test, which collects with Sentry.Test.
+config :sentry,
+  dsn: if(config_env() != :test, do: System.get_env("SENTRY_DSN")),
+  release: System.get_env("RENDER_GIT_COMMIT"),
+  environment_name: to_string(config_env())
+
 # Header token for POST /health/ask (the post-deploy Question). Unset turns the endpoint off.
 config :maya, :smoke_token, System.get_env("SMOKE_TOKEN")
 

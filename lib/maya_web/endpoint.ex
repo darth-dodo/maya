@@ -1,4 +1,6 @@
 defmodule MayaWeb.Endpoint do
+  # Controller errors to Sentry, no request data (ADR-010); must come before Phoenix.Endpoint.
+  use Sentry.PlugCapture
   use Phoenix.Endpoint, otp_app: :maya
 
   # The session will be stored in the cookie and signed,

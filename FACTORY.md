@@ -163,6 +163,7 @@ Remote Control (blocked sessions, push notifications) and the GitHub mobile app 
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | Render env |
 | `MAYA_STT_REALTIME` (not secret) | Render env, local `.env`. Read in `config/runtime.exs`; `true` turns on the Voxtral realtime relay and the live preview (ADR-009). Unset means batch STT only |
 | `SMOKE_TOKEN` | Render env and GitHub Actions secret (same value), local `.env`. Read in `config/runtime.exs`; gates `POST /health/ask`, the hourly post-deploy Question. Missing on Render turns the endpoint off (404); missing in Actions skips the Question |
+| `SENTRY_DSN` | Render env, local `.env` (optional). Read in `config/runtime.exs`; server side errors to Sentry, scrubbed to metadata (ADR-010). Missing sends nothing (dev, test, CI) |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Render env, local `.env`. Read in `config/runtime.exs`; both set sends numbers-only agent traces to Langfuse Cloud EU (ADR-010). Either missing means no traces |
 | `DATABASE_URL` | Render env, Supabase session pooler URL. The Supabase CA is public and lives in `priv/certs/` |
 | `SECRET_KEY_BASE` | Render env, from `mix phx.gen.secret` |

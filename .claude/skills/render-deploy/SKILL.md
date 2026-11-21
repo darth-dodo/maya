@@ -30,6 +30,7 @@ Maya runs as one Docker web service on Render (Frankfurt). Postgres lives on Sup
 - `SECRET_KEY_BASE` comes from `mix phx.gen.secret`. `generateValue` is too short for Phoenix (needs 64 bytes).
 - Keep `/health` cheap and DB free. A paused Supabase project must not restart the app.
 - New env var: add it to `render.yaml` (with `sync: false` if secret), `config/runtime.exs`, and the secrets table in `FACTORY.md`.
+- `SENTRY_DSN` (ADR-010) turns on server side error events to Sentry (free Developer plan, EU). Unset sends nothing. Check an event arrived with `sentry-cli`; `release` is the live `RENDER_GIT_COMMIT`.
 - `SMOKE_TOKEN` must hold the same value in the Render env and the GitHub Actions secrets, or the hourly Question answers 401 and opens a `bug` Issue.
 
 ## Before opening a deploy PR
