@@ -36,9 +36,9 @@ flowchart LR
   Conv --> TTS["Mistral Voxtral TTS<br/>(streamed PCM)"]
 ```
 
-The phone records one Question and sends it up the LiveView socket. A single Conversation process transcribes it, runs a hand-written agent loop whose tools read Pokémon data filtered by the Spoiler horizon, and streams the spoken Answer back as PCM on the same socket. One Phoenix app on Render (Frankfurt) and one Postgres on Supabase (Ireland), no other services. The full design is in [ARCHITECTURE.md](ARCHITECTURE.md).
+The phone records one Question and sends it up the LiveView socket (or you tap the keyboard button and type it, which skips STT). A single Conversation process transcribes it, shows the heard Question with a 2 s countdown that you can tap to fix, runs a hand-written agent loop with the last 25 turns as context, and streams the spoken Answer back as PCM on the same socket. The agent's ten tools read Pokémon data filtered by the Spoiler horizon: `find_pokemon`, `move_learnset`, `gym_counter`, `team_check`, `type_matchup`, `find_trainer`, `find_item` and `search_guide` answer, while `log_event` and `set_setting` change Progress and the Humor dial. One Phoenix app on Render (Frankfurt) and one Postgres on Supabase (Ireland), no other services. The full design is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**How we know it works:** 92 ExUnit tests run on every pull request with a coverage floor of 89% (89.41% measured), reported to [Codecov](https://codecov.io/gh/darth-dodo/maya). Every turn stores per-stage milliseconds (mic release, STT, TTS first byte, playback start) and `mix maya.latency` prints p50 and p95 per stage against a budget of p50 at most 5 s and p95 at most 8 s; latency numbers are pending the phone check. A 20-question spoiler probe set lands with the Sunday proof (#40). Factory gates on every PR: compile with warnings as errors, format, credo, tests with the coverage floor, sobelow, `mix deps.audit`, and a release image that must boot and answer `/health`.
+**How we know it works:** 693 ExUnit tests run on every pull request with a coverage floor of 90% (91.07% measured), reported to [Codecov](https://codecov.io/gh/darth-dodo/maya). Every turn stores per-stage milliseconds (mic release, STT, TTS first byte, playback start) and `mix maya.latency` prints p50 and p95 per stage against a budget of p50 at most 5 s and p95 at most 8 s; latency numbers are pending the phone check. Spoilers are tested twice: a `spoiler-gate` CI job runs 20 probe Questions, guide probes at 0, 1 and 2 badges and an honesty case through the agent with the model stubbed, and a nightly workflow asks production the same 20 probes and opens a `bug` Issue on a leak. Factory gates on every PR: compile with warnings as errors, format, credo, tests with the coverage floor, the spoiler gate, sobelow, `mix deps.audit`, and a release image that must boot and answer `/health`.
 
 ## Decisions and trade-offs
 
@@ -50,7 +50,7 @@ The phone records one Question and sends it up the LiveView socket. A single Con
 | Facts only from tools and data ([ADR-004](docs/adr/004-facts-only-from-tools.md)) | Models misremember levels and places and know everything past the player's horizon; the horizon can only be enforced on data Maya controls | More "Not sure" Answers until the data covers a question; revisit by widening the data, not the model's freedom |
 | Voice over the LiveView socket ([ADR-005](docs/adr/005-voice-transport-over-liveview.md)) | Upload in, streamed PCM out, so the first sound plays before TTS finishes and barge-in is a local stop plus a cancel | PCM playback code in the hook; revisit if the socket relay shows up between TTS first byte and playback start |
 | Progress and the Conversation live in Postgres ([ADR-006](docs/adr/006-state-in-postgres.md)) | Render's disk is replaced on every deploy; deploys, crashes and reloads keep Progress and history, and p50 and p95 come from SQL | Every turn writes across regions, so writes happen after the Answer starts playing; revisit if history reads show up in Answer time |
-| Guests in a signed cookie, isolated in app code ([ADR-008](docs/adr/008-guest-sessions.md)) | Test noise and other people never share one Conversation or Progress, with no login to build; like habla-hermano, every query filters by `guest_id` | Any visitor can spend API calls until BasicAuth (#49); a cleared cookie loses that Guest's history; isolation is app code, not row-level security |
+| Guests in a signed cookie, isolated in app code ([ADR-008](docs/adr/008-guest-sessions.md)) | Test noise and other people never share one Conversation or Progress, with no login to build; like habla-hermano, every query filters by `guest_id` | Any visitor can spend API calls (BasicAuth, #49, was closed as not planned); a cleared cookie loses that Guest's history; isolation is app code, not row-level security |
 | An agent-run software factory builds Maya ([ADR-001](docs/adr/001-agent-run-software-factory.md)) | One person, one weekend: Abhishek's time goes to product calls and gyms, and the pipeline makes the safe path the default for agents | Agents drift (skip tests, widen scope, swap the stack), so every PR passes CI gates and Abhishek merges; the factory runs only while his machine is on |
 | Specs in OpenSpec next to the code ([ADR-003](docs/adr/003-openspec-for-specs.md)) | Builders in separate worktrees read behaviour rules at any commit | One more tool and folder to keep in sync; every change is archived in the PR that builds it |
 
@@ -71,7 +71,9 @@ Needs Elixir 1.17 or later (developed on 1.20 with OTP 29) and Docker. Without `
 | `mix test` | the ExUnit suite (`mix test --cover` adds the coverage table, the floor and `cover/lcov.info`) |
 | `mix precommit` | compile with warnings as errors, unlock unused deps, format, test |
 | `mix maya.import` | load game data from `priv/data/` into Postgres (no network); each Guest seeds their own Progress on first use |
-| `mix maya.latency` | p50 and p95 per voice stage over the stored turns |
+| `mix maya.fetch_data` | download pokeemerald and PokeAPI data into `priv/data/` (network, run by hand; ends with `mix maya.fetch_access`) |
+| `mix maya.latency` | p50 and p95 per voice stage over the stored turns, plus `confirm_ms` for the Question countdown |
+| `mix maya.sunday` | the Sunday goal phone checklist and the latency SQL |
 
 ## Built with
 
@@ -97,7 +99,7 @@ Maya is built by an agent-run software factory ([ADR-001](docs/adr/001-agent-run
 | [Product](PRODUCT.md) | the job, the experience, spoilers, character, done when |
 | [Architecture](ARCHITECTURE.md) | voice loop, processes, agent, data, deploy, build order |
 | [Glossary](GLOSSARY.md) | the terms in bold across the docs |
-| [ADRs](docs/adr/README.md) | settled decisions, [001](docs/adr/001-agent-run-software-factory.md) to [008](docs/adr/008-guest-sessions.md) |
+| [ADRs](docs/adr/README.md) | settled decisions, [001](docs/adr/001-agent-run-software-factory.md) to [010](docs/adr/010-error-monitoring-and-llm-tracing.md) (010 is Proposed) |
 | [Specs](openspec/specs/) | behaviour contracts per capability (OpenSpec) |
 | [Factory](FACTORY.md) | how agents build, verify and ship Maya |
 | [Factory lessons](docs/factory/LESSONS.md) · [experiments](docs/factory/experiments.md) | rules learned per station, and factory changes on trial |
