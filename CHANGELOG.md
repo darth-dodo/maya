@@ -10,6 +10,8 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 ## [0.5.0] - 2026-11-21
 
 ### Added
+- OpenSpec change `type-matchup` proposes a `type_matchup` read tool (what is good against a type, Pokémon or gym ace, and why) with hand-written reason lines checked at import (#206)
+- OpenSpec change `longer-memory` proposes 25 turns of agent context with OpenRouter prompt caching and a per-turn log line (#206)
 - `mix maya.fetch_access` regenerates `priv/data/access.json` from a walk over each listed map's layout at the pinned pokeemerald commit (one-way ledges, Cut trees, Surf on and off), and `mix maya.fetch_data` runs it last (#204)
 - team_check tells whether your Team is ready for the Next gym, with each member's level gap and best type matchup against the ace (#201)
 - `/talk?audio_debug=1` can pick the audio session while Maya speaks (`play-and-record`, `ambient`, `playback`) and close the mic right after the release, and shows whether the mic is open, to test whether Spotify keeps playing (#200)
@@ -18,6 +20,7 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 - `factory:release` skill: after each retro batch (or on request) it says whether a release is due, proposes the version and a theme for Abhishek to name, hands off to `release-manager`, and can split unreleased changes into several releases (#196)
 
 ### Changed
+- Factory improve run 8 over #187 to #204: E4 stays running, and the batch's lessons are folded into docs/factory/LESSONS.md (spoiler findings fix before merge, claims backed by their own confirmed write, generator scripts committed with their data, scripts for Abhishek run on macOS bash 3.2) (#207)
 - Factory estimates are T-shirt sizes (XS, S, M, L, XL) instead of 30m, 1h, 2h; the cut comes past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), XL is never filed or started, and retro rows gain a `size` column with `estimate_h` as the size midpoint (#199)
 
 ### Fixed
