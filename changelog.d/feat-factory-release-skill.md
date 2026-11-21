@@ -1,1 +1,0 @@
-Added: `factory:release` skill: after each retro batch (or on request) it says whether a release is due, proposes the version and a theme for Abhishek to name, hands off to `release-manager`, and can split unreleased changes into several releases

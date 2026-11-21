@@ -7,6 +7,27 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-21
+
+### Added
+- `mix maya.fetch_access` regenerates `priv/data/access.json` from a walk over each listed map's layout at the pinned pokeemerald commit (one-way ledges, Cut trees, Surf on and off), and `mix maya.fetch_data` runs it last (#204)
+- team_check tells whether your Team is ready for the Next gym, with each member's level gap and best type matchup against the ace (#201)
+- `/talk?audio_debug=1` can pick the audio session while Maya speaks (`play-and-record`, `ambient`, `playback`) and close the mic right after the release, and shows whether the mic is open, to test whether Spotify keeps playing (#200)
+- find_trainer tells who battles you on a place up to Mauville City, with each trainer's first party only (#198)
+- find_item tells where to get an item inside the Spoiler horizon (ball, hidden, mart or gift), with marts and gyms through Mauville City and hand-listed HM and key item gifts confirmed in pokeemerald (#198)
+- `factory:release` skill: after each retro batch (or on request) it says whether a release is due, proposes the version and a theme for Abhishek to name, hands off to `release-manager`, and can split unreleased changes into several releases (#196)
+
+### Changed
+- Factory estimates are T-shirt sizes (XS, S, M, L, XL) instead of 30m, 1h, 2h; the cut comes past 2x the size's upper bound (XS 1h, S 2h, M 4h, L 8h), XL is never filed or started, and retro rows gain a `size` column with `estimate_h` as the size midpoint (#199)
+
+### Fixed
+- Petalburg Woods' X Attack now waits for Cut (1 badge), and the Route 104 PP Up and a Route 109 hidden Heart Scale wait for Surf (5 badges) (#204)
+- A refused Humor or Event change no longer lets Maya claim it happened; she says the refusal instead (#203)
+- A tool that cannot reach the database during a turn makes Maya say "I can't reach my notes right now, ask again soon?" instead of losing her train of thought (#203)
+- Opening `/talk` while the database is down shows "Maya can't reach her notes right now. Try again in a minute." instead of an error page (#203)
+- find_trainer gives the rival once, with the party for your starter, instead of six parties (#201)
+- find_item and find_trainer no longer point to items or trainers you can only reach with Surf, Cut or from a later route (#201)
+
 ## [0.4.0] - 2026-11-19
 
 ### Added
@@ -263,7 +284,8 @@ PRs add a fragment in `changelog.d/` (see its README) instead of editing this fi
 - Prod database connects to Supabase with verified SSL; LiveView host falls back to `RENDER_EXTERNAL_HOSTNAME` (#4)
 - Project name written as "Maya", never all caps, across docs and skills (#2)
 
-[Unreleased]: https://github.com/darth-dodo/maya/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/darth-dodo/maya/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/darth-dodo/maya/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/darth-dodo/maya/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/darth-dodo/maya/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/darth-dodo/maya/compare/v0.1.0...v0.2.0
