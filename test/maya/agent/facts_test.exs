@@ -391,4 +391,11 @@ defmodule Maya.Agent.FactsTest do
       assert Facts.find_trainer(nil, [], @progress) == {:error, :past_horizon}
     end
   end
+
+  test "type_matchup on a leader whose ace has no types fails closed" do
+    gym = Facts.gym("Roxanne")
+
+    assert {:error, :not_found} =
+             Facts.type_matchup(nil, {:gym, gym, @roxanne, %{}}, %{}, %{}, @progress)
+  end
 end

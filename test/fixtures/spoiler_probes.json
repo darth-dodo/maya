@@ -55,7 +55,12 @@
     {"badges": [1], "location": "Dewford Town", "question": "Is my Team ready for Brawly?", "tool": "team_check", "args": {}, "expect": "fact", "names": ["Brawly"], "forbidden": ["Mauville", "Route 107", "Route 108", "Route 110", "Wattson", "Dynamo Badge"]},
     {"badges": [1, 2], "location": "Mauville City", "question": "Who battles me on Route 110?", "tool": "find_trainer", "args": {"place": "Route 110"}, "expect": "fact", "forbidden": ["Flannery", "Heat Badge", "Lavaridge", "Verdanturf", "Fallarbor", "Route 111", "Route 117"]},
     {"badges": [1, 2], "location": "Mauville City", "question": "Is my Team ready?", "tool": "team_check", "args": {}, "expect": "fact", "names": ["Wattson"], "forbidden": ["Flannery", "Norman", "Winona", "Tate", "Liza", "Juan", "Heat Badge", "Lavaridge", "Verdanturf", "Fallarbor", "Route 111", "Route 117"]},
-    {"badges": [1, 2], "location": "Mauville City", "question": "Where do I find a Star Piece?", "tool": "find_item", "args": {"name": "Star Piece"}, "expect": "past_horizon", "forbidden": ["Route 108"]}
+    {"badges": [1, 2], "location": "Mauville City", "question": "Where do I find a Star Piece?", "tool": "find_item", "args": {"name": "Star Piece"}, "expect": "past_horizon", "forbidden": ["Route 108"]},
+    {"badges": [], "location": "Rustboro City", "question": "What is good against Roxanne?", "tool": "type_matchup", "args": {"defender": "Roxanne"}, "expect": "fact", "names": ["nosepass", "water"], "forbidden": []},
+    {"badges": [], "location": "Rustboro City", "question": "Why is Fire weak to Water?", "tool": "type_matchup", "args": {"attacker": "water", "defender": "fire"}, "expect": "fact", "names": ["Water puts out fire"], "forbidden": []},
+    {"badges": [], "location": "Rustboro City", "question": "What is good against Wattson?", "tool": "type_matchup", "args": {"defender": "Wattson"}, "expect": "past_horizon", "forbidden": ["Magnemite", "Voltorb", "Magneton", "Manectric"]},
+    {"badges": [], "location": "Rustboro City", "question": "What is Magneton weak to?", "tool": "type_matchup", "args": {"defender": "Magneton"}, "expect": "past_horizon", "forbidden": ["Magneton"]},
+    {"badges": [1, 2], "location": "Mauville City", "question": "What is good against Wattson?", "tool": "type_matchup", "args": {"defender": "Wattson"}, "expect": "fact", "names": ["Wattson", "manectric", "ground"], "forbidden": ["Flannery", "Heat Badge", "Lavaridge"]}
   ],
   "forbidden": [
     "Brawly", "Wattson", "Flannery", "Norman", "Winona", "Tate", "Liza", "Juan",

@@ -15,5 +15,6 @@ defmodule Mix.Tasks.Maya.LatencyTest do
     assert_received {:mix_shell, :info, [out]}
     assert out =~ ~r/stt_ms\s+n=5 p50=300 p95=500/
     assert out =~ ~r/playback_start_ms\s+missing/
+    assert out =~ ~r/confirm_ms\s+missing/
   end
 end

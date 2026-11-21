@@ -9,11 +9,12 @@ defmodule Maya.GameData do
 
   alias Maya.GameData.Notes
   alias Maya.GameData.Places
+  alias Maya.GameData.Reasons
   alias Maya.Repo
   alias Maya.Voice.Vocabulary
 
   # Children before parents, so deletes never trip the trainer_pokemon foreign key.
-  @game_tables ~w(trainer_places item_places items trainer_pokemon trainers encounters type_matchups species locations learnsets walkthrough_notes)
+  @game_tables ~w(trainer_places item_places items trainer_pokemon trainers encounters type_matchups species locations learnsets walkthrough_notes type_reasons)
 
   @doc """
   Replaces the game data tables from `priv/data/` in one transaction. Progress is
@@ -27,11 +28,18 @@ defmodule Maya.GameData do
     trainers = data.("trainers")
     locations = data.("locations")
     notes = data.("walkthrough_notes")
+    chart = data.("type_matchups")
+    reasons = data.("type_reasons")
 
     # Checked before the transaction, so a bad notes file changes no table (fail closed).
     case Notes.problems(notes, locations) do
       [] -> :ok
       problems -> raise ArgumentError, "walkthrough notes: #{inspect(problems)}"
+    end
+
+    case Reasons.problems(reasons, chart) do
+      [] -> :ok
+      problems -> raise ArgumentError, "type reasons: #{inspect(problems)}"
     end
 
     places = %{
@@ -54,7 +62,8 @@ defmodule Maya.GameData do
       Repo.transaction(fn ->
         Enum.each(@game_tables, &Repo.delete_all/1)
         insert!("species", data.("species"), ~w(name types evolutions))
-        insert!("type_matchups", data.("type_matchups"), ~w(attacker defender multiplier))
+        insert!("type_matchups", chart, ~w(attacker defender multiplier))
+        insert!("type_reasons", reasons, ~w(attacker defender multiplier reason))
 
         insert!(
           "encounters",
@@ -214,6 +223,12 @@ defmodule Maya.GameData do
   @doc "The Generation III type chart as `%{{attacker, defender} => multiplier}`; missing pairs are 1.0."
   def type_chart do
     Repo.all(from m in "type_matchups", select: {{m.attacker, m.defender}, m.multiplier})
+    |> Map.new()
+  end
+
+  @doc "The hand-written type reason lines as `%{{attacker, defender} => reason}`."
+  def type_reasons do
+    Repo.all(from r in "type_reasons", select: {{r.attacker, r.defender}, r.reason})
     |> Map.new()
   end
 

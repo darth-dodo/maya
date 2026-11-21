@@ -101,6 +101,22 @@ defmodule Maya.Agent.Tools do
     %{
       type: "function",
       function: %{
+        name: "type_matchup",
+        description:
+          "Type multipliers on a defender, with a short reason line. With attacker, its multiplier; without, the types that hit 2x or more and the types to avoid.",
+        parameters: %{
+          type: "object",
+          properties: %{
+            attacker: %{type: "string", description: "Attacking type, e.g. water"},
+            defender: %{type: "string", description: "Type, Pokémon or gym leader (their ace)"}
+          },
+          required: ["defender"]
+        }
+      }
+    },
+    %{
+      type: "function",
+      function: %{
         name: "log_event",
         description:
           "Records what the player just told you about their game and updates their Progress. Returns a confirm line to say, or a refused line to say instead.",
@@ -189,6 +205,19 @@ defmodule Maya.Agent.Tools do
     Facts.team_check(gym, trainer, progress, types, GameData.type_chart())
   end
 
+  def call("type_matchup", %{"defender" => name} = args, progress) when is_binary(name) do
+    attacker = if is_binary(args["attacker"]), do: args["attacker"]
+    chart = GameData.type_chart()
+
+    Facts.type_matchup(
+      attacker,
+      defender(name, progress),
+      chart,
+      GameData.type_reasons(),
+      progress
+    )
+  end
+
   def call("find_pokemon", %{"name" => name}, progress) when is_binary(name) do
     case GameData.species(Facts.species_name(name)) do
       nil -> {:error, :not_found}
@@ -248,6 +277,7 @@ defmodule Maya.Agent.Tools do
              "move_learnset",
              "find_trainer",
              "find_item",
+             "type_matchup",
              "log_event"
            ],
       do: {:error, :bad_arguments}
@@ -265,6 +295,39 @@ defmodule Maya.Agent.Tools do
 
   defp party_levels(%{pokemon: team}), do: Enum.map(team, & &1.level)
   defp party_levels(nil), do: []
+
+  # A defender for `Facts.type_matchup/5`: a type, then a gym leader, then a Pokémon, or nil.
+  defp defender(name, progress) do
+    type = name |> String.trim() |> String.downcase()
+    gym = Facts.gym(name)
+
+    cond do
+      type in Facts.types() ->
+        {:type, type}
+
+      gym ->
+        {trainer, types} = matchup(gym, progress)
+        {:gym, gym, trainer, types}
+
+      true ->
+        species_defender(GameData.species(Facts.species_name(name)), progress)
+    end
+  end
+
+  defp species_defender(nil, _progress), do: nil
+
+  defp species_defender(species, progress) do
+    places = Facts.places(GameData.encounters(species.name), GameData.locations(), progress)
+    {:species, species, places, met_in_gyms(progress)}
+  end
+
+  defp met_in_gyms(progress) do
+    for gym <- Facts.gyms_inside(progress),
+        %{pokemon: party} <- [GameData.trainer(gym.party)],
+        p <- party,
+        uniq: true,
+        do: p.species
+  end
 
   # A gym's party and the types of its species and the Team's, for the matchup Facts.
   defp matchup(gym, progress) do

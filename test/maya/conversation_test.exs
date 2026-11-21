@@ -442,6 +442,139 @@ defmodule Maya.ConversationTest do
     assert hd(after_turns).question == "q7"
   end
 
+  describe "countdown overlaps the agent, edits and typed Questions (#95)" do
+    setup do
+      voice = Application.fetch_env!(:maya, :voice)
+      Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 2_000))
+      on_exit(fn -> Application.put_env(:maya, :voice, voice) end)
+
+      # Echoes the Question; one about the "bike lane" is slow, so an edit lands while it is in flight.
+      me = self()
+
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        question = List.last(Jason.decode!(body)["messages"])["content"]
+        send(me, {:agent_asked, question})
+        if question =~ "bike lane", do: Process.sleep(500)
+        Req.Test.json(conn, reply(question))
+      end)
+
+      :ok
+    end
+
+    test "an untouched Question goes to the agent at once, with no added wait", %{id: id} do
+      stub(text("where do I catch Ralts?"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+
+      assert_receive {:conversation, {:pending, "where do I catch Ralts?", 2_000}}
+      assert_receive {:agent_asked, "where do I catch Ralts?"}, 1_000
+      # Answered and stored long before the 2 s countdown would end.
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id),
+                     1_500
+
+      turn = Repo.get!(Turn, turn_id)
+      assert turn.confirm_ms >= 0 and turn.confirm_ms < 100
+      refute turn.typed
+    end
+
+    test "the countdown end closes the edit window", %{id: id} do
+      voice = Application.fetch_env!(:maya, :voice)
+      Application.put_env(:maya, :voice, Keyword.put(voice, :confirm_ms, 100))
+      stub(text("how long is the bike lane"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+
+      assert_receive {:conversation, {:pending, _text, 100}}
+      assert_receive {:conversation, {:question, "how long is the bike lane"}}, 1_000
+      assert :error = Conversation.edit_pending(id)
+
+      assert_receive {:conversation, {:turns, [%Turn{question: "how long is the bike lane"}]}},
+                     1_000
+    end
+
+    test "an edit discards the in-flight Answer and asks the edited text", %{id: id} do
+      stub(text("how long is the bike lane"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 2_000}}
+      assert_receive {:agent_asked, "how long is the bike lane"}
+
+      assert :ok = Conversation.edit_pending(id)
+      # The dropped run may have logged an Event: the card gets the Progress again.
+      assert_receive {:conversation, {:progress, %{}}}
+      Process.sleep(400)
+      assert {:error, :invalid} = Conversation.send_pending(id, "   ")
+      assert {:ok, nil} = Conversation.send_pending(id, "  where do I catch   Ralts? ")
+
+      assert_receive {:conversation, {:question, "where do I catch Ralts?"}}
+      assert_receive {:agent_asked, "where do I catch Ralts?"}
+
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id),
+                     1_000
+
+      # The first run finished after the edit and was dropped: one stored turn, the edited one.
+      Process.sleep(200)
+      assert [%Turn{question: "where do I catch Ralts?", confirm_ms: ms}] = Turn.recent(id)
+      assert ms >= 400
+    end
+
+    test "cancel speaks nothing and stores no turn", %{id: id} do
+      stub(text("how long is the bike lane"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 2_000}}
+
+      assert :ok = Conversation.edit_pending(id)
+      assert :ok = Conversation.cancel_pending(id)
+      assert :error = Conversation.edit_pending(id)
+      refute_receive {:conversation, {:audio, _turn, _pcm}}, 700
+      assert Conversation.turns(id) == []
+      assert Turn.recent(id) == []
+    end
+
+    test "a new hold discards the pending Question's Answer", %{id: id} do
+      stub(text("how long is the bike lane"), &speak/1)
+      Conversation.question(id, "RIFF", "question.wav")
+      assert_receive {:conversation, {:pending, _text, 2_000}}
+      assert_receive {:agent_asked, "how long is the bike lane"}
+
+      Conversation.stream_start(id, 7)
+      assert :error = Conversation.edit_pending(id)
+      refute_receive {:conversation, {:turns, _turns}}, 700
+      assert Turn.recent(id) == []
+    end
+
+    test "a typed Question skips STT and the countdown and is stored as typed", %{id: id} do
+      me = self()
+
+      stub(
+        fn conn ->
+          send(me, :stt_called)
+          Req.Test.json(conn, %{"text" => "nope"})
+        end,
+        &speak/1
+      )
+
+      assert {:error, :invalid} = Conversation.typed(id, String.duplicate("a", 301))
+      assert {:error, :invalid} = Conversation.typed(id, " \n ")
+      assert {:ok, turn} = Conversation.typed(id, " How do I earn Roxanne's badge? ")
+      assert is_integer(turn)
+
+      assert_receive {:conversation, {:question, "How do I earn Roxanne's badge?"}}
+      assert_receive {:agent_asked, "How do I earn Roxanne's badge?"}
+      assert_receive {:conversation, {:audio_done, ^turn}}
+      assert_receive {:conversation, {:turns, [%Turn{id: turn_id}]}} when is_integer(turn_id)
+      refute_received {:conversation, {:pending, _text, _ms}}
+
+      assert %Turn{
+               typed: true,
+               stt_ms: nil,
+               mic_release_ms: nil,
+               confirm_ms: nil,
+               stt_source: nil
+             } = Repo.get!(Turn, turn_id)
+
+      refute_received :stt_called
+    end
+  end
+
   # The supervisor restarts the Conversation; wait for the new pid in the Registry.
   defp restarted(id, old, tries \\ 50) do
     case Registry.lookup(Maya.ConversationRegistry, {:conversation, id}) do

@@ -8,10 +8,14 @@ defmodule Maya.Conversation do
   fails (ADR-009).
   After 30 idle minutes it stops normally; the next start reloads its turns from Postgres.
   Each step runs in a monitored Task, so a barge-in or a crash cancels it cleanly.
+  A heard Question goes to the agent at once; with `confirm_ms` above 0 it is pending for that
+  long in parallel (#95): `edit_pending/1` discards the in-flight Answer, then `send_pending/2`
+  asks the edited text or `cancel_pending/1` drops it. `typed/2` skips STT and the countdown.
   Subscribers on `topic/1` get `{:conversation, event}` with `{:turns, turns}`,
-  `{:partial, text}`, `{:question, text}`, `{:audio, turn_id, pcm}`, `{:audio_done, turn_id}`
-  and `:voice_down`. `turn_id` is the id the hold sent with `stream_start/2` (nil for an upload),
-  so the screen can drop a cut turn's late audio (#96).
+  `{:partial, text}`, `{:pending, text, ms}`, `{:question, text}`, `{:audio, turn_id, pcm}`,
+  `{:audio_done, turn_id}` and `:voice_down`. `turn_id` is the id the hold sent with
+  `stream_start/2` (nil for an upload, made here for a typed Question), so the screen can drop a
+  cut turn's late audio (#96).
   """
   # Transient: a crash restarts it, an idle stop does not.
   use GenServer, restart: :transient
@@ -30,6 +34,7 @@ defmodule Maya.Conversation do
   # A 250 ms chunk is 8,000 bytes; the whole Question keeps the old 1 MB upload cap.
   @max_chunk 16_384
   @max_question 1_000_000
+  @max_text 300
 
   ## Client
 
@@ -74,6 +79,36 @@ defmodule Maya.Conversation do
 
   def barge_in(id), do: GenServer.cast(via(id), :barge_in)
 
+  @doc "The tap on a pending Question: discards its in-flight Answer. `:error` if none is pending."
+  def edit_pending(id), do: pending_call(id, :edit_pending)
+
+  @doc "Asks the edited Question: `{:ok, turn_id}`, `{:error, :invalid}` or `:error`."
+  def send_pending(id, text), do: pending_call(id, {:send_pending, text})
+
+  @doc "Drops the Question being edited: nothing spoken, no stored turn."
+  def cancel_pending(id), do: pending_call(id, :cancel_pending)
+
+  # A Conversation that stopped (30 idle minutes) has nothing pending: never a crashed screen.
+  defp pending_call(id, request) do
+    GenServer.call(via(id), request)
+  catch
+    :exit, _reason -> :error
+  end
+
+  @doc "A typed Question: cuts the turn in flight, then the agent with no STT. `{:ok, turn_id}`."
+  def typed(id, text) do
+    {:ok, pid} = start_or_find(id)
+    GenServer.call(pid, {:typed, text})
+  end
+
+  @doc "Typed or edited text, trimmed with inner whitespace as single spaces, if 1 to 300 characters."
+  def clean_text(text) when is_binary(text) do
+    text = text |> String.replace(~r/\s+/u, " ") |> String.trim()
+    if String.length(text) in 1..@max_text, do: {:ok, text}, else: {:error, :invalid}
+  end
+
+  def clean_text(_text), do: {:error, :invalid}
+
   @doc "The screen's timings for the latest turn: `mic_release_ms` and `playback_start_ms`."
   def playback_started(id, timings), do: GenServer.cast(via(id), {:timings, timings})
 
@@ -93,6 +128,73 @@ defmodule Maya.Conversation do
 
   @impl true
   def handle_call(:turns, _from, state), do: {:reply, all_turns(state), state, state.idle}
+
+  # The in-flight Answer is dropped as a cut does in the agent stage: never spoken, never stored.
+  def handle_call(:edit_pending, _from, %{current: %{stage: :agent, pending: true} = c} = state) do
+    stop_task(c)
+    # A count, never the text.
+    Logger.info("pending Question opened to edit")
+    # The dropped run may have logged Events: the card redraws after the reply, off the call.
+    {:reply, :ok, %{state | current: %{c | stage: :editing, task: nil, pending: false}},
+     {:continue, :progress_news}}
+  end
+
+  def handle_call(:edit_pending, _from, %{current: %{stage: :editing}} = state),
+    do: {:reply, :ok, state, state.idle}
+
+  def handle_call({:send_pending, text}, _from, %{current: %{stage: :editing} = c} = state) do
+    case clean_text(text) do
+      {:ok, text} ->
+        # A fresh ref: a late stage timing of the dropped run never lands on this turn.
+        {:reply, {:ok, c.turn_id}, state, {:continue, {:ask, %{c | ref: make_ref()}, text}}}
+
+      error ->
+        {:reply, error, state, state.idle}
+    end
+  end
+
+  def handle_call(:cancel_pending, _from, %{current: %{stage: :editing}} = state) do
+    Logger.info("pending Question cancelled")
+    {:reply, :ok, %{state | current: nil}, state.idle}
+  end
+
+  def handle_call({:typed, text}, _from, state) do
+    case clean_text(text) do
+      {:ok, text} ->
+        # A timestamp like the hook's own hold ids, so its Answer audio is never dropped (#96).
+        turn_id = System.system_time(:millisecond)
+
+        c = %{
+          ref: make_ref(),
+          task: nil,
+          turn_id: turn_id,
+          turn: %Turn{guest_id: state.id, typed: true}
+        }
+
+        {:reply, {:ok, turn_id}, state, {:continue, {:typed, c, text}}}
+
+      error ->
+        {:reply, error, state, state.idle}
+    end
+  end
+
+  # Nothing pending: the window closed, the Answer started, or a new hold cut it.
+  def handle_call(_pending_op, _from, state), do: {:reply, :error, state, state.idle}
+
+  # Database work after a pending call's reply, so a slow database never times out the screen.
+  @impl true
+  def handle_continue(:progress_news, state) do
+    progress_news(state)
+    noreply(state)
+  end
+
+  def handle_continue({:typed, c, text}, state),
+    do: handle_continue({:ask, c, text}, cut(state))
+
+  def handle_continue({:ask, c, text}, state) do
+    broadcast(state, {:question, text})
+    noreply(ask(state, c, text, read_progress(state.id)))
+  end
 
   @impl true
   def handle_cast({:question, audio, filename}, state) do
@@ -279,6 +381,15 @@ defmodule Maya.Conversation do
       when reason != :normal,
       do: noreply(realtime_failed(state, %{c | relay: nil}, {:exit, crash_kind(reason)}))
 
+  # The edit window closed untouched; the agent call has been running all along.
+  def handle_info(
+        {:confirm_end, ref},
+        %{current: %{ref: ref, stage: :agent, pending: true} = c} = state
+      ) do
+    broadcast(state, {:question, c.turn.question})
+    noreply(%{state | current: %{c | pending: false}})
+  end
+
   def handle_info({:stage_ms, ref, stage, ms}, %{current: %{ref: ref, turn: turn} = c} = state) do
     noreply(%{state | current: %{c | turn: Map.put(turn, stage, ms)}})
   end
@@ -389,22 +500,20 @@ defmodule Maya.Conversation do
     speak(%{state | current: stt_ms(state.current)}, question, @notes_down)
   end
 
+  # The agent starts at once; the countdown only opens a tap to edit window beside it (#95).
   defp finished(:stt, {:ok, question, progress}, %{current: c} = state) do
-    c = stt_ms(c)
-    broadcast(state, {:question, question})
-    me = self()
-    ref = c.ref
-    turns = state.turns
-    opts = [guest_id: state.id, progress: progress]
+    c = c |> stt_ms() |> Map.put(:heard_at, System.monotonic_time())
 
-    task =
-      run(fn ->
-        :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
-          {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
-        end)
-      end)
+    case Mistral.voice(:confirm_ms) do
+      ms when is_integer(ms) and ms > 0 ->
+        broadcast(state, {:pending, question, ms})
+        Process.send_after(self(), {:confirm_end, c.ref}, ms)
+        ask(state, Map.put(c, :pending, true), question, progress)
 
-    %{state | current: %{c | stage: :agent, task: task, turn: %{c.turn | question: question}}}
+      _none ->
+        broadcast(state, {:question, question})
+        ask(state, c, question, progress)
+    end
   end
 
   defp finished(:stt, {:error, reason}, state) do
@@ -438,6 +547,31 @@ defmodule Maya.Conversation do
     broadcast(state, :voice_down)
     state
   end
+
+  # The agent stage for a heard, edited or typed Question. With Postgres down the honest line is
+  # spoken (#82).
+  defp ask(state, c, question, :notes_down),
+    do: speak(%{state | current: c}, question, @notes_down)
+
+  defp ask(state, c, question, progress) do
+    {me, ref, turns} = {self(), c.ref, state.turns}
+    opts = [guest_id: state.id, progress: progress]
+
+    task =
+      run(fn ->
+        :telemetry.span([:maya, :voice, :agent], %{conversation: me, ref: ref}, fn ->
+          {Agent.answer(question, turns, opts), %{conversation: me, ref: ref}}
+        end)
+      end)
+
+    turn = %{c.turn | question: question, confirm_ms: confirm_ms(c)}
+    %{state | current: Map.merge(c, %{stage: :agent, task: task, turn: turn})}
+  end
+
+  defp confirm_ms(%{heard_at: at}),
+    do: System.convert_time_unit(System.monotonic_time() - at, :native, :millisecond)
+
+  defp confirm_ms(_typed), do: nil
 
   # The agent may have logged or undone Events, so the screen redraws its card (#89). Read once TTS
   # is already streaming, off the path to first sound; a failed read keeps the turn going.
@@ -475,11 +609,7 @@ defmodule Maya.Conversation do
 
   defp cut(%{current: c} = state) do
     c = close_relay(c)
-
-    with %Task{} = task <- c.task do
-      Process.demonitor(task.ref, [:flush])
-      Task.Supervisor.terminate_child(Maya.TaskSupervisor, task.pid)
-    end
+    stop_task(c)
 
     case c.stage do
       :tts ->
@@ -494,6 +624,13 @@ defmodule Maya.Conversation do
         %{state | current: nil}
     end
   end
+
+  defp stop_task(%{task: %Task{} = task}) do
+    Process.demonitor(task.ref, [:flush])
+    Task.Supervisor.terminate_child(Maya.TaskSupervisor, task.pid)
+  end
+
+  defp stop_task(_no_task), do: :ok
 
   # Written after the Answer streamed, never on the path to first sound (ADR-006). With Postgres
   # down the turn stays in memory only: Maya already answered (#82).
