@@ -860,15 +860,16 @@ defmodule MayaWeb.TalkLive do
       <form
         id="edit-form"
         class="edit-form"
-        phx-submit={JS.push("send_question") |> JS.focus(to: "#talk-button")}
+        phx-submit="send_question"
       >
-        <label for="edit-input" class="sr-only">Your Question, tap to edit</label>
+        <label for="edit-input" class="sr-only">
+          {if @ms || @editing, do: "Your Question, tap to edit", else: "Your Question"}
+        </label>
         <textarea
           id="edit-input"
           name="text"
           rows="2"
           maxlength="300"
-          enterkeyhint="send"
           class="pending-text"
           readonly={!@ms and !@editing}
           phx-focus={(@ms || @editing) && "edit_question"}
@@ -882,7 +883,8 @@ defmodule MayaWeb.TalkLive do
         >
           Tap to edit, {div(@ms + 999, 1000)} s
         </span>
-        <span :if={!@ms and !@editing} class="pending-countdown">Asked</span>
+        <%!-- Same height as the countdown and its bar, so the bubble keeps its size (#74) --%>
+        <span :if={!@ms and !@editing} class="pending-countdown pending-asked">Asked</span>
         <p :if={@error} id="edit-input-error" class="voice-down">{@error}</p>
         <div :if={@editing} class="form-actions">
           <button id="edit-send" type="submit" class="btn btn-primary tap-44">Send</button>
@@ -918,16 +920,25 @@ defmodule MayaWeb.TalkLive do
         autocomplete="off"
         enterkeyhint="send"
         placeholder="Type a Question"
+        tabindex={!@open && "-1"}
         class="input input-bordered w-full tap-44"
         aria-describedby={@error && "type-input-error"}
       />
       <p :if={@error} id="type-input-error" class="voice-down">{@error}</p>
       <div class="form-actions">
-        <button id="type-send" type="submit" class="btn btn-primary tap-44">Send</button>
+        <button
+          id="type-send"
+          type="submit"
+          class="btn btn-primary tap-44"
+          tabindex={!@open && "-1"}
+        >
+          Send
+        </button>
         <button
           id="type-cancel"
           type="button"
           class="btn btn-ghost tap-44"
+          tabindex={!@open && "-1"}
           phx-click={JS.push("close_type") |> JS.focus(to: "#type-button")}
         >
           Cancel

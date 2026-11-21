@@ -288,10 +288,9 @@ export const TalkHook = {
       this.stopAudio()
       this.startTurn(askedMarks(typed, this.marks, performance.now()))
       this.turn = turn
-      if (typed) {
-        document.getElementById("type-form")?.reset()
-        document.activeElement?.blur()
-      }
+      // The keyboard closes only once the Question is accepted, so an error keeps the field.
+      if (typed) document.getElementById("type-form")?.reset()
+      document.activeElement?.blur()
       this.set("waiting")
     })
   },

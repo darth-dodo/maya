@@ -677,7 +677,8 @@
 .pending-text[readonly] { border-color: transparent; }
 .pending.editing .pending-text { border-style: solid; border-color: var(--maya-ink); text-align: left; background: var(--maya-surface); }
 .pending-countdown { font-size: var(--maya-text-xs); color: var(--maya-muted); }
-#pending-countdown::after {
+#pending-countdown::after,
+.pending-asked::after {
   content: "";
   display: block;
   height: 3px;
@@ -686,6 +687,7 @@
   transform-origin: right;
   animation: countdown var(--confirm-ms, 2000ms) linear forwards;
 }
+.pending-asked::after { visibility: hidden; animation: none; }
 @keyframes countdown { to { transform: scaleX(0); } }
 
 /* Reduced motion: the shared duration drops to 0ms and nothing animates. !important: the

@@ -1138,10 +1138,12 @@ defmodule MayaWeb.TalkLiveTest do
       # The tap focuses the always rendered input itself (iOS keyboard), then tells the server.
       assert has_element?(view, "#type-button.tap-44[aria-label='Type a Question']")
       assert view |> element("#type-button") |> render() =~ "#type-input"
-      assert has_element?(view, "#type-form:not(.open) #type-input")
+      # Out of the tab order while closed; a programmatic focus still lands.
+      assert has_element?(view, "#type-form:not(.open) #type-input[tabindex='-1']")
 
       view |> element("#type-button") |> render_click()
       assert has_element?(view, "#type-form.open label[for=type-input]")
+      refute has_element?(view, "#type-input[tabindex]")
       view |> form("#type-form", %{text: String.duplicate("a", 301)}) |> render_submit()
       assert view |> element("#type-input-error") |> render() =~ "Use 1 to 300 characters"
       refute_received {:agent_asked, _}
