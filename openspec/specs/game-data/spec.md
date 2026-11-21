@@ -163,3 +163,18 @@ The fetch task SHALL read, at the pinned pokeemerald commit, only the maps of li
 - **WHEN** Progress has 0 badges and `find_trainer` is called for "Route 103"
 - **THEN** no trainer from the east side (reached from Route 110) is listed
 - **AND** with badges 1 and 2 they are listed, except the two reached only by Surf
+
+### Requirement: Type reasons from a committed file
+`priv/data/type_reasons.json` SHALL hold short, original reason lines, each with `attacker`, `defender`, `multiplier` and `reason`. The import SHALL load it into a `type_reasons` table and SHALL fail, changing no table, when a pair is not in `type_matchups.json` with the same multiplier, names Fairy, appears twice, or has a reason over 60 characters or containing "beat" or "defeat".
+
+#### Scenario: Clean reasons
+- **WHEN** the committed data is imported
+- **THEN** `type_reasons` has one row per line of `type_reasons.json`
+
+#### Scenario: Wrong direction
+- **WHEN** the reason checker reads a fixture with Fire on Water at multiplier 2
+- **THEN** it reports the pair as not matching the chart
+
+#### Scenario: Neutral pair, Fairy or banned word
+- **WHEN** the checker reads a fixture with Normal on Water, a Fairy row, or the reason "Water can beat Fire"
+- **THEN** it reports each row and the import changes no table
