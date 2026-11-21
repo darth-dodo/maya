@@ -9,10 +9,14 @@ import Config
 # A git worktree (its .git is a file, not a directory) gets its own database by default,
 # named after the worktree folder, because the release test's migration DDL deadlocks a second
 # run on a shared maya_test (#214). The main checkout and CI keep plain maya_test.
+# shortcut: folder names equal after lowercasing, `_` for punctuation and 40 chars share a
+# database, fine for `agent-<hex>` worktrees; add a path hash if real names collide.
+root = Path.expand("..", __DIR__)
+
 worktree_suffix =
-  if File.regular?(Path.expand("../.git", __DIR__)) do
+  if File.regular?(Path.join(root, ".git")) do
     "_" <>
-      (Path.expand("..", __DIR__)
+      (root
        |> Path.basename()
        |> String.downcase()
        |> String.replace(~r/[^a-z0-9]/, "_")
