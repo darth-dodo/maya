@@ -12,12 +12,13 @@ defmodule Maya.Agent do
   For `anthropic/` models every request also carries top-level `cache_control`, so the stable
   front (tools, system prompt, history) is read from cache; other providers cache on their own
   (https://openrouter.ai/docs/guides/best-practices/prompt-caching). Each Question ends with
-  one info line of rounds, history turns and tokens, never content.
+  one info line of rounds, history turns and tokens, never content, and is one numbers-only
+  trace of turn, round and tool spans (`Maya.Agent.Trace`, ADR-010).
   """
 
   require Logger
 
-  alias Maya.Agent.{Answer, Prompt, Tools}
+  alias Maya.Agent.{Answer, Prompt, Tools, Trace}
   alias Maya.GameData
   alias Maya.Voice.Turn
 
@@ -40,26 +41,31 @@ defmodule Maya.Agent do
     # One budget for the whole stage, so 4 slow rounds cannot leave the player in silence.
     deadline = System.monotonic_time(:millisecond) + voice(:agent_timeout_ms)
 
-    with %{} = progress <- opts[:progress] || guest_progress(opts[:guest_id]),
-         {:ok, req} <- client() do
-      loop(
-        {req, deadline},
-        model,
-        messages(Prompt.system(progress), turns, question),
-        progress,
-        1,
-        %{
-          ran: %{},
-          corrected: false,
-          question: question,
-          confirms: [],
-          history: min(length(turns), Turn.window()),
-          rounds: 0,
-          prompt_tokens: 0,
-          cached_tokens: 0
-        }
-      )
-    end
+    Trace.turn(model, fn ->
+      with %{} = progress <- opts[:progress] || guest_progress(opts[:guest_id]),
+           {:ok, req} <- client() do
+        loop(
+          {req, deadline},
+          model,
+          messages(Prompt.system(progress), turns, question),
+          progress,
+          1,
+          %{
+            ran: %{},
+            corrected: false,
+            question: question,
+            confirms: [],
+            history: min(length(turns), Turn.window()),
+            rounds: 0,
+            prompt_tokens: 0,
+            cached_tokens: 0,
+            completion_tokens: 0,
+            honesty: :none,
+            span: nil
+          }
+        )
+      end
+    end)
   end
 
   defp guest_progress(guest_id) when is_binary(guest_id), do: GameData.progress(guest_id)
@@ -87,6 +93,7 @@ defmodule Maya.Agent do
 
   defp loop({req, deadline} = client, model, messages, progress, round, turn) do
     left_ms = deadline - System.monotonic_time(:millisecond)
+    turn = Trace.next_round(turn, round, model)
     {reply, turn} = tally(complete(req, left_ms, model, messages), turn)
 
     case reply do
@@ -105,9 +112,10 @@ defmodule Maya.Agent do
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         with {:ok, answer} <- Answer.parse(text),
              {:ok, spoken} <- Answer.check(answer, turn.ran, turn.question) do
-          done(turn, {:ok, spoken})
+          done(%{turn | honesty: :ok}, {:ok, spoken})
         else
           {:error, reason} ->
+            turn = %{turn | honesty: Trace.reason(reason)}
             rejected(reason, text, {client, model, messages, progress, round}, turn)
         end
 
@@ -159,21 +167,24 @@ defmodule Maya.Agent do
 
   # Sums one reply's `usage` (absent fields count as 0) into the turn and counts the round.
   defp tally({:ok, message, usage}, turn) do
-    {prompt, cached} =
+    {prompt, cached, completion} =
       case usage do
         %{"prompt_tokens" => p} = u when is_integer(p) ->
-          {p, cached_tokens(u["prompt_tokens_details"])}
+          {p, cached_tokens(u["prompt_tokens_details"]), int(u["completion_tokens"])}
 
         _absent_or_odd ->
-          {0, 0}
+          {0, 0, 0}
       end
+
+    Trace.round_tokens(prompt, cached, completion)
 
     {{:ok, message},
      %{
        turn
        | rounds: turn.rounds + 1,
          prompt_tokens: turn.prompt_tokens + prompt,
-         cached_tokens: turn.cached_tokens + cached
+         cached_tokens: turn.cached_tokens + cached,
+         completion_tokens: turn.completion_tokens + completion
      }}
   end
 
@@ -182,8 +193,14 @@ defmodule Maya.Agent do
   defp cached_tokens(%{"cached_tokens" => c}) when is_integer(c), do: c
   defp cached_tokens(_absent_or_odd), do: 0
 
+  defp int(n) when is_integer(n), do: n
+  defp int(_absent_or_odd), do: 0
+
   # The one turn log line: numbers only, never the Question, Answer or tool content.
   defp done(turn, outcome) do
+    turn = Trace.end_round(turn)
+    Trace.turn_numbers(turn)
+
     Logger.info(
       "agent turn rounds=#{turn.rounds} history=#{turn.history} " <>
         "prompt_tokens=#{turn.prompt_tokens} cached_tokens=#{turn.cached_tokens}"
@@ -225,21 +242,23 @@ defmodule Maya.Agent do
     name = get_in(call, ["function", "name"])
 
     {content, progress} =
-      case decode(get_in(call, ["function", "arguments"])) do
-        {:ok, args} -> run(name, args, progress)
-        :error -> {Jason.encode!(%{error: "malformed_arguments"}), progress}
-      end
+      Trace.tool(name, fn ->
+        case decode(get_in(call, ["function", "arguments"])) do
+          {:ok, args} -> run(name, args, progress)
+          :error -> {Jason.encode!(%{error: "malformed_arguments"}), progress, :malformed}
+        end
+      end)
 
     {%{role: "tool", tool_call_id: call["id"], content: content}, progress}
   end
 
   defp run(name, args, progress) do
     result = Tools.call(name, args, progress)
-    {Tools.encode(result, progress), after_call(result, progress)}
+    {Tools.encode(result, progress), after_call(result, progress), result}
   rescue
     e in @db_errors ->
       Logger.warning("tool #{name} failed: #{inspect(e.__struct__)}")
-      {@notes_down_error, progress}
+      {@notes_down_error, progress, :notes_down}
   end
 
   defp after_call({:logged, _line, new_progress}, _progress), do: new_progress

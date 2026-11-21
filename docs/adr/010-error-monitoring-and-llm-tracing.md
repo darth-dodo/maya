@@ -1,6 +1,6 @@
 # 010: Error monitoring and LLM tracing
 
-- Status: Accepted for Sentry (shipped in #87); Langfuse part Proposed until `llm-tracing` ships
+- Status: Accepted (Sentry shipped in #87, Langfuse in `llm-tracing`, #216)
 - Date: 2026-11-21 (Abhishek said yes to both services on 2026-11-21, free plans only, EU region where offered)
 
 ## Context

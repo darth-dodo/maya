@@ -17,6 +17,7 @@ The MVP stack is frozen. Build inside it. Changing it needs Abhishek's explicit 
 | Embeddings | Mistral embeddings API | Bumblebee or any local model (Render has 512 MB) |
 | Hosting | Render web service, Frankfurt | Other hosts or regions |
 | Errors | Sentry free Developer plan, EU, via the `sentry` Hex package, server side only, scrubbed to metadata (ADR-010) | Browser SDK, performance tracing, session replay, paid plans |
+| LLM tracing | Langfuse Cloud Hobby, EU, over OTLP/HTTP with `opentelemetry` 1.7, `opentelemetry_api` 1.5, `opentelemetry_exporter` 1.11; numbers and tool names only, off without both keys (ADR-010) | Content in spans (Question, Answer, prompt, history, tool arguments or results, Progress, guest ids), other tracing vendors, self-hosted Langfuse, paid plans |
 | Auth | `Plug.BasicAuth` | `phx.gen.auth`, OAuth, user accounts |
 
 ## Red flags: stop and ask

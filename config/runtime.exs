@@ -43,6 +43,26 @@ if config_env() != :test do
   config :maya, :voice, stt_realtime: System.get_env("MAYA_STT_REALTIME") == "true"
 end
 
+# Numbers-only LLM traces to Langfuse Cloud EU over OTLP/HTTP (ADR-010,
+# https://langfuse.com/docs/opentelemetry/get-started). Either key unset: no exporter, no spans sent.
+if config_env() != :test do
+  case {System.get_env("LANGFUSE_PUBLIC_KEY"), System.get_env("LANGFUSE_SECRET_KEY")} do
+    {public, secret} when public not in [nil, ""] and secret not in [nil, ""] ->
+      config :opentelemetry, span_processor: :batch, traces_exporter: :otlp
+
+      config :opentelemetry_exporter,
+        otlp_protocol: :http_protobuf,
+        otlp_traces_endpoint: "https://cloud.langfuse.com/api/public/otel/v1/traces",
+        otlp_traces_headers: [
+          {"Authorization", "Basic " <> Base.encode64(public <> ":" <> secret)},
+          {"x-langfuse-ingestion-version", "4"}
+        ]
+
+    _unset ->
+      config :opentelemetry, traces_exporter: :none
+  end
+end
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :maya, MayaWeb.Endpoint,

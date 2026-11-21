@@ -28,7 +28,9 @@ defmodule Maya.MixProject do
   def application do
     [
       mod: {Maya.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      # :inets (httpc) must be up before :opentelemetry starts the OTLP exporter, else the
+      # exporter fails with inets_not_started and spans from the first seconds are lost.
+      extra_applications: [:logger, :runtime_tools, :inets]
     ]
   end
 
@@ -84,7 +86,11 @@ defmodule Maya.MixProject do
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
       # Server side errors, metadata only (ADR-010): https://hexdocs.pm/sentry/
-      {:sentry, "~> 14.0"}
+      {:sentry, "~> 14.0"},
+      # Numbers-only LLM traces to Langfuse over OTLP/HTTP (ADR-010)
+      {:opentelemetry, "~> 1.7"},
+      {:opentelemetry_api, "~> 1.5"},
+      {:opentelemetry_exporter, "~> 1.11"}
     ]
   end
 

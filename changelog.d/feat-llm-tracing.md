@@ -1,0 +1,1 @@
+Added: one numbers-only Langfuse trace per Question (turn, round and tool spans with model id, rounds, tokens, tool names and status, honesty outcome, error reason), sent async over OpenTelemetry to Langfuse Cloud EU; off unless `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are both set.

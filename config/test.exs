@@ -5,11 +5,29 @@ import Config
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
+#
+# A git worktree (its .git is a file, not a directory) gets its own database by default,
+# named after the worktree folder, because the release test's migration DDL deadlocks a second
+# run on a shared maya_test (#214). The main checkout and CI keep plain maya_test.
+# shortcut: folder names equal after lowercasing, `_` for punctuation and 40 chars share a
+# database, fine for `agent-<hex>` worktrees; add a path hash if real names collide.
+root = Path.expand("..", __DIR__)
+
+worktree_suffix =
+  if File.regular?(Path.join(root, ".git")) do
+    "_" <>
+      (root
+       |> Path.basename()
+       |> String.downcase()
+       |> String.replace(~r/[^a-z0-9]/, "_")
+       |> String.slice(0, 40))
+  end
+
 config :maya, Maya.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "maya_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database: "maya_test#{System.get_env("MIX_TEST_PARTITION", worktree_suffix)}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
@@ -31,6 +49,9 @@ config :maya, :openrouter,
   base_url: "http://openrouter.test",
   api_key: "test-key",
   req_options: [plug: {Req.Test, Maya.OpenRouter}, retry: false]
+
+# The batch processor as in prod, with no exporter unless a test sets one (Maya.Agent.TraceTest).
+config :opentelemetry, span_processor: :batch, traces_exporter: :none
 
 # No countdown unless a test sets one (#95), so the voice tests see a plain `{:question, text}`.
 config :maya, :voice, confirm_ms: 0

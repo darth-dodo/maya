@@ -24,5 +24,9 @@ services:
         sync: false
       - key: SENTRY_DSN # server side errors to Sentry, metadata only (ADR-010); missing sends nothing
         sync: false
+      - key: LANGFUSE_PUBLIC_KEY # Langfuse Cloud EU, numbers-only LLM traces (ADR-010); either key missing turns tracing off
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
       - key: POOL_SIZE
         value: "5"

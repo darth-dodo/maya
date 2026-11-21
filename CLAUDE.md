@@ -31,6 +31,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 - Mistral embeddings API (Bumblebee is too big for Render 512 MB)
 - Sentry free Developer plan (EU), `{:sentry, "~> 14.0"}`, server side errors only, scrubbed to metadata; off without `SENTRY_DSN` (ADR-010)
 - Render web service `0.5c-512mb`, Frankfurt (permanent), Plug.BasicAuth
+- Langfuse Cloud Hobby, EU: numbers-only agent traces over OpenTelemetry (`opentelemetry`, `opentelemetry_api`, `opentelemetry_exporter`), off without both keys (ADR-010)
 - Hand-written GenServer agent loop. No agent library.
 
 ## Knowledge source
