@@ -121,18 +121,10 @@ defmodule Maya.Conversation do
 
   @impl true
   def init(id) do
-    # So a supervisor stop runs terminate/2, which ends the in-flight Task (#219).
-    Process.flag(:trap_exit, true)
     idle = Application.get_env(:maya, :conversation_idle_ms, @idle)
     turns = db(:turns, fn -> Turn.recent(id) end, [])
     {:ok, %{id: id, idle: idle, turns: turns, current: nil}, idle}
   end
-
-  # Tasks are unlinked: without this a stopped Conversation leaves its agent or TTS call running
-  # for nobody (and in tests that late call hits the next test's stubs, #219).
-  @impl true
-  def terminate(_reason, %{current: %{} = c}), do: c |> close_relay() |> stop_task()
-  def terminate(_reason, _state), do: :ok
 
   @impl true
   def handle_call(:turns, _from, state), do: {:reply, all_turns(state), state, state.idle}

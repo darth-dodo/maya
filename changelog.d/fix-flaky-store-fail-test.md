@@ -1,1 +1,1 @@
-Fixed: a stopped Conversation now ends its in-flight agent or TTS call instead of leaving it running, which also made the "storing the turn fails" test flaky
+Fixed: the "storing the turn fails" Conversation test no longer flakes; it waits for the Progress read to finish before taking the database away

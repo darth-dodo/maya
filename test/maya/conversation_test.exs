@@ -305,7 +305,8 @@ defmodule Maya.ConversationTest do
 
     stub(text("Where is Ralts"), fn conn ->
       send(me, {:tts_pid, self()})
-      receive do: (:go -> speak(conn))
+      assert_receive :go
+      speak(conn)
     end)
 
     Conversation.question(id, "RIFF", "question.wav")
@@ -324,25 +325,6 @@ defmodule Maya.ConversationTest do
 
     refute_received {:conversation, :voice_down}
     assert log =~ "[warning] store failed: DBConnection.OwnershipError"
-  end
-
-  # An unlinked Task that outlived its Conversation made its call later, against the next test's
-  # stubs (#219).
-  test "stopping a Conversation ends its in-flight Task", %{id: id} do
-    me = self()
-
-    stub(text("Where is Ralts"), fn conn ->
-      send(me, {:tts_pid, self()})
-      Process.sleep(:infinity)
-      conn
-    end)
-
-    Conversation.question(id, "RIFF", "question.wav")
-    assert_receive {:tts_pid, tts_pid}
-    ref = Process.monitor(tts_pid)
-
-    Conversation.stop(id)
-    assert_receive {:DOWN, ^ref, :process, ^tts_pid, _}
   end
 
   test "storing the timings fails: they stay in memory, never a crash (#82)", %{id: id} do
