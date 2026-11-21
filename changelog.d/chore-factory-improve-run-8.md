@@ -1,1 +1,0 @@
-Changed: factory improve run 8 over #187 to #204: E4 stays running, and the batch's lessons are folded into docs/factory/LESSONS.md (spoiler findings fix before merge, claims backed by their own confirmed write, generator scripts committed with their data, scripts for Abhishek run on macOS bash 3.2).
