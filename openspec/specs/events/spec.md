@@ -38,6 +38,10 @@ The agent SHALL have a `log_event` tool with a `kind` (`badge_earned`, `caught`,
 - **WHEN** a Guest whose Team has Mudkip logs `evolved` from Mudkip to Marshtomp
 - **THEN** that Team slot is Marshtomp at the same level
 
+#### Scenario: An evolution with a level
+- **WHEN** a Guest whose Team has Lotad logs `evolved` from Lotad to Lombre with level 18
+- **THEN** that Team slot is Lombre level 18, one Event is written, and the confirm is "Lombre level 18 logged, evolved from Lotad."
+
 #### Scenario: A move
 - **WHEN** a Guest with 1 badge logs `moved` to Dewford Town
 - **THEN** the Guest's location is Dewford Town
@@ -64,7 +68,7 @@ An Event that Maya's data does not confirm SHALL be refused with one polite line
 - **THEN** it is refused with "You already have the Stone Badge." and no Event is written
 
 ### Requirement: Event validation rules
-Species SHALL come from game data, levels SHALL be whole numbers 1 to 100, and the Team SHALL hold at most 6 (a catch past 6 goes to the PC box, never refused). `deposited` and `set_team` SHALL never leave the Team empty, level ups and evolutions SHALL name a species on the Team, evolutions SHALL be ones the game data lists, and moves SHALL name a location inside the Spoiler horizon.
+Species SHALL come from game data, levels SHALL be whole numbers 1 to 100, and the Team SHALL hold at most 6 (a catch past 6 goes to the PC box, never refused). `deposited` and `set_team` SHALL never leave the Team empty, level ups and evolutions SHALL name a species on the Team, evolutions SHALL be ones the game data lists and MAY carry a level that is set with them, and moves SHALL name a location inside the Spoiler horizon.
 
 #### Scenario: Unknown species
 - **WHEN** a Guest logs `caught` with species Agumon, or `set_team` naming Agumon
@@ -73,6 +77,10 @@ Species SHALL come from game data, levels SHALL be whole numbers 1 to 100, and t
 #### Scenario: Level out of range
 - **WHEN** a Guest logs `level_up` or `set_level` with level 0, 101 or "thirteen"
 - **THEN** it is refused with "Levels go from 1 to 100."
+
+#### Scenario: Details that do not fit the kind
+- **WHEN** a Guest logs a known kind whose details do not fit it, for example `evolved` with species Lombre and level 18
+- **THEN** it is refused with a short line naming what that kind needs, here "To log an evolution I need the Pokémon it evolved from and into."
 
 #### Scenario: A move past the horizon
 - **WHEN** a Guest with 1 badge logs `moved` to Mauville City
