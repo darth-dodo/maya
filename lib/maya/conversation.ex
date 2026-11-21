@@ -500,12 +500,14 @@ defmodule Maya.Conversation do
   defp store(state, turn) do
     saved = db(:store, fn -> Turn.insert(turn) end, turn)
 
-    state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -20)}
+    state = %{state | current: nil, turns: Enum.take(state.turns ++ [saved], -Turn.window())}
     broadcast(state, {:turns, state.turns})
     state
   end
 
-  defp all_turns(%{current: %{stage: :tts, turn: turn}, turns: turns}), do: turns ++ [turn]
+  defp all_turns(%{current: %{stage: :tts, turn: turn}, turns: turns}),
+    do: Enum.take(turns ++ [turn], -Turn.window())
+
   defp all_turns(%{turns: turns}), do: turns
 
   # Only the reason (atom, HTTP status, exception message): never transcripts, Answers or keys.

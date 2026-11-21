@@ -19,7 +19,7 @@ This is Maya's one job. Everything else (personality, journal, **Dials**) serves
 
 - **Screen:** a big **Talk button** and the full **Conversation** as a scrolling chat. Each **Answer** is spoken and shown as text.
 - **Asking:** hold the Talk button, ask one **Question**, release. Holding the button while Maya speaks stops her at once and records the new Question; the cut Answer stays as text.
-- **Answers:** 2 to 3 sentences, using the last 5 Questions and Answers as context, so follow-ups work ("what about Brawly?").
+- **Answers:** 2 to 3 sentences, using the last 25 Questions and Answers as context (the Talk screen shows the same 25), so follow-ups work ("what about Brawly?").
 - **Answer time:** p50 at most 5 s, p95 at most 8 s on home Wi-Fi, measured per stage (mic release, STT, agent, TTS first byte, playback start).
 - **When Maya can't answer well** (misheard, unsure, no Fact, past the **Spoiler horizon**), she says so in one short line, and offers a hint inside the horizon for a Spoiler. She never guesses a Fact and never fails silently.
 - **Voice outage:** if speech to text or text to speech fails, Maya shows the Answer as text with a short "voice is down" note.

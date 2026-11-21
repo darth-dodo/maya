@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Recent turns as context
-Maya SHALL send the last 25 turns of the Conversation (50 messages) as context between the system prompt and the Question. The Conversation SHALL keep and, after a restart, reload at least its last 25 stored turns.
+Maya SHALL send the last 25 turns of the Conversation (50 messages) as context between the system prompt and the Question. The Conversation SHALL keep and, after a restart, reload its last 25 stored turns, and the Talk screen SHALL show those 25 (decided by Abhishek on 2026-11-21).
 
 #### Scenario: Last 5 turns as context
 - **WHEN** the Conversation has 5 stored turns and a new Question arrives
@@ -14,6 +14,7 @@ Maya SHALL send the last 25 turns of the Conversation (50 messages) as context b
 #### Scenario: Reload after a restart
 - **WHEN** a Guest has 30 stored turns and their Conversation process starts again
 - **THEN** the next agent request carries the last 25 of them
+- **AND** the Talk screen shows those 25 turns, and after the next Answer the oldest drops so it still shows 25
 
 ## ADDED Requirements
 

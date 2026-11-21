@@ -64,7 +64,7 @@ sequenceDiagram
   H->>L: release + 150 ms post-roll: stream_end  [mark: mic_release]
   C->>S: batch POST /v1/audio/transcriptions on the buffer (stt_final batch, or fallback)  [stt: release to final]
   S-->>C: final transcript (audio dropped)
-  C->>A: last 5 turns + Question  [span: agent]
+  C->>A: last 25 turns + Question  [span: agent]
   A-->>C: Answer text (2 to 3 sentences)
   C->>T: POST /v1/audio/speech, stream  [span: tts_first_byte]
   T-->>C: speech.audio.delta (PCM) ...
@@ -107,11 +107,13 @@ flowchart TD
 - **Guest:** `MayaWeb.Plugs.GuestId` puts a random `guest_id` in the signed session cookie; TalkLive reads it in `mount/3` (ADR-008). "Start fresh" posts to `/fresh`, which puts a new one.
 - **Conversation:** a GenServer per Guest, started on demand under the DynamicSupervisor and found through the Registry by `{:conversation, guest_id}`. After 30 idle minutes it stops normally (transient, so only crashes restart it) and the next visit reloads its turns from Postgres. It owns the turn in flight: STT, agent and TTS run as supervised Tasks it monitors, so a barge-in or a crash cancels them cleanly.
 - **TalkLive** only draws the screen and subscribes to the Conversation. A dropped socket or a phone that sleeps reconnects to the same Conversation; work in flight is not lost.
-- Each Guest has one **Conversation**, kept in Postgres. Every Question and Answer (text only) is a row with its `guest_id`. The agent gets the last 5 turns and the Guest's Progress; the screen shows recent turns.
+- Each Guest has one **Conversation**, kept in Postgres. Every Question and Answer (text only) is a row with its `guest_id`. The agent gets the last 25 turns and the Guest's Progress; the Conversation keeps and reloads 25, and the screen shows those 25 (`Maya.Voice.Turn.window/0`, one number).
 
 ## 3. Agent
 
 A hand-written loop inside the Conversation's Task: call OpenRouter with the messages and `tools`, run each `tool_calls` entry, append one `role: "tool"` message per call with its `tool_call_id`, repeat until the model replies with a structured Answer (cap: 4 rounds). `tools`, the Answer `response_format` and `provider.require_parameters` are sent on every request; each `arguments` is a JSON string parsed per call ([OpenRouter tool calling](https://openrouter.ai/docs/guides/features/tool-calling), [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs)). Calls go through Req.
+
+- **Prompt caching:** for `anthropic/` models every request carries top-level `cache_control: {"type": "ephemeral"}` (5 minute TTL), so tools, system prompt and older history are read from cache on later rounds and turns; other providers cache on their own and get no field ([OpenRouter prompt caching](https://openrouter.ai/docs/guides/best-practices/prompt-caching)). Order stays tools, system prompt, history, Question. Each answered Question logs one info line, `agent turn rounds=N history=N prompt_tokens=N cached_tokens=N`, summed from `usage`, with no Question, Answer or tool content.
 
 - **Structured Answer:** the final reply is `{"answer", "used_tool_calls"}`, checked by the embedded schema `Maya.Agent.Answer` (#118). Cited ids that did not run are ignored (#183). It is rejected when it is not that shape, claims a write (logged, refused, Team or Dial changed) when no `log_event` or `set_setting` ran this turn, cited or not (#183), or talks about tools when the Question did not ask about them. A rejected Answer is never said: one corrective request, then "Not sure I got that right, ask me again?". When a write ran, its confirm line replaces that line or an agent error, so a write is never silent. The spoken text is trimmed to 3 sentences (no extra request). Only `answer` is spoken and stored.
 

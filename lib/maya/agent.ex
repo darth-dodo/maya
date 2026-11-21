@@ -9,15 +9,19 @@ defmodule Maya.Agent do
   `Maya.Agent.Answer.check/3`; a rejected one gets one corrective request, then the fallback
   line. At most 4 requests per Question. A write that ran is never silent: when the turn
   would end in the fallback line or an error, its confirm line is said instead (#183).
+  For `anthropic/` models every request also carries top-level `cache_control`, so the stable
+  front (tools, system prompt, history) is read from cache; other providers cache on their own
+  (https://openrouter.ai/docs/guides/best-practices/prompt-caching). Each Question ends with
+  one info line of rounds, history turns and tokens, never content.
   """
 
   require Logger
 
   alias Maya.Agent.{Answer, Prompt, Tools}
   alias Maya.GameData
+  alias Maya.Voice.Turn
 
   @max_rounds 4
-  @history 5
   @fallback "Not sure I got that right, ask me again?"
   @notes_down "I can't reach my notes right now, ask again soon?"
   @notes_down_error Jason.encode!(%{error: "notes_down"})
@@ -44,7 +48,16 @@ defmodule Maya.Agent do
         messages(Prompt.system(progress), turns, question),
         progress,
         1,
-        %{ran: %{}, corrected: false, question: question, confirms: []}
+        %{
+          ran: %{},
+          corrected: false,
+          question: question,
+          confirms: [],
+          history: min(length(turns), Turn.window()),
+          rounds: 0,
+          prompt_tokens: 0,
+          cached_tokens: 0
+        }
       )
     end
   end
@@ -55,10 +68,10 @@ defmodule Maya.Agent do
   @doc "The spoken line when Postgres cannot be reached (#82, #192)."
   def notes_down, do: @notes_down
 
-  @doc "The system prompt, the last 5 turns as user and assistant messages, then the Question."
+  @doc "The system prompt, the last 25 turns as user and assistant messages, then the Question."
   def messages(system, turns, question) do
     history =
-      for t <- Enum.take(turns, -@history),
+      for t <- Enum.take(turns, -Turn.window()),
           m <- [%{role: "user", content: t.question}, %{role: "assistant", content: t.answer}],
           do: m
 
@@ -73,7 +86,10 @@ defmodule Maya.Agent do
     do: give_up(turn, if(turn.corrected, do: {:ok, @fallback}, else: {:error, :round_cap}))
 
   defp loop({req, deadline} = client, model, messages, progress, round, turn) do
-    case complete(req, deadline - System.monotonic_time(:millisecond), model, messages) do
+    left_ms = deadline - System.monotonic_time(:millisecond)
+    {reply, turn} = tally(complete(req, left_ms, model, messages), turn)
+
+    case reply do
       {:ok, %{"tool_calls" => [_ | _] = calls} = message} ->
         # A write changes Progress, so later calls, rounds and the system prompt see the new one.
         {results, new_progress} = Enum.map_reduce(calls, progress, &tool_message/2)
@@ -82,14 +98,14 @@ defmodule Maya.Agent do
         messages = if new_progress == progress, do: messages, else: system(messages, new_progress)
 
         if Enum.any?(results, &(&1.content == @notes_down_error)),
-          do: {:ok, Enum.join(turn.confirms ++ [@notes_down], " ")},
+          do: done(turn, {:ok, Enum.join(turn.confirms ++ [@notes_down], " ")}),
           else:
             loop(client, model, messages ++ [message | results], new_progress, round + 1, turn)
 
       {:ok, %{"content" => text}} when is_binary(text) and text != "" ->
         with {:ok, answer} <- Answer.parse(text),
              {:ok, spoken} <- Answer.check(answer, turn.ran, turn.question) do
-          {:ok, spoken}
+          done(turn, {:ok, spoken})
         else
           {:error, reason} ->
             rejected(reason, text, {client, model, messages, progress, round}, turn)
@@ -134,11 +150,37 @@ defmodule Maya.Agent do
 
   # The fallback line or an error after a write ran would hide a real change (or refusal), so
   # the write's confirm or refused line is said instead. Only the outcome's tag is logged, never the Answer.
-  defp give_up(%{confirms: []}, outcome), do: outcome
+  defp give_up(%{confirms: []} = turn, outcome), do: done(turn, outcome)
 
-  defp give_up(%{confirms: lines}, outcome) do
+  defp give_up(%{confirms: lines} = turn, outcome) do
     Logger.info("agent said the confirm line instead of: #{outcome_tag(outcome)}")
-    {:ok, Enum.join(lines, " ")}
+    done(turn, {:ok, Enum.join(lines, " ")})
+  end
+
+  # Sums one reply's `usage` (absent fields count as 0) into the turn and counts the round.
+  defp tally({:ok, message, usage}, turn) do
+    usage = usage || %{}
+
+    {{:ok, message},
+     %{
+       turn
+       | rounds: turn.rounds + 1,
+         prompt_tokens: turn.prompt_tokens + (usage["prompt_tokens"] || 0),
+         cached_tokens:
+           turn.cached_tokens + (get_in(usage, ["prompt_tokens_details", "cached_tokens"]) || 0)
+     }}
+  end
+
+  defp tally(error, turn), do: {error, %{turn | rounds: turn.rounds + 1}}
+
+  # The one turn log line: numbers only, never the Question, Answer or tool content.
+  defp done(turn, outcome) do
+    Logger.info(
+      "agent turn rounds=#{turn.rounds} history=#{turn.history} " <>
+        "prompt_tokens=#{turn.prompt_tokens} cached_tokens=#{turn.cached_tokens}"
+    )
+
+    outcome
   end
 
   defp outcome_tag({:ok, _fallback}), do: :fallback
@@ -210,21 +252,33 @@ defmodule Maya.Agent do
     |> Req.post(
       receive_timeout: left_ms,
       url: "/v1/chat/completions",
-      json: %{
-        model: model,
-        messages: messages,
-        tools: Tools.definitions(),
-        response_format: Answer.response_format(),
-        provider: %{require_parameters: true}
-      }
+      json:
+        Map.merge(cache_control(model), %{
+          model: model,
+          messages: messages,
+          tools: Tools.definitions(),
+          response_format: Answer.response_format(),
+          provider: %{require_parameters: true}
+        })
     )
     |> case do
-      {:ok, %{status: 200, body: %{"choices" => [%{"message" => message} | _]}}} -> {:ok, message}
-      {:ok, %{status: 200}} -> {:ok, %{}}
-      {:ok, %{status: status}} -> {:error, {:http, status}}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{status: 200, body: %{"choices" => [%{"message" => message} | _]} = body}} ->
+        {:ok, message, body["usage"]}
+
+      {:ok, %{status: 200}} ->
+        {:ok, %{}, nil}
+
+      {:ok, %{status: status}} ->
+        {:error, {:http, status}}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
+
+  # Anthropic needs the field; OpenAI, Gemini and others cache on their own (OpenRouter docs).
+  defp cache_control("anthropic/" <> _), do: %{cache_control: %{type: "ephemeral"}}
+  defp cache_control(_model), do: %{}
 
   defp client do
     config = Application.fetch_env!(:maya, :openrouter)
