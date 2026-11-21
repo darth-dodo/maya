@@ -121,6 +121,38 @@ defmodule Maya.SpoilerGateTest do
     end
   end
 
+  # #222: a promised tool action is never said; the corrective request names the tool.
+  for %{"question" => question, "reply" => reply, "tool" => tool} <- @probes["tool_promises"],
+      corrected <- [nil, "Not sure, ask me once more."] do
+    @question question
+    @reply reply
+    @tool tool
+    @corrected corrected
+    test "a promised tool action never reaches the player (#{if corrected, do: "corrected", else: "replaced"}): #{reply}" do
+      me = self()
+      replies = if @corrected, do: [@reply, @corrected], else: [@reply, @reply]
+      {:ok, left} = Elixir.Agent.start_link(fn -> replies end)
+
+      Req.Test.stub(Maya.OpenRouter, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        send(me, {:request, Jason.decode!(body)})
+
+        Req.Test.json(
+          conn,
+          answer(Elixir.Agent.get_and_update(left, fn [r | rest] -> {r, rest} end))
+        )
+      end)
+
+      assert {:ok, said} = Maya.Agent.answer(@question, [], guest_id: @guest)
+      assert said == (@corrected || "Not sure I got that right, ask me again?")
+      assert_received {:request, _}
+      assert_received {:request, %{"messages" => messages}}
+      correction = List.last(messages)["content"]
+      assert correction =~ if(@tool, do: "Call #{@tool} now", else: "Call the tool that answers")
+      refute_received {:request, _}
+    end
+  end
+
   # The system and tool messages, which are Maya's own words; the user message is the player's.
   defp sent(bodies) do
     for body <- bodies,

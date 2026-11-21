@@ -687,5 +687,47 @@ defmodule Maya.AgentTest do
       for _ <- 1..4, do: assert_received({:request, _, _})
       refute_received {:request, _, _}
     end
+
+    # #222, phone 2026-11-21 at 2 badges: "Yes" to a team check got a promise and no call.
+    test "Wattson: a promised team check gets one corrective request, then team_check runs" do
+      Maya.GameData.progress("two-badges")
+      Repo.query!("UPDATE progress SET badges = '{1,2}' WHERE guest_id = 'two-badges'")
+      offer = [%Turn{question: "Is my Team ready?", answer: "Want me to run a team check?"}]
+
+      script([
+        text("Running the team check for Wattson's gym now."),
+        calls([{"tc", "team_check", "{}"}]),
+        text("Not yet, Wattson's Manectric is level 24.", ["tc"])
+      ])
+
+      assert Agent.answer("Yes", offer, guest_id: "two-badges") ==
+               {:ok, "Not yet, Wattson's Manectric is level 24."}
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, corrective}
+      assert last_user(corrective) =~ "Call team_check now"
+      assert_received {:request, _, after_call}
+      assert [%{"tool_call_id" => "tc", "content" => fact}] = tool_messages(after_call)
+      assert fact =~ "Wattson"
+      refute_received {:request, _, _}
+    end
+
+    test "a promise repeated after the correction is the fallback line, with no third request" do
+      script([text("I'll run the team check now.")])
+
+      assert Agent.answer("And what's the result?", [], guest_id: @guest) == {:ok, @fallback}
+      for _ <- 1..2, do: assert_received({:request, _, _})
+      refute_received {:request, _, _}
+    end
+
+    test "an offer to run a team check is said with no corrective request" do
+      script([text("Want me to run a team check for Roxanne?")])
+
+      assert Agent.answer("Am I ready?", [], guest_id: @guest) ==
+               {:ok, "Want me to run a team check for Roxanne?"}
+
+      assert_received {:request, _, _}
+      refute_received {:request, _, _}
+    end
   end
 end

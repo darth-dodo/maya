@@ -5,7 +5,8 @@ defmodule Maya.Agent.Answer do
   schema (https://openrouter.ai/docs/guides/features/structured-outputs) and checked here,
   since some providers treat the schema only as a hint. `check/3` is the honesty check
   (ADR-004): no write claim without a `log_event` or `set_setting` that confirmed, no talk about
-  tools. Cited ids are not checked: claims are checked against `ran` (#183). `spoken/1` keeps 2 to 3 spoken sentences.
+  tools, no promise of a tool action that did not run this turn (#222). Cited ids are not
+  checked: claims are checked against `ran` (#183). `spoken/1` keeps 2 to 3 spoken sentences.
   """
   use Ecto.Schema
   import Ecto.Changeset
@@ -71,6 +72,15 @@ defmodule Maya.Agent.Answer do
 
   @write_tools ["log_event", "set_setting"]
 
+  # A promise of a tool action instead of the call (#222, phone 2026-11-21): a sentence led by
+  # the action ("Running the team check now.") or by "I'll", "I will", "I'm" or "let me" with a
+  # look-up verb. A question is an offer ("Want me to run a team check?") and passes.
+  # shortcut: English look-up verbs only, widen from real transcripts and Render log lines.
+  @promise ~r/^(running|checking|looking|searching|pulling|fetching) (up|for|into|at|on|the|your|it|that|this|now)\b|\b(i['’]?ll|i will|let me) (run|check|look|search|pull|fetch|find)\b|\bi['’]?m (running|checking|looking|searching|pulling|fetching)\b/iu
+
+  # Read tools as the Guest hears them, "team_check" as "team check", to name one in the correction.
+  @read_tools ~w(search_guide gym_counter find_pokemon move_learnset find_trainer find_item team_check type_matchup)
+
   def claim_words, do: @claim_words ++ @change_words
   def tool_words, do: @tool_words
 
@@ -109,6 +119,9 @@ defmodule Maya.Agent.Answer do
       word = unbacked_claim(spoken, ran) ->
         {:error, {:unbacked_claim, word}}
 
+      promise = tool_promise(spoken, ran) ->
+        {:error, promise}
+
       true ->
         {:ok, spoken}
     end
@@ -123,6 +136,25 @@ defmodule Maya.Agent.Answer do
       refused = for {:refused, line} <- Map.values(ran), do: line
       text = Enum.reduce(refused, text, &String.replace(&2, &1, ""))
       Enum.find(@claim_words, &said?(text, &1)) || change_claim(text)
+    end
+  end
+
+  # `{:tool_promise, tool}` when a sentence promises a tool action the turn did not run: the named
+  # tool did not run, or none is named and no tool ran at all. `tool` is nil when none is named.
+  defp tool_promise(text, ran) do
+    promised? =
+      text
+      |> String.split(~r/(?<=[.!?])\s+/u)
+      |> Enum.any?(&(not String.ends_with?(&1, "?") and Regex.match?(@promise, &1)))
+
+    tool = Enum.find(@read_tools, &said?(text, String.replace(&1, "_", " ")))
+    ran_names = for name when is_binary(name) <- Map.values(ran), do: name
+
+    cond do
+      not promised? -> nil
+      tool -> if tool not in ran_names, do: {:tool_promise, tool}
+      ran == %{} -> {:tool_promise, nil}
+      true -> nil
     end
   end
 
@@ -158,6 +190,16 @@ defmodule Maya.Agent.Answer do
 
   defp why({:tool_talk, _word}),
     do: "it mentioned tools. Never mention tools or calls; say the result plainly. Reply again."
+
+  defp why({:tool_promise, nil}),
+    do:
+      "you said you would look something up, but made no tool call in this turn. Call the tool that answers " <>
+        "the Question now, in this turn, then reply with its result. Never announce a call."
+
+  defp why({:tool_promise, tool}),
+    do:
+      "you said you would run #{tool}, but did not call it in this turn. Call #{tool} now, in this turn, " <>
+        "then reply with its result. Never announce a call."
 
   defp why({:unbacked_claim, word}),
     do:

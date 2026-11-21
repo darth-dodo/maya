@@ -149,4 +149,52 @@ defmodule Maya.Agent.AnswerTest do
   test "a claim in a trimmed fourth sentence is never said, so it passes" do
     assert {:ok, "A. B. C."} = Answer.check(answer("A. B. C. Ralts logged."), %{})
   end
+
+  # #222, phone 2026-11-21 at 2 badges: both replies came with rounds=1, no tool call.
+  test "announcing a tool action that did not run is a tool promise naming the tool" do
+    for text <- [
+          "Running the team check for Wattson's gym now.",
+          "Not sure yet, since I haven't actually run the team check in this turn. I'll run it now.",
+          "Let me check the team check for Wattson.",
+          "I'm checking your team check against Wattson now.",
+          "I’ll run the team check now."
+        ] do
+      assert Answer.check(answer(text), %{}) == {:error, {:tool_promise, "team_check"}}, text
+    end
+
+    assert Answer.check(answer("Let me look that up for you."), %{}) ==
+             {:error, {:tool_promise, nil}}
+
+    assert Answer.check(answer("Checking the type matchup now."), %{"f" => "find_pokemon"}) ==
+             {:error, {:tool_promise, "type_matchup"}}
+  end
+
+  test "an offer, a done check or chat is not a tool promise" do
+    for text <- [
+          "Want me to run a team check for Wattson?",
+          "I can run a team check if you like?",
+          "Let me know when you reach Mauville.",
+          "I'll be here when you need me.",
+          "Your Mudkip is running strong.",
+          "Looking good, Mudkip would approve.",
+          "Running low on Potions is risky before Wattson."
+        ] do
+      assert {:ok, _} = Answer.check(answer(text), %{}), text
+    end
+
+    # The named tool ran, so "let me check" is only a lead-in to its result.
+    assert {:ok, _} =
+             Answer.check(answer("Let me check the team check: you're ready."), %{
+               "t" => "team_check"
+             })
+
+    # Some tool ran and none is named: the Answer is the result, not a promise.
+    assert {:ok, _} =
+             Answer.check(answer("Let me look: Ralts is on Route 102."), %{"f" => "find_pokemon"})
+  end
+
+  test "the tool promise correction names the tool to call this turn" do
+    assert Answer.correction({:tool_promise, "team_check"}) =~ "Call team_check now"
+    assert Answer.correction({:tool_promise, nil}) =~ "Call the tool that answers"
+  end
 end
