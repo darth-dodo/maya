@@ -236,6 +236,11 @@ defmodule Maya.Agent.TraceTest do
     assert {:ok, "Hi again."} = Agent.answer("Hi", [], guest_id: @guest)
   end
 
+  test "inets starts before opentelemetry, so the OTLP exporter initializes at boot" do
+    apps = Application.spec(:maya, :applications)
+    assert Enum.find_index(apps, &(&1 == :inets)) < Enum.find_index(apps, &(&1 == :opentelemetry))
+  end
+
   describe "config/runtime.exs" do
     setup do
       saved = for k <- ~w(LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY), do: {k, System.get_env(k)}

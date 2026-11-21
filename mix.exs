@@ -28,7 +28,9 @@ defmodule Maya.MixProject do
   def application do
     [
       mod: {Maya.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      # :inets (httpc) must be up before :opentelemetry starts the OTLP exporter, else the
+      # exporter fails with inets_not_started and spans from the first seconds are lost.
+      extra_applications: [:logger, :runtime_tools, :inets]
     ]
   end
 
