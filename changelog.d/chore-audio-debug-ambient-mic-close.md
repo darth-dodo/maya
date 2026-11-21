@@ -1,1 +1,0 @@
-Added: `/talk?audio_debug=1` can pick the audio session while Maya speaks (`play-and-record`, `ambient`, `playback`) and close the mic right after the release, and shows whether the mic is open, to test whether Spotify keeps playing
