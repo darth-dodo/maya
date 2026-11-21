@@ -234,12 +234,16 @@ The model's final reply SHALL be a JSON object with a non-empty string `answer` 
 - **THEN** the reply is rejected and handled as a rejected Answer
 
 ### Requirement: Honesty check with one corrective request
-Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` confirmed this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback line or an error, the Answer SHALL be the confirm or refused line of a write that ran, else the fallback line.
+Maya SHALL ignore cited ids that did not run this turn, and reject an Answer that talks about tools when the Question does not, or claims a write (an Event logged or refused, a Team or Dial changed) when no `log_event` or `set_setting` confirmed this turn. A rejected Answer SHALL never be spoken. Maya SHALL send one corrective request at most. When the turn would end in the fallback or an error, the Answer SHALL be the distinct confirm or refused lines of writes that ran, else the fallback line.
 
 #### Scenario: Claimed refusal without a tool call
 - **WHEN** the Question is "Can you add Ralts to my team?" and the stubbed model replies `{"answer": "I refused Ralts because your team is full.", "used_tool_calls": []}` with no tool call in this turn
 - **THEN** Maya sends one corrective request naming the reason
 - **AND** if the corrected reply passes, it is the Answer; if it fails again, the Answer is "Not sure I got that right, ask me again?"
+
+#### Scenario: Two writes refused alike
+- **WHEN** two `log_event` calls in one turn are refused with the same line and the Answer is then rejected twice
+- **THEN** the Answer is that refused line, said once
 
 #### Scenario: Cited tool call that did not happen
 - **WHEN** the model replies with `used_tool_calls` `["call_9"]` and no tool call `call_9` happened in this turn

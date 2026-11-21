@@ -162,7 +162,8 @@ defmodule Maya.Agent do
 
   defp give_up(%{confirms: lines} = turn, outcome) do
     Logger.info("agent said the confirm line instead of: #{outcome_tag(outcome)}")
-    done(turn, {:ok, Enum.join(lines, " ")})
+    # Two writes refused alike would say one line twice (#225).
+    done(turn, {:ok, lines |> Enum.uniq() |> Enum.join(" ")})
   end
 
   # Sums one reply's `usage` (absent fields count as 0) into the turn and counts the round.

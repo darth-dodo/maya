@@ -15,6 +15,17 @@ defmodule Maya.Events do
   # Team changes that can leave Progress as it was; then no Event is written (team-voice).
   @team_kinds ~w(set_lead set_team set_level)
   @team_max 6
+  @needs %{
+    "caught" => "To log a catch I need the Pokémon and its level.",
+    "evolved" => "To log an evolution I need the Pokémon it evolved from and into.",
+    "level_up" => "To log a level I need the Pokémon and its level.",
+    "set_level" => "To log a level I need the Pokémon and its level.",
+    "moved" => "To log a place I need its name.",
+    "released" => "To release a Pokémon I need to know which one.",
+    "deposited" => "To deposit a Pokémon I need to know which one.",
+    "withdrawn" => "To withdraw a Pokémon I need to know which one.",
+    "set_lead" => "To set a lead I need to know which Pokémon."
+  }
   @stale {:refused, "That Pokémon moved, so nothing changed."}
   # A catch repeated this soon is the agent logging it again, not a second catch (#116).
   # shortcut: a real identical second catch inside the window is not logged; upgrade to a
@@ -195,16 +206,27 @@ defmodule Maya.Events do
     end
   end
 
-  def change(progress, "evolved", %{"from" => from, "to" => to}, data)
+  # "Lotad evolved into Lombre at 18" is one Event: an optional level is set with it (#225).
+  def change(progress, "evolved", %{"from" => from, "to" => to} = details, data)
       when is_binary(from) and is_binary(to) do
+    level = details["level"]
+
     with {:ok, index} <- on_team(progress.team, from),
          {:ok, from_species} <- species(from, data),
          {:ok, to_species} <- species(to, data),
-         :ok <- evolves(from_species, to_species) do
-      team = List.update_at(progress.team, index, &Map.put(&1, "species", to_species.name))
+         :ok <- evolves(from_species, to_species),
+         :ok <- if(level == nil, do: :ok, else: level(level)) do
+      team =
+        List.update_at(
+          progress.team,
+          index,
+          &%{&1 | "species" => to_species.name, "level" => level || &1["level"]}
+        )
+
+      at = if level, do: " level #{level}", else: ""
 
       {:ok, %{progress | team: team},
-       "#{say(to_species.name)} logged, evolved from #{say(from_species.name)}."}
+       "#{say(to_species.name)}#{at} logged, evolved from #{say(from_species.name)}."}
     end
   end
 
@@ -219,8 +241,9 @@ defmodule Maya.Events do
     end
   end
 
+  # A known kind whose details do not fit says what that kind needs, so the next try can (#225).
   def change(_progress, kind, _details, _data) when kind in @kinds,
-    do: {:refused, "Not sure what to log there, so nothing changed."}
+    do: {:refused, Map.get(@needs, kind, "Not sure what to log there, so nothing changed.")}
 
   def change(_progress, _kind, _details, _data),
     do: {:refused, "I can log badges, catches, evolutions, levels and places."}

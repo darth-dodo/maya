@@ -176,6 +176,40 @@ defmodule Maya.EventsTest do
       assert change("evolved", %{"from" => "ralts", "to" => "kirlia"}) ==
                {:refused, "I can only log that for a Pokémon on your Team."}
     end
+
+    test "with a level, sets it with the evolution in one Event (#225)" do
+      progress = %{@progress | team: [%{"species" => "mudkip", "level" => 15}]}
+
+      assert {:ok, new, "Marshtomp level 16 logged, evolved from Mudkip."} =
+               change(progress, "evolved", %{
+                 "from" => "Mudkip",
+                 "to" => "Marshtomp",
+                 "level" => 16
+               })
+
+      assert new.team == [%{"species" => "marshtomp", "level" => 16}]
+    end
+
+    test "with a level out of range is refused" do
+      assert change("evolved", %{"from" => "mudkip", "to" => "marshtomp", "level" => 0}) ==
+               {:refused, "Levels go from 1 to 100."}
+    end
+
+    test "details that do not fit name what an evolution needs (#225)" do
+      assert change("evolved", %{"species" => "Lombre", "level" => 18}) ==
+               {:refused, "To log an evolution I need the Pokémon it evolved from and into."}
+    end
+  end
+
+  test "each known kind whose details do not fit says what it needs (#225)" do
+    for {kind, line} <- [
+          {"caught", "To log a catch I need the Pokémon and its level."},
+          {"set_level", "To log a level I need the Pokémon and its level."},
+          {"moved", "To log a place I need its name."},
+          {"released", "To release a Pokémon I need to know which one."},
+          {"set_lead", "To set a lead I need to know which Pokémon."}
+        ],
+        do: assert(change(kind, %{}) == {:refused, line})
   end
 
   describe "moved" do

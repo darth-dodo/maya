@@ -424,6 +424,46 @@ defmodule Maya.AgentTest do
       assert prompt =~ "Team: mudkip level 16, taillow level 12"
     end
 
+    # #225, phone 2026-11-21: two evolutions with levels and a catch, said in one breath.
+    test "\"Lotad evolved into Lombre at 18, Mudkip into Marshtomp at 25, and I caught Makuhita at 17\": all three logged" do
+      guest = "events-evolve-level"
+      progress = Maya.GameData.progress(guest)
+      {:ok, _, _} = Maya.Events.log(progress, "caught", %{"species" => "lotad", "level" => 16})
+
+      script([
+        calls([
+          {"lotad", "log_event",
+           ~s({"kind":"evolved","details":{"from":"Lotad","to":"Lombre","level":18}})},
+          {"mudkip", "log_event",
+           ~s({"kind":"evolved","details":{"from":"Mudkip","to":"Marshtomp","level":25}})},
+          {"makuhita", "log_event",
+           ~s({"kind":"caught","details":{"species":"Makuhita","level":17}})}
+        ]),
+        text("All logged.", ["lotad", "mudkip", "makuhita"])
+      ])
+
+      assert {:ok, "All logged."} =
+               Agent.answer(
+                 "Lotad evolved into Lombre at 18, Mudkip into Marshtomp at 25, and I caught Makuhita at 17",
+                 [],
+                 guest_id: guest
+               )
+
+      assert_received {:request, _, _}
+      assert_received {:request, _, second}
+
+      assert Enum.map(tool_messages(second), &Jason.decode!(&1["content"])) == [
+               %{"confirm" => "Lombre level 18 logged, evolved from Lotad."},
+               %{"confirm" => "Marshtomp level 25 logged, evolved from Mudkip."},
+               %{"confirm" => "Makuhita level 17 logged on the Team."}
+             ]
+
+      team = Maya.GameData.progress(guest).team
+      assert %{"species" => "lombre", "level" => 18} in team
+      assert %{"species" => "marshtomp", "level" => 25} in team
+      assert %{"species" => "makuhita", "level" => 17} in team
+    end
+
     test "gym_counter after a new lead lists the Team with Wingull first" do
       guest = "events-set-lead"
       progress = Maya.GameData.progress(guest)
@@ -614,6 +654,20 @@ defmodule Maya.AgentTest do
 
       assert Agent.answer("My Team is nobody", [], guest_id: "honesty-refused") ==
                {:ok, "A Team holds 1 to 6 Pokémon."}
+    end
+
+    # #225: two writes refused alike say the line once.
+    test "two writes refused with the same line, then the fallback, say it once" do
+      bad = ~s({"kind":"evolved","details":{"species":"Lombre","level":18}})
+
+      script([
+        calls([{"a", "log_event", bad}, {"b", "log_event", bad}]),
+        text("I need to check the tool."),
+        text("I need to check the tool.")
+      ])
+
+      assert Agent.answer("Add them", [], guest_id: "honesty-refused-twice") ==
+               {:ok, "To log an evolution I need the Pokémon it evolved from and into."}
     end
 
     # #192: a refused set_setting backs no "Humor set to 100.", so the refused line is said.
