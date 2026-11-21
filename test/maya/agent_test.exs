@@ -217,6 +217,28 @@ defmodule Maya.AgentTest do
       assert List.starts_with?(second["messages"], first["messages"])
     end
 
+    test "an anthropic/ model gets a breakpoint on the system prompt, so a full window still hits" do
+      script([text("Brawly is past the Next gym. Further ahead, no spoilers.")])
+
+      assert {:ok, _} =
+               Agent.answer("What about Brawly?", stored(1..30),
+                 model: "anthropic/claude-haiku-5.5",
+                 guest_id: @guest
+               )
+
+      assert_received {:request, _, %{"messages" => [system | rest]}}
+
+      assert %{
+               "role" => "system",
+               "content" => [
+                 %{"type" => "text", "text" => text, "cache_control" => %{"type" => "ephemeral"}}
+               ]
+             } = system
+
+      assert is_binary(text) and text != ""
+      assert rest == history(6..30) ++ [%{"role" => "user", "content" => "What about Brawly?"}]
+    end
+
     test "another model gets no cache_control" do
       script([text("Hi.")])
 
@@ -225,6 +247,8 @@ defmodule Maya.AgentTest do
 
       assert_received {:request, _, body}
       refute Map.has_key?(body, "cache_control")
+      assert %{"role" => "system", "content" => content} = hd(body["messages"])
+      assert is_binary(content)
     end
 
     test "the next turn's first request starts with the last turn's system prompt and history" do
@@ -339,8 +363,8 @@ defmodule Maya.AgentTest do
     assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: "one-badge")
     assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: "brand-new")
 
-    assert_received {:request, _, %{"messages" => [%{"content" => one_badge} | _]}}
-    assert_received {:request, _, %{"messages" => [%{"content" => brand_new} | _]}}
+    assert_received {:request, _, %{"messages" => [%{"content" => [%{"text" => one_badge}]} | _]}}
+    assert_received {:request, _, %{"messages" => [%{"content" => [%{"text" => brand_new}]} | _]}}
     assert one_badge =~ "Next gym: Brawly"
     assert brand_new =~ "Next gym: Roxanne"
   end
@@ -372,7 +396,7 @@ defmodule Maya.AgentTest do
       assert Maya.Horizon.next_gym(Maya.GameData.progress(guest)).leader == "Brawly"
 
       assert {:ok, _} = Agent.answer("Who is next?", [], guest_id: guest)
-      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]}}
+      assert_received {:request, _, %{"messages" => [%{"content" => [%{"text" => prompt}]} | _]}}
       assert prompt =~ "Next gym: Brawly (badge 2)"
     end
 
@@ -420,7 +444,7 @@ defmodule Maya.AgentTest do
       assert %{"confirm" => "Team set: " <> _} = Jason.decode!(logged)
 
       assert {:ok, _} = Agent.answer("Who leads?", [], guest_id: guest)
-      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]}}
+      assert_received {:request, _, %{"messages" => [%{"content" => [%{"text" => prompt}]} | _]}}
       assert prompt =~ "Team: mudkip level 16, taillow level 12"
     end
 
@@ -460,8 +484,11 @@ defmodule Maya.AgentTest do
       assert {:ok, "Humor set to 60 percent."} =
                Agent.answer("Maya, humor 60", [], guest_id: guest)
 
-      assert_received {:request, _, %{"messages" => [%{"content" => before} | _]}}
-      assert_received {:request, _, %{"messages" => [%{"content" => prompt} | _]} = second}
+      assert_received {:request, _, %{"messages" => [%{"content" => [%{"text" => before}]} | _]}}
+
+      assert_received {:request, _,
+                       %{"messages" => [%{"content" => [%{"text" => prompt}]} | _]} = second}
+
       assert before =~ "humor 75"
       assert prompt =~ "humor 60"
       assert [%{"content" => confirm}] = tool_messages(second)

@@ -158,8 +158,12 @@ defmodule Maya.SpoilerGateTest do
     for body <- bodies,
         %{"role" => role, "content" => content} <- body["messages"],
         role in ["system", "tool"],
-        do: content
+        do: text(content)
   end
+
+  # An anthropic/ system prompt is one text block with its cache breakpoint (#223).
+  defp text([%{"text" => text}]), do: text
+  defp text(content), do: content
 
   test "the move probes cover a Fact and two past-horizon species" do
     assert Enum.map(@probes["move_probes"], & &1["expect"]) == [

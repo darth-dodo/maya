@@ -9,8 +9,9 @@ defmodule Maya.Agent do
   `Maya.Agent.Answer.check/3`; a rejected one gets one corrective request, then the fallback
   line. At most 4 requests per Question. A write that ran is never silent: when the turn
   would end in the fallback line or an error, its confirm line is said instead (#183).
-  For `anthropic/` models every request also carries top-level `cache_control`, so the stable
-  front (tools, system prompt, history) is read from cache; other providers cache on their own
+  For `anthropic/` models every request also carries top-level `cache_control` (history) and an
+  explicit breakpoint on the system prompt block (tools and system prompt, which still hit when
+  the 25 turn window slides, #223); other providers cache on their own
   (https://openrouter.ai/docs/guides/best-practices/prompt-caching). Each Question ends with
   one info line of rounds, history turns and tokens, never content, and is one numbers-only
   trace of turn, round and tool spans (`Maya.Agent.Trace`, ADR-010).
@@ -283,7 +284,7 @@ defmodule Maya.Agent do
       json:
         Map.merge(cache_control(model), %{
           model: model,
-          messages: messages,
+          messages: cache_system(model, messages),
           tools: Tools.definitions(),
           response_format: Answer.response_format(),
           provider: %{require_parameters: true}
@@ -307,6 +308,16 @@ defmodule Maya.Agent do
   # Anthropic needs the field; OpenAI, Gemini and others cache on their own (OpenRouter docs).
   defp cache_control("anthropic/" <> _), do: %{cache_control: %{type: "ephemeral"}}
   defp cache_control(_model), do: %{}
+
+  # Explicit breakpoint after tools and system prompt: a full window drops its oldest turn
+  # each Question, so only this prefix still matches the last request (Anthropic caching docs).
+  defp cache_system("anthropic/" <> _, [%{role: "system", content: text} = system | rest]),
+    do: [
+      %{system | content: [%{type: "text", text: text, cache_control: %{type: "ephemeral"}}]}
+      | rest
+    ]
+
+  defp cache_system(_model, messages), do: messages
 
   defp client do
     config = Application.fetch_env!(:maya, :openrouter)

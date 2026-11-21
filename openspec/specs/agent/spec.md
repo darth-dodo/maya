@@ -545,7 +545,7 @@ Adding the three tools SHALL keep Answer time p95 at most 8 s, and each build PR
 - **AND** Answer time p95 after the change is at most 8 s
 
 ### Requirement: Prompt caching through OpenRouter
-For a model id starting with `anthropic/`, every agent request SHALL carry top-level `cache_control` `{"type": "ephemeral"}`; other models SHALL get no `cache_control`. Tools, system prompt and history SHALL keep their order, so while Progress is unchanged each request starts with the same messages as the one before it.
+For a model id starting with `anthropic/`, every agent request SHALL carry top-level `cache_control` `{"type": "ephemeral"}` and SHALL send the system prompt as one text block with `cache_control` `{"type": "ephemeral"}` (#223); other models SHALL get no `cache_control`. Tools, system prompt and history SHALL keep their order, so while Progress is unchanged each request starts with the same messages as the one before it.
 
 #### Scenario: Anthropic model
 - **WHEN** the configured model is `anthropic/claude-haiku-5.5` and a Question is answered in 2 rounds, the first calling a read tool
@@ -555,6 +555,13 @@ For a model id starting with `anthropic/`, every agent request SHALL carry top-l
 #### Scenario: Other model
 - **WHEN** the model is `google/gemini-3.8-flash`
 - **THEN** the request body has no `cache_control`
+- **AND** the system prompt is a plain string
+
+#### Scenario: Full window keeps the system prompt cached
+- **WHEN** the model is `anthropic/claude-haiku-5.5` and 30 turns are stored
+- **THEN** the first message is the system prompt as one text block with `cache_control` `{"type": "ephemeral"}`
+- **AND** the last 25 turns and the Question follow it
+- **AND** tools and system prompt are a cached prefix even though the window dropped its oldest turn; only a Progress change misses once
 
 #### Scenario: Next turn reuses the front
 - **WHEN** two Questions follow each other with no Progress change
