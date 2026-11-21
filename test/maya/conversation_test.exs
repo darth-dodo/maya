@@ -311,6 +311,9 @@ defmodule Maya.ConversationTest do
 
     Conversation.question(id, "RIFF", "question.wav")
     assert_receive {:tts_pid, tts_pid}
+    # The Progress read after TTS starts must finish first: taking the pool away mid-query exits
+    # the Conversation (a sandbox checkin, not a database error), so it restarted empty (#219).
+    assert_receive {:conversation, {:progress, _}}
     db_down()
 
     log =
