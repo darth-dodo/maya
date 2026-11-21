@@ -1,0 +1,1 @@
+Changed: README shows the 25-turn memory, typed Questions and the Question countdown, lists the ten agent tools, and updates the test count (693), coverage floor (90%), spoiler gate, mix tasks, BasicAuth status and ADRs (001 to 010)
