@@ -7,7 +7,11 @@ defmodule Maya.GameData.Reasons do
 
   @max 60
 
-  @doc "Every problem in the reasons as `{\"water on fire\", problem}`, `[]` when they are clean."
+  @doc """
+  Every problem in the reasons as `{"water on fire", problem}`, `[]` when they are clean:
+  `:duplicate`, `:fairy`, `:not_in_chart`, `:bad_line` (not one line of text), `:too_long`,
+  `:banned_word`, or `:bad_row` (a field missing).
+  """
   def problems(reasons, chart) do
     chart = Map.new(chart, &{{&1["attacker"], &1["defender"]}, &1["multiplier"]})
 
@@ -22,13 +26,14 @@ defmodule Maya.GameData.Reasons do
     cond do
       "fairy" in [a, d] -> :fairy
       not is_number(m) or chart[{a, d}] != m * 1.0 -> :not_in_chart
-      not is_binary(text) or text =~ "\n" or String.length(text) > @max -> :too_long
+      not is_binary(text) or text =~ "\n" -> :bad_line
+      String.length(text) > @max -> :too_long
       text =~ ~r/\b(beat|defeat)/i -> :banned_word
       true -> nil
     end
   end
 
-  defp problem(_row, _chart), do: :not_in_chart
+  defp problem(_row, _chart), do: :bad_row
 
   defp pair(r), do: "#{r["attacker"]} on #{r["defender"]}"
 end

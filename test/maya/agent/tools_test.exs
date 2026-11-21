@@ -66,7 +66,7 @@ defmodule Maya.Agent.ToolsTest do
                  progress
                )
 
-      assert %{multiplier: 2.0, reasons: ["Water puts out Fire."]} = fact
+      assert %{multiplier: 2.0, reasons: ["Water puts out fire."]} = fact
       assert fact.defender == %{name: "fire", types: ["fire"]}
     end
 
@@ -84,7 +84,7 @@ defmodule Maya.Agent.ToolsTest do
     end
 
     test "Electric on Ground is 0 with its reason line", %{progress: progress} do
-      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach Ground."]}} =
+      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach the ground."]}} =
                Tools.call(
                  "type_matchup",
                  %{"attacker" => "electric", "defender" => "ground"},
@@ -108,7 +108,7 @@ defmodule Maya.Agent.ToolsTest do
     test "Electric on Marshtomp is 0 and says only the Ground line", %{progress: progress} do
       team = [%{"species" => "marshtomp", "level" => 16}]
 
-      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach Ground."]}} =
+      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach the ground."]}} =
                Tools.call(
                  "type_matchup",
                  %{"attacker" => "electric", "defender" => "Marshtomp"},

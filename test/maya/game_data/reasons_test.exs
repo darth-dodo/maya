@@ -44,11 +44,20 @@ defmodule Maya.GameData.ReasonsTest do
 
   test "a pair twice and a line over 60 characters are reported" do
     long = String.duplicate("a", 61)
-    rows = [row("water", "fire", 2.0, "Water puts out Fire."), row("water", "fire", 2.0, long)]
+    rows = [row("water", "fire", 2.0, "Water puts out fire."), row("water", "fire", 2.0, long)]
 
     assert Reasons.problems(rows, @chart) == [
              {"water on fire", :duplicate},
              {"water on fire", :too_long}
+           ]
+  end
+
+  test "two lines or a missing field are reported" do
+    rows = [row("water", "fire", 2.0, "Water.\nFire."), %{"attacker" => "grass"}]
+
+    assert Reasons.problems(rows, @chart) == [
+             {"water on fire", :bad_line},
+             {"grass on ", :bad_row}
            ]
   end
 end

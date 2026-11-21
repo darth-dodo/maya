@@ -139,7 +139,7 @@ defmodule Maya.GameDataTest do
   test "type reasons: one row per line of type_reasons.json, read with the chart" do
     lines = "priv/data/type_reasons.json" |> File.read!() |> Jason.decode!()
     assert Repo.aggregate("type_reasons", :count) == length(lines)
-    assert GameData.type_reasons()[{"water", "fire"}] == "Water puts out Fire."
+    assert GameData.type_reasons()[{"water", "fire"}] == "Water puts out fire."
   end
 
   test "a reasons file with a bad row fails the import and changes nothing" do

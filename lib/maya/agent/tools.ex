@@ -300,7 +300,6 @@ defmodule Maya.Agent.Tools do
   defp defender(name, progress) do
     type = name |> String.trim() |> String.downcase()
     gym = Facts.gym(name)
-    species = !gym && GameData.species(Facts.species_name(name))
 
     cond do
       type in Facts.types() ->
@@ -310,13 +309,16 @@ defmodule Maya.Agent.Tools do
         {trainer, types} = matchup(gym, progress)
         {:gym, gym, trainer, types}
 
-      species ->
-        places = Facts.places(GameData.encounters(species.name), GameData.locations(), progress)
-        {:species, species, places, met_in_gyms(progress)}
-
       true ->
-        nil
+        species_defender(GameData.species(Facts.species_name(name)), progress)
     end
+  end
+
+  defp species_defender(nil, _progress), do: nil
+
+  defp species_defender(species, progress) do
+    places = Facts.places(GameData.encounters(species.name), GameData.locations(), progress)
+    {:species, species, places, met_in_gyms(progress)}
   end
 
   defp met_in_gyms(progress) do
