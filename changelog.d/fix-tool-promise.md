@@ -1,0 +1,1 @@
+Fixed: Maya no longer says she is running a team check (or any look-up) without doing it; she calls the tool in the same turn, and an Answer that only announces one gets one corrective request naming the tool.

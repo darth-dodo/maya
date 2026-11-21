@@ -290,6 +290,34 @@ A write claim SHALL be backed only by a `log_event` or `set_setting` whose tool 
 - **WHEN** `log_event` is refused with "Every badge is already logged." and the Answer says that line
 - **THEN** the Answer passes
 
+### Requirement: A tool is called, never promised
+The system prompt SHALL tell the model to call a tool in the same turn, before it replies, and never to announce a tool action. Maya SHALL reject an Answer whose sentence, not a question, promises a tool action ("Running the team check now.", "I'll run it now", "Let me check") when the named tool did not run this turn, or no tool is named and none ran. It SHALL send one corrective request, naming the tool when the Answer names one, then the fallback line (#222).
+
+#### Scenario: Prompt carries the call rule
+- **WHEN** the system prompt is built for any Progress
+- **THEN** it tells the model to call the tool in this same turn and never to announce a tool action
+
+#### Scenario: Wattson team check promised at 2 badges
+- **WHEN** the last turn offered a team check, the Question is "Yes" or "And what's the result?" and the stubbed model replies "Running the team check for Wattson's gym now." or "... I'll run it now." with no tool call
+- **THEN** Maya sends one corrective request saying "Call team_check now"
+- **AND** the model calls `team_check` and its Answer with the result is said
+
+#### Scenario: Promised again after the correction
+- **WHEN** both replies promise the team check and no tool ran
+- **THEN** the Answer is "Not sure I got that right, ask me again?" with no third request
+
+#### Scenario: An offer is not a promise
+- **WHEN** no tool ran and the Answer is "Want me to run a team check for Wattson?", "Looking good, Mudkip would approve." or "Let me know when you reach Mauville."
+- **THEN** the Answer passes with no corrective request
+
+#### Scenario: The named tool ran
+- **WHEN** `team_check` ran and the Answer is "Let me check the team check: you're ready.", or `gym_counter` ran and the Answer is "Let me check: Wattson uses Electric types. Want a team check too?"
+- **THEN** the Answer passes
+
+#### Scenario: Probe case
+- **WHEN** each `tool_promises` reply in the probe set runs through the agent with the model stubbed
+- **THEN** it ends corrected or replaced, never said
+
 ### Requirement: Tool calls during a database outage
 When Postgres cannot be reached during a tool call (`find_pokemon`, `gym_counter`, `move_learnset`, `search_guide`, `find_trainer`, `find_item`, `team_check`, `log_event`, `set_setting`), the tool SHALL return the error `notes_down` and never crash. The agent SHALL then end the turn with "I can't reach my notes right now, ask again soon?", after any confirm line, with no further request. The log SHALL name only the tool and the error kind.
 

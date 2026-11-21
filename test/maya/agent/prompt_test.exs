@@ -45,6 +45,13 @@ defmodule Maya.Agent.PromptTest do
     assert prompt =~ "State a correction plainly"
   end
 
+  test "a tool is called in the same turn, never announced (#222)" do
+    prompt = Prompt.system(@progress)
+    assert prompt =~ "call it in this same turn, before you reply"
+    assert prompt =~ "Never announce a tool action"
+    refute prompt =~ ~r/\b(beat|defeat)/i
+  end
+
   test "humor follows Progress and badges are counted" do
     prompt = Prompt.system(%{@progress | humor: 20, badges: [1]})
     assert prompt =~ "humor 20"
