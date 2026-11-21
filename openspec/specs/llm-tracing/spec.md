@@ -1,4 +1,9 @@
-## ADDED Requirements
+# llm-tracing Specification
+
+## Purpose
+A numbers-only Langfuse trace per Question (turn, round and tool spans) so agent latency, rounds, cache hits and tool misuse are visible without any Guest text leaving the app (ADR-010).
+
+## Requirements
 
 ### Requirement: One trace per Question
 When both Langfuse keys are set, each Question SHALL produce one trace with a turn span, one child span per round (completion request) and one child span per tool call. Each span's duration SHALL be its latency.
@@ -8,7 +13,7 @@ When both Langfuse keys are set, each Question SHALL produce one trace with a tu
 - **THEN** the exported trace has one turn span, 2 round spans and 1 tool span under the first round, each with a start and end time
 
 ### Requirement: Span numbers
-The turn span SHALL carry the model id, rounds, prompt, cached and completion tokens summed over rounds, the honesty check outcome (`ok` or a reason atom) and, on failure, the error reason atom. Each round span SHALL carry its own token counts. Each tool span SHALL carry the tool name and one status: `ok`, `not_found`, `past_horizon` or `error`.
+The turn span SHALL carry the model id, rounds, prompt, cached and completion tokens summed over rounds, the honesty check outcome (`ok` or a reason atom) and, on failure, the error reason atom. Each round span SHALL carry its own token counts. Each tool span SHALL carry the tool name (`unknown` for a name the model made up) and one status: `ok`, `not_found`, `past_horizon`, `refused` or `error`.
 
 #### Scenario: Turn numbers match the turn log line
 - **WHEN** a Question is answered with stubbed `usage` of 900 prompt, 600 cached and 40 completion tokens over 2 rounds

@@ -30,6 +30,7 @@ Track latency per stage (mic release, STT, agent, TTS first byte, playback start
 - Mistral Voxtral: `voxtral-mini-transcribe-3` (STT), Voxtral TTS 3, and `voxtral-mini-transcribe-realtime-3` (live preview over a server side WebSocket via `mint_web_socket`, off unless `MAYA_STT_REALTIME=true`; batch gives the final text until the eval says otherwise, ADR-009)
 - Mistral embeddings API (Bumblebee is too big for Render 512 MB)
 - Render web service `0.5c-512mb`, Frankfurt (permanent), Plug.BasicAuth
+- Langfuse Cloud Hobby, EU: numbers-only agent traces over OpenTelemetry (`opentelemetry`, `opentelemetry_api`, `opentelemetry_exporter`), off without both keys (ADR-010)
 - Hand-written GenServer agent loop. No agent library.
 
 ## Knowledge source
