@@ -108,7 +108,7 @@ defmodule Maya.Agent.Tools do
           type: "object",
           properties: %{
             attacker: %{type: "string", description: "Attacking type, e.g. water"},
-            defender: %{type: "string", description: "Type, Pokémon or gym leader (her ace)"}
+            defender: %{type: "string", description: "Type, Pokémon or gym leader (their ace)"}
           },
           required: ["defender"]
         }

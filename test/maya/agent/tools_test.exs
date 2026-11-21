@@ -105,6 +105,22 @@ defmodule Maya.Agent.ToolsTest do
       assert %{reasons: ["Water wears rock away."]} = Enum.find(fact.good, &(&1.type == "water"))
     end
 
+    test "Electric on Marshtomp is 0 and says only the Ground line", %{progress: progress} do
+      team = [%{"species" => "marshtomp", "level" => 16}]
+
+      assert {:ok, %{multiplier: +0.0, reasons: ["Electric cannot reach Ground."]}} =
+               Tools.call(
+                 "type_matchup",
+                 %{"attacker" => "electric", "defender" => "Marshtomp"},
+                 %{progress | team: team}
+               )
+    end
+
+    test "an empty attacker means no attacker", %{progress: progress} do
+      assert {:ok, %{good: [_ | _], avoid: [_ | _]}} =
+               Tools.call("type_matchup", %{"attacker" => " ", "defender" => "rock"}, progress)
+    end
+
     test "Fairy is not_found, as defender or attacker", %{progress: progress} do
       assert {:error, :not_found} = Tools.call("type_matchup", %{"defender" => "fairy"}, progress)
 

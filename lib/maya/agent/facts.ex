@@ -45,7 +45,7 @@ defmodule Maya.Agent.Facts do
               moves: p.moves
             }
 
-      ace = leader_team |> Enum.reverse() |> Enum.max_by(& &1.level)
+      ace = ace(leader_team)
 
       # shortcut: rates types, not moves (Progress has no moves); upgrade when the Team has moves.
       team =
@@ -140,7 +140,8 @@ defmodule Maya.Agent.Facts do
   (`avoid`), strongest first.
   """
   def type_matchup(attacker, defender, chart, reasons, progress) do
-    attacker = attacker && attacker |> String.trim() |> String.downcase()
+    attacker = if is_binary(attacker), do: attacker |> String.trim() |> String.downcase()
+    attacker = if attacker != "", do: attacker
 
     if is_nil(defender) or (attacker && attacker not in @types) do
       {:error, :not_found}
@@ -155,7 +156,7 @@ defmodule Maya.Agent.Facts do
     cond do
       not inside?(gym, progress) -> {:error, :past_horizon}
       is_nil(trainer) -> {:error, :not_found}
-      true -> {:ok, ace(gym, trainer, types)}
+      true -> leader_ace(gym, ace(trainer.pokemon), types)
     end
   end
 
@@ -165,10 +166,15 @@ defmodule Maya.Agent.Facts do
       else: {:error, :past_horizon}
   end
 
-  # The ace is the highest level, last on a tie, as for `gym_counter/5`.
-  defp ace(gym, trainer, types) do
-    ace = trainer.pokemon |> Enum.reverse() |> Enum.max_by(& &1.level)
-    %{leader: gym.leader, name: ace.species, types: types[ace.species] || []}
+  # A party's ace: the highest level, last on a tie.
+  defp ace(party), do: party |> Enum.reverse() |> Enum.max_by(& &1.level)
+
+  # An ace with no types would rate every type 1x, so it fails closed.
+  defp leader_ace(gym, ace, types) do
+    case types[ace.species] do
+      [_ | _] = t -> {:ok, %{leader: gym.leader, name: ace.species, types: t}}
+      _ -> {:error, :not_found}
+    end
   end
 
   defp rate(nil, d, chart, reasons) do
@@ -176,7 +182,7 @@ defmodule Maya.Agent.Facts do
       for a <- @types,
           m = product(a, d.types, chart),
           m != 1.0,
-          do: %{type: a, multiplier: m, reasons: reasons(a, d.types, reasons)}
+          do: %{type: a, multiplier: m, reasons: reasons(a, d.types, m, chart, reasons)}
 
     %{
       defender: d,
@@ -186,16 +192,25 @@ defmodule Maya.Agent.Facts do
   end
 
   defp rate(attacker, d, chart, reasons) do
+    m = product(attacker, d.types, chart)
+
     %{
       defender: d,
       attacker: attacker,
-      multiplier: product(attacker, d.types, chart),
-      reasons: reasons(attacker, d.types, reasons)
+      multiplier: m,
+      reasons: reasons(attacker, d.types, m, chart, reasons)
     }
   end
 
-  defp reasons(attacker, defender_types, reasons),
-    do: for(t <- defender_types, line = reasons[{attacker, t}], do: line)
+  # Only lines that point the way the product does: Electric on Water and Ground is 0, so
+  # "Water carries a shock." is left out; at exactly 1 no line is said.
+  defp reasons(attacker, defender_types, m, chart, reasons) do
+    for t <- defender_types,
+        line = reasons[{attacker, t}],
+        pair = Map.get(chart, {attacker, t}, 1.0),
+        (m > 1 and pair > 1) or (m < 1 and pair < 1),
+        do: line
+  end
 
   @doc """
   Types, evolutions and wild places inside the horizon. A species with no wild place inside the
